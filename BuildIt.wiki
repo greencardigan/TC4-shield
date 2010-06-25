@@ -10,10 +10,10 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
   * ambient temperature sensor MCP9800
   * 2 outputs for driving SSR
 
-*Parts list (work in progress-- see remaining parts from Eagle BOM below) :*
+*Parts list ( TODO: fill-in the 'fixme' entries ) :*
 
 || *Qty* || *Item* || *Mouser* || *Digikey*|| *Price (each)* || *Notes* ||
-|| 1 || MCP3424 || N/A? ||  MCP3424-E/SL-ND ||   $3.91 || ||
+|| 1 || MCP3424 || not in stock? ||  MCP3424-E/SL-ND ||   $3.91 || ||
 ||1 || MCP9800 ||579-MCP9800A0T-M/OT || fixme ||  $1.26  || ||
 || 6 || Phoenix MPT2 screw term. || 651-1725656 || fixme || $1.11 ||  ||
 || 2 || 8-pin header || fixme || S7006-ND || $0.70 || note 1,2 ||
