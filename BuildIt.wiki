@@ -12,11 +12,12 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 
 Parts list:
 
-|| *Qty* || *Item* || *Mouser* || *Digikey*|| *Price* ||
+|| *Qty* || *Item* || *Mouser* || *Digikey*|| *Price (each)* ||
 || 1 || MCP3424 || N/A? ||  MCP3424-E/SL-ND ||   $3.91 ||
 ||1 || MCP9800 ||579-MCP9800A0T-M/OT || fixme ||  $1.26  ||
 || 6 || Phoenix MPT2 screw term. || 651-1725656 || fixme || $1.11 ||
-
+|| 2 || 8-pin header || fixme || S7006-ND || 0.70 ||
+|| 2 || 6-pin header || fixme || S7004-ND || 0.56 ||
 ---------------------
  from eagle (delete these lines, once they are specified above)
 
@@ -28,11 +29,6 @@ Part       Value     Device          Package      Description
   * C3         0.1uF     C-EU025-025X050 C025-025X050 CAPACITOR, European symbol                                                                  
 
   * D1         1N4148    1N4148DO35-7    DO35-7       DIODE                                                                                       
-
-  * J2_ANALOG            M06SIP          1X06         Header 6                                                                                    
-  * POWER                M06SIP          1X06         Header 6                                                                                    
-  * J1_DIGITAL           M08             1X08         Header 8                                                                                    
-  * J3_DIGITAL           M08             1X08         Header 8                                                                                    
 
   * JP1        STAND-OFF STAND-OFF       STAND-OFF    Stand Off                                                                                   
   * JP10                 JP1E            JP1          JUMPER                                                                                      
