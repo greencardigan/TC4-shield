@@ -1,0 +1,59 @@
+#summary Parts list and assembly instructions
+
+= Introduction =
+
+This shield should fit any of the Arduino boards or clones. It has been tested with the "Duemilanove", which is a handy choice since it has a built-in USB connector for data logging.  You can find the Arduino and its clones many places, including Modern Devices and Sparkfun.
+
+= Details =
+
+  * 4-channel ADC chip: MCP3424 I2C
+  * ambient temperature sensor MCP9800
+  * 2 outputs for driving SSR
+
+Parts list:
+
+qty 1, MCP9800   Mouser part# 579-MCP9800A0T-M/OT   $1.26  also available at Mouser
+qty 1, MCP3424   Digikey part# MCP3424-E/SL-ND   $3.91
+
+qty 6, Phoenix MPT2 green screw terminals Mouser# 651-1725656, $1.11
+
+---------------------
+ from eagle 
+
+
+Part       Value     Device          Package      Description                                                                                 
+
+ADC1       MCP3424SL MCP3424SL       SO14         18-bit multi-channel delta-sigma AD converter with I2C interface. Microchip. Farnell 1630424
+U1         MCP9800   MCP9800         SOT23-5L     Temperature sensor I2C output, Microchip. Farnell 1439485                                   
+
+C1         10uF      CPOL-EUE2,5-6E  E2,5-6E      POLARIZED CAPACITOR, European symbol                                                        
+C2         0.1uF     C-EU025-025X050 C025-025X050 CAPACITOR, European symbol                                                                  
+C3         0.1uF     C-EU025-025X050 C025-025X050 CAPACITOR, European symbol                                                                  
+
+D1         1N4148    1N4148DO35-7    DO35-7       DIODE                                                                                       
+
+J2_ANALOG            M06SIP          1X06         Header 6                                                                                    
+POWER                M06SIP          1X06         Header 6                                                                                    
+J1_DIGITAL           M08             1X08         Header 8                                                                                    
+J3_DIGITAL           M08             1X08         Header 8                                                                                    
+
+JP1        STAND-OFF STAND-OFF       STAND-OFF    Stand Off                                                                                   
+JP10                 JP1E            JP1          JUMPER                                                                                      
+JP20                 JP1E            JP1          JUMPER                                                                                      
+JP30                 JP1E            JP1          JUMPER                                                                                      
+JP40                 JP1E            JP1          JUMPER                                                                                      
+
+Q1         2N3904    2N3904          TO92D        NPN TRANSISTOR                                                                              
+Q2         2N3904    2N3904          TO92D        NPN TRANSISTOR                                                                              
+
+R1         4.7K      R-US_0204/7     0204/7       RESISTOR, American symbol                                                                   
+R2         4.7K      R-US_0204/7     0204/7       RESISTOR, American symbol                                                                   
+R3         5.6K      R-US_0204/7     0204/7       RESISTOR, American symbol                                                                   
+R4         5.6K      R-US_0204/7     0204/7       RESISTOR, American symbol                                                                   
+
+OT1                  MPT2            2POL254      PHOENIX CONNECTOR                                                                           
+OT2                  MPT2            2POL254      PHOENIX CONNECTOR                                                                           
+TC1                  MPT2            2POL254      PHOENIX CONNECTOR                                                                           
+TC2                  MPT2            2POL254      PHOENIX CONNECTOR                                                                           
+TC3                  MPT2            2POL254      PHOENIX CONNECTOR                                                                           
+TC4                  MPT2            2POL254      PHOENIX CONNECTOR                                                                           
