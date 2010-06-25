@@ -22,11 +22,11 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 || 2 || 8-pin male header || 538-22-28-4085 || WM6408-ND || $0.54 || note 1,2 ||
 || 2 || 6-pin male header || 538-22-28-4065 || WM6406-ND || $0.46 || note 1,2 ||
 || 2 || 2N3904 NPN transistor || 610-2N3904 || 2N3904FS-ND || $0.10 || note 3,4 ||
-|| 2 || 4.7K ohm resistor, 1/8W || fixme || RNF1/8T14.75KFRCT-ND || $0.04 || note 4,6 ||
-|| 2 || 5.6K ohm resistor, 1/8W || fixme || RNF1/8T15.36KFRCT-ND || $0.04 || note 4,6 ||
+|| 2 || 4.7K ohm resistor, 1/8W || 270-4.7K-RC || RNF1/8T14.75KFRCT-ND || $0.15 || note 4,6 ||
+|| 2 || 5.6K ohm resistor, 1/8W || 270-5.6K-RC || RNF1/8T15.36KFRCT-ND || $0.15 || note 4,6 ||
 || 1 || 1N4148 diode || 512-1N4148 || 1N4148TACT-ND || $0.03 || note 4 ||
-|| 1 || 10 uF capacitor || 647-UVR1C100MDD1TD || 493-1372-ND|| $0.03 || note 4 ||
-|| 2 || 0.1 uF capacitor || 594-K104Z15Y5VF5TL2 || BC1160CT-ND || $0.03 || note 4 ||
+|| 1 || 10 uF electrolytic capacitor || 647-UVR1C100MDD1TD || 493-1372-ND|| $0.03 || note 4 ||
+|| 2 || 0.1 uF ceramic capacitor || 594-K104Z15Y5VF5TL2 || BC1160CT-ND || $0.03 || note 4 ||
 || 1 || Breakaway header || 538-22-28-4085 || WM6408-ND || $0.59 || note 5 ||
 
 *Notes*
