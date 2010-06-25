@@ -24,7 +24,7 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 || 1 || 1N4148 diode || 512-1N4148 || fixme || $0.03 || note 4 ||
 
 *Notes*
-  # You may prefer the 'stackable' headers, for example Sparkfun PRT-09280 and PRT-09279
+  # You may prefer the 'stackable' headers, for example Sparkfun PRT-09280 and PRT-09279 if you want to stack another shield on top of this one
   # Or you could buy a 36-pin and cut apart to make your own.
   # 2N2222 or other NPN might work just as well
   # probably available locally at Radio Shack, etc.
