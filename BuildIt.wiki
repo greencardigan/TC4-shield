@@ -23,9 +23,8 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 || 2 || 5.6K ohm resistor || 71-CCF07-J-5.6K || fixme || $0.04 || note 4 ||
 || 1 || 1N4148 diode || 512-1N4148 || fixme || $0.03 || note 4 ||
 || 1 || 10 uF capacitor || 647-UVR1C100MDD1TD || fixme || $0.03 || note 4 ||
-|| 1 || 0.1 uF capacitor || 647-UVR1C100MDD1TD || fixme || $0.03 || note 4 ||
+|| 2 || 0.1 uF capacitor || 594-K104Z15Y5VF5TL2 || fixme || $0.03 || note 4 ||
 || 1 || Breakaway header || 538-22-28-4125 || fixme || $0.59 || note 5 ||
-
 
 *Notes*
   # You may prefer the 'stackable' headers, for example Sparkfun PRT-09280 and PRT-09279 if you want to stack another shield on top of this one
@@ -35,13 +34,4 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
   # break apart to make all of the two-pin headers
 
 ---------------------
-* TODO: get part numbers for these remaining parts. *
-* this is from the Eagle schematic (delete these lines, once they are specified above)*
-
-
-Part       Value     Device          Package      Description                                                                                 
-
-  * C2         0.1uF     C-EU025-025X050 C025-025X050 CAPACITOR, European symbol                                                                  
-  * C3         0.1uF     C-EU025-025X050 C025-025X050 CAPACITOR, European symbol                                                                  
-
                                                                   
