@@ -41,10 +41,7 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 
 Part       Value     Device          Package      Description                                                                                 
 
-  * C1         10uF      CPOL-EUE2,5-6E  E2,5-6E      POLARIZED CAPACITOR, European symbol                                                        
   * C2         0.1uF     C-EU025-025X050 C025-025X050 CAPACITOR, European symbol                                                                  
   * C3         0.1uF     C-EU025-025X050 C025-025X050 CAPACITOR, European symbol                                                                  
-
-  * JP1        STAND-OFF STAND-OFF       STAND-OFF    Stand Off                                                                                   
 
                                                                   
