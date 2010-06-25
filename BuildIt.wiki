@@ -2,7 +2,7 @@
 
 = Introduction =
 
-This shield should fit any of the Arduino boards or clones. It has been tested with the "Duemilanove", which is a handy choice since it has a built-in USB connector for data logging.  You can find the Arduino and its clones many places, including Modern Devices and Sparkfun.
+This shield should fit any of the Arduino boards or clones. It has been tested with the "Duemilanove", which is a handy choice since it has a built-in USB connector for data logging.  You can find the Arduino and its clones many places, including Modern Devices and Sparkfun.  Typical cost is around $30.
 
 = Details =
 
