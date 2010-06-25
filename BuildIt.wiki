@@ -19,6 +19,8 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 || 2 || 8-pin header || fixme || S7006-ND || $0.70 || note 1,2 ||
 || 2 || 6-pin header || fixme || S7004-ND || $0.56 || note 1,2 ||
 || 2 || 2N3904 NPN transistor || 610-2N3904 || fixme || $0.10 || note 3,4 ||
+|| 2 || 4.7K ohm resistor || 71-CCF074K70GKE36 || fixme || $0.04 || note 4 ||
+|| 2 || 5.6K ohm resistor || 71-CCF07-J-5.6K || fixme || $0.04 || note 4 ||
 || 1 || 1N4148 diode || 512-1N4148 || fixme || $0.03 || note 4 ||
 
 *Notes*
@@ -43,8 +45,4 @@ Part       Value     Device          Package      Description
   * JP30                 JP1E            JP1          JUMPER                                                                                      
   * JP40                 JP1E            JP1          JUMPER                                                                                      
 
-  * R1         4.7K      R-US_0204/7     0204/7       RESISTOR, American symbol                                                                   
-  * R2         4.7K      R-US_0204/7     0204/7       RESISTOR, American symbol                                                                   
-  * R3         5.6K      R-US_0204/7     0204/7       RESISTOR, American symbol                                                                   
-  * R4         5.6K      R-US_0204/7     0204/7       RESISTOR, American symbol 
                                                                   
