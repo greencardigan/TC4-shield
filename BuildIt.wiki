@@ -17,23 +17,23 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 
 || *Qty* || *Item* || *Mouser* || *Digikey*|| *Price (each)* || *Notes* ||
 || 1 || MCP3424 || not in stock? ||  MCP3424-E/SL-ND ||   $3.91 || ||
-||1 || MCP9800 ||579-MCP9800A0T-M/OT || fixme ||  $1.26  || ||
-|| 6 || Phoenix MPT2 screw term. || 651-1725656 || fixme || $1.11 ||  ||
+||1 || MCP9800 ||579-MCP9800A0T-M/OT || MCP9800A0T-MOTGCT-ND ||  $1.26  || ||
+|| 6 || Phoenix MPT2 screw term. || 651-1725656 || 277-1273-ND || $1.11 ||  ||
 || 2 || 8-pin female header || fixme || S7006-ND || $0.70 || note 1,2 ||
 || 2 || 6-pin female header || fixme || S7004-ND || $0.56 || note 1,2 ||
-|| 2 || 2N3904 NPN transistor || 610-2N3904 || fixme || $0.10 || note 3,4 ||
-|| 2 || 4.7K ohm resistor || 71-CCF074K70GKE36 || fixme || $0.04 || note 4 ||
-|| 2 || 5.6K ohm resistor || 71-CCF07-J-5.6K || fixme || $0.04 || note 4 ||
-|| 1 || 1N4148 diode || 512-1N4148 || fixme || $0.03 || note 4 ||
+|| 2 || 2N3904 NPN transistor || 610-2N3904 || 2N3904FS-ND || $0.10 || note 3,4 ||
+|| 2 || 4.7K ohm resistor || 71-CCF074K70GKE36 || RNF1/8T14.75KFRCT-ND || $0.04 || note 4 ||
+|| 2 || 5.6K ohm resistor || 71-CCF07-J-5.6K || RNF1/8T15.36KFRCT-ND || $0.04 || note 4 ||
+|| 1 || 1N4148 diode || 512-1N4148 || 1N4148TACT-ND || $0.03 || note 4 ||
 || 1 || 10 uF capacitor || 647-UVR1C100MDD1TD || fixme || $0.03 || note 4 ||
-|| 2 || 0.1 uF capacitor || 594-K104Z15Y5VF5TL2 || fixme || $0.03 || note 4 ||
+|| 2 || 0.1 uF capacitor || 594-K104Z15Y5VF5TL2 || BC1160CT-ND || $0.03 || note 4 ||
 || 1 || Breakaway header || 538-22-28-4125 || fixme || $0.59 || note 5 ||
 
 *Notes*
   # You may prefer the 'stackable' headers, for example Sparkfun PRT-09280 and PRT-09279 if you want to stack another shield on top of this one
   # Or you could buy a 36-pin Mouser 517-974-01-36 and cut apart to make your own 6-pin and 8-pin headers.
   # 2N2222 or other NPN might work just as well
-  # probably available locally at Radio Shack, etc.
+  # probably available locally at Radio Shack, etc. (check size -- hole spacing is 7 mm)
   # break apart to make all of the two-pin headers
 
 ---------------------
