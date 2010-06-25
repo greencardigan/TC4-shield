@@ -10,18 +10,18 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
   * ambient temperature sensor MCP9800
   * 2 outputs for driving SSR
 
-*Parts list:*
+*Parts list (work in progress-- see remaining parts from Eagle BOM below) :*
 
-|| *Qty* || *Item* || *Mouser* || *Digikey*|| *Price (each)* || *Note* ||
+|| *Qty* || *Item* || *Mouser* || *Digikey*|| *Price (each)* || *Notes* ||
 || 1 || MCP3424 || N/A? ||  MCP3424-E/SL-ND ||   $3.91 || ||
 ||1 || MCP9800 ||579-MCP9800A0T-M/OT || fixme ||  $1.26  || ||
 || 6 || Phoenix MPT2 screw term. || 651-1725656 || fixme || $1.11 ||  ||
-|| 2 || 8-pin header || fixme || S7006-ND || 0.70 || note 1 ||
-|| 2 || 6-pin header || fixme || S7004-ND || 0.56 || note 1 ||
+|| 2 || 8-pin header || fixme || S7006-ND || 0.70 || note 1,2 ||
+|| 2 || 6-pin header || fixme || S7004-ND || 0.56 || note 1,2 ||
 
 *Notes*
   # You may prefer the 'stackable' headers, for example Sparkfun PRT-09280 and PRT-09279
-
+  # Or you could buy a 36-pin and cut apart to make your own.
 
 ---------------------
  from eagle (delete these lines, once they are specified above)
