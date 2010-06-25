@@ -10,7 +10,7 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
   * ambient temperature sensor MCP9800
   * 2 outputs for driving SSR
 
-*Parts list ( TODO: fill-in the 'fixme' entries ) :*
+*Parts list ( TODO: please review for correct part numbers and fill-in the 'fixme' entries ) :*
 
   * *Arduino or clone $30 + shipping*
   * *PCB from Jim. $6 + shipping*
