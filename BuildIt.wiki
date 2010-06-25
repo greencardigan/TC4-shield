@@ -16,8 +16,8 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 || 1 || MCP3424 || N/A? ||  MCP3424-E/SL-ND ||   $3.91 || ||
 ||1 || MCP9800 ||579-MCP9800A0T-M/OT || fixme ||  $1.26  || ||
 || 6 || Phoenix MPT2 screw term. || 651-1725656 || fixme || $1.11 ||  ||
-|| 2 || 8-pin header || fixme || S7006-ND || 0.70 || note 1,2 ||
-|| 2 || 6-pin header || fixme || S7004-ND || 0.56 || note 1,2 ||
+|| 2 || 8-pin header || fixme || S7006-ND || $0.70 || note 1,2 ||
+|| 2 || 6-pin header || fixme || S7004-ND || $0.56 || note 1,2 ||
 
 *Notes*
   # You may prefer the 'stackable' headers, for example Sparkfun PRT-09280 and PRT-09279
