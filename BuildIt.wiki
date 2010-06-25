@@ -12,9 +12,10 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 
 Parts list:
 
-  * qty 1, MCP3424   Digikey part# MCP3424-E/SL-ND   $3.91
-  * qty 1, MCP9800   Mouser part# 579-MCP9800A0T-M/OT   $1.26  also available at Mouser
-  * qty 6, Phoenix MPT2 green screw terminals Mouser# 651-1725656, $1.11
+|| *Qty* || *Item* || *Mouser* || *Digikey*|| *Price* ||
+|| 1 || MCP3424 || N/A? ||  MCP3424-E/SL-ND ||   $3.91 ||
+||1 || MCP9800 ||579-MCP9800A0T-M/OT || fixme ||  $1.26  ||
+|| 6 || Phoenix MPT2 screw term. || 651-1725656 || fixme || $1.11 ||
 
 ---------------------
  from eagle (delete these lines, once they are specified above)
