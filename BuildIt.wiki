@@ -15,6 +15,8 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
   * *Arduino or clone $30 + shipping*
   * *PCB from Jim. $6 + shipping*
 
+Note: If Mouser or Digikey are out of stock, you might try this search engine: [http://octopart.com/parts/search?q=MCP3424-E/SL OctoPart]
+
 || *Qty* || *Item* || *Mouser* || *Digikey*|| *Price (each)* || *Notes* ||
 || 1 || MCP3424 (SMD) || 579-MCP3424-E/SL ||  MCP3424-E/SL-ND ||   $4.26 || note 7 ||
 ||1 || MCP9800 (SMD) ||579-MCP9800A0T-M/OT || MCP9800A0T-MOTGCT-ND ||  $1.26  || ||
