@@ -18,11 +18,14 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 || 6 || Phoenix MPT2 screw term. || 651-1725656 || fixme || $1.11 ||  ||
 || 2 || 8-pin header || fixme || S7006-ND || $0.70 || note 1,2 ||
 || 2 || 6-pin header || fixme || S7004-ND || $0.56 || note 1,2 ||
+|| 2 || 2N3904 NPN transistor || 610-2N3904 || fixme || $0.10 || note 3,4 ||
+|| 1 || 1N4148 diode || 512-1N4148 || fixme || $0.03 || note 4 ||
 
 *Notes*
   # You may prefer the 'stackable' headers, for example Sparkfun PRT-09280 and PRT-09279
   # Or you could buy a 36-pin and cut apart to make your own.
-
+  # 2N2222 or other NPN might work just as well
+  # probably available locally at Radio Shack, etc.
 ---------------------
 * TODO: get part numbers for these remaining parts. *
 * this is from the Eagle schematic (delete these lines, once they are specified above)*
@@ -34,16 +37,11 @@ Part       Value     Device          Package      Description
   * C2         0.1uF     C-EU025-025X050 C025-025X050 CAPACITOR, European symbol                                                                  
   * C3         0.1uF     C-EU025-025X050 C025-025X050 CAPACITOR, European symbol                                                                  
 
-  * D1         1N4148    1N4148DO35-7    DO35-7       DIODE                                                                                       
-
   * JP1        STAND-OFF STAND-OFF       STAND-OFF    Stand Off                                                                                   
   * JP10                 JP1E            JP1          JUMPER                                                                                      
   * JP20                 JP1E            JP1          JUMPER                                                                                      
   * JP30                 JP1E            JP1          JUMPER                                                                                      
   * JP40                 JP1E            JP1          JUMPER                                                                                      
-
-  * Q1         2N3904    2N3904          TO92D        NPN TRANSISTOR                                                                              
-  * Q2         2N3904    2N3904          TO92D        NPN TRANSISTOR                                                                              
 
   * R1         4.7K      R-US_0204/7     0204/7       RESISTOR, American symbol                                                                   
   * R2         4.7K      R-US_0204/7     0204/7       RESISTOR, American symbol                                                                   
