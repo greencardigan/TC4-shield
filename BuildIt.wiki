@@ -19,20 +19,20 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 || 1 || MCP3424 || not in stock? ||  MCP3424-E/SL-ND ||   $3.91 || ||
 ||1 || MCP9800 ||579-MCP9800A0T-M/OT || MCP9800A0T-MOTGCT-ND ||  $1.26  || ||
 || 6 || Phoenix MPT2 screw term. || 651-1725656 || 277-1273-ND || $1.11 ||  ||
-|| 2 || 8-pin female header || note 1,2 || note 1,2 || $0.50 || note 1,2 ||
-|| 2 || 6-pin female header || note 1,2 || note 1,2 || $0.50 || note 1,2 ||
+|| 2 || 8-pin male header || 538-22-28-4085 || WM6408-ND || $0.54 || note 1,2 ||
+|| 2 || 6-pin male header || 538-22-28-4065 || WM6406-ND || $0.46 || note 1,2 ||
 || 2 || 2N3904 NPN transistor || 610-2N3904 || 2N3904FS-ND || $0.10 || note 3,4 ||
 || 2 || 4.7K ohm resistor, 1/8W || 71-CCF074K70GKE36 || RNF1/8T14.75KFRCT-ND || $0.04 || note 4 ||
 || 2 || 5.6K ohm resistor, 1/8W || 71-CCF07-J-5.6K || RNF1/8T15.36KFRCT-ND || $0.04 || note 4 ||
 || 1 || 1N4148 diode || 512-1N4148 || 1N4148TACT-ND || $0.03 || note 4 ||
 || 1 || 10 uF capacitor || 647-UVR1C100MDD1TD || 493-1372-ND|| $0.03 || note 4 ||
 || 2 || 0.1 uF capacitor || 594-K104Z15Y5VF5TL2 || BC1160CT-ND || $0.03 || note 4 ||
-|| 1 || Breakaway header || 538-22-28-4125 || WM6408-ND || $0.59 || note 5 ||
+|| 1 || Breakaway header || 538-22-28-4085 || WM6408-ND || $0.59 || note 5 ||
 
 *Notes*
   # Use 'stackable' headers, for example Sparkfun PRT-09280 and PRT-09279 if you want to stack another shield on top of this one
-  # Or you could buy a 36-pin Mouser 517-974-01-36 and cut apart to make your own 6-pin and 8-pin headers.
-  # 2N2222 or other NPN might work just as well
+  # Or you could buy a 28-pin Mouser 538-22-28-4285 and cut apart to make your own 6-pin and 8-pin headers.
+  # almost any NPN transistor will work here (2N2222, BC547 for instance)
   # probably available locally at Radio Shack, etc. (for resistors, value is not critical; but check size -- hole spacing is 7 mm on PCB)
   # break apart to make all of the two-pin headers
 
