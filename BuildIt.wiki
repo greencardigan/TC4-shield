@@ -12,19 +12,15 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 
 Parts list:
 
-qty 1, MCP9800   Mouser part# 579-MCP9800A0T-M/OT   $1.26  also available at Mouser
-qty 1, MCP3424   Digikey part# MCP3424-E/SL-ND   $3.91
-
-qty 6, Phoenix MPT2 green screw terminals Mouser# 651-1725656, $1.11
+  qty 1, MCP3424   Digikey part# MCP3424-E/SL-ND   $3.91
+  qty 1, MCP9800   Mouser part# 579-MCP9800A0T-M/OT   $1.26  also available at Mouser
+  qty 6, Phoenix MPT2 green screw terminals Mouser# 651-1725656, $1.11
 
 ---------------------
- from eagle 
+ from eagle (delete these lines, once they are specified above)
 
 
 Part       Value     Device          Package      Description                                                                                 
-
-ADC1       MCP3424SL MCP3424SL       SO14         18-bit multi-channel delta-sigma AD converter with I2C interface. Microchip. Farnell 1630424
-U1         MCP9800   MCP9800         SOT23-5L     Temperature sensor I2C output, Microchip. Farnell 1439485                                   
 
 C1         10uF      CPOL-EUE2,5-6E  E2,5-6E      POLARIZED CAPACITOR, European symbol                                                        
 C2         0.1uF     C-EU025-025X050 C025-025X050 CAPACITOR, European symbol                                                                  
@@ -50,10 +46,3 @@ R1         4.7K      R-US_0204/7     0204/7       RESISTOR, American symbol
 R2         4.7K      R-US_0204/7     0204/7       RESISTOR, American symbol                                                                   
 R3         5.6K      R-US_0204/7     0204/7       RESISTOR, American symbol                                                                   
 R4         5.6K      R-US_0204/7     0204/7       RESISTOR, American symbol                                                                   
-
-OT1                  MPT2            2POL254      PHOENIX CONNECTOR                                                                           
-OT2                  MPT2            2POL254      PHOENIX CONNECTOR                                                                           
-TC1                  MPT2            2POL254      PHOENIX CONNECTOR                                                                           
-TC2                  MPT2            2POL254      PHOENIX CONNECTOR                                                                           
-TC3                  MPT2            2POL254      PHOENIX CONNECTOR                                                                           
-TC4                  MPT2            2POL254      PHOENIX CONNECTOR                                                                           
