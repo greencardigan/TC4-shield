@@ -13,7 +13,7 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 *Parts list ( TODO: fill-in the 'fixme' entries ) :*
 
   * *Arduino or clone $30 + shipping*
-  * *PCB from Jim. $6 + shippng*
+  * *PCB from Jim. $6 + shipping*
 
 || *Qty* || *Item* || *Mouser* || *Digikey*|| *Price (each)* || *Notes* ||
 || 1 || MCP3424 || not in stock? ||  MCP3424-E/SL-ND ||   $3.91 || ||
