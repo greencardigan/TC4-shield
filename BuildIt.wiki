@@ -16,7 +16,7 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
   * *PCB from Jim. $6 + shipping*
 
 || *Qty* || *Item* || *Mouser* || *Digikey*|| *Price (each)* || *Notes* ||
-|| 1 || MCP3424 (SMD) || 579-MCP3424-E/SL ||  MCP3424-E/SL-ND ||   $4.26 || | note 7|
+|| 1 || MCP3424 (SMD) || 579-MCP3424-E/SL ||  MCP3424-E/SL-ND ||   $4.26 || note 7 ||
 ||1 || MCP9800 (SMD) ||579-MCP9800A0T-M/OT || MCP9800A0T-MOTGCT-ND ||  $1.26  || ||
 || 6 || Phoenix MPT2 screw term. || 651-1725656 || 277-1273-ND || $1.11 ||  ||
 || 2 || 8-pin male header || 538-22-28-4085 || WM6408-ND || $0.54 || note 1,2 ||
