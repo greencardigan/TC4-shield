@@ -24,7 +24,8 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
   # Or you could buy a 36-pin and cut apart to make your own.
 
 ---------------------
-* TODO: get part numbers for these remaining parts. from eagle schematic (delete these lines, once they are specified above)*
+* TODO: get part numbers for these remaining parts. *
+* this is from the Eagle schematic (delete these lines, once they are specified above)*
 
 
 Part       Value     Device          Package      Description                                                                                 
