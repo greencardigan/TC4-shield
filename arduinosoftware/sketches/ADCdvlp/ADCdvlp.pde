@@ -4,7 +4,7 @@
 
 // Development sketch for understanding/testing ADC
 // Jim Gallt 
-// Version: 20100625
+// Version: 20100625a
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
