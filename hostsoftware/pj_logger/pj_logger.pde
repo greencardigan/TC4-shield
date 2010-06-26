@@ -6,13 +6,15 @@
 
 // version 0.3  22 June 2010
 
+// modified 26 June 2010 by Jim Gallt for different COM port values
+
 String logfilename = "roast_" + year()+"_"+month()+"_"+day()+"_"+hour()+"_"+minute()+"_"+second()+".csv";
 PrintWriter logfile;
 
 String PROFILE = "myprofile.csv";
 String profile_data[];
-int whichport = 4;
-int baudrate = 57600;
+int whichport = 3;
+int baudrate = 9600;
 import processing.serial.*;
 Serial comport;
 
@@ -81,6 +83,14 @@ void drawchan(float [][] T, color c) {
     if (y1 < 0) y1 = 0;
     if (y2 < 0) y2 = 0;
     
+    /*
+    // display data for debugging
+    print( x1 ); print(" , ");
+    print( y1 ); print(" , ");
+    print( x2 ); print(" , ");
+    println( y2 );
+    */
+    
     stroke(c);
     line(x1, MAX_TEMP-y1, x2, MAX_TEMP-y2);
   }
@@ -117,7 +127,7 @@ void draw() {
   scale(sx, sy);
   background(0);
   drawgrid();
-  drawprofile();
+  //drawprofile();  // turn this off for now
 
   drawchan(T0, color(255,0,0) );  
   drawchan(T1, color(0,255,0) );  
@@ -159,7 +169,7 @@ void serialEvent(Serial comport) {
   T2[1][idx] = float(rec[4]);
   T3[0][idx] = timestamp;
   // hack for line-voltage monitoring. scale uV to 100
-  rec[5] = str( float(rec[5]) / 10000.) ;
+  // rec[5] = str( float(rec[5]) / 10000.) ;
   T3[1][idx] = float(rec[5]);
   
 

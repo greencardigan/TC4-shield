@@ -18,7 +18,7 @@
 #define RES_11      // resolution on ambient temp chip
 #define NAMBIENT 12  // number of ambient samples to be averaged
 #define CFG CFG8  // select gain = 8 on ADC
-#define NCHAN 2   // number of TC input channels
+#define NCHAN 4   // number of TC input channels
 #define BAUD 9600  // serial baud rate
 #define TC_TYPE TypeK  // thermocouple type / library
 #define DP 0  // decimal places for output
@@ -101,13 +101,13 @@ void logger()
 
   tod = millis() / 1000;
   Serial.print(tod);
-  Serial.print(" , ");
+  Serial.print(",");
   Serial.print( x = 0.01 * ( 1.8 * avgamb + 3200.0 ), DP );
-  Serial.print(" , ");
+  Serial.print(",");
   for (int i=0; i<NCHAN; i++) {
     Serial.print( x = 0.01 * temps[i], DP );
     //Serial.print(samples[i]);
-    if (i < NCHAN - 1) Serial.print(" , ");
+    if (i < NCHAN - 1) Serial.print(",");
   }
   Serial.println();
 }
