@@ -1,5 +1,5 @@
 // Thermocouple library per ITS-90
-// Version:  20100620B
+// Version:  20100625
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
@@ -38,13 +38,12 @@
 
 #include "WProgram.h"
 
-#define TC_RANGE_ERR -9999999.0
+#define TC_RANGE_ERR -99999.0
 #define C_TO_F(x) ( 1.8 * x + 32.0 )
 #define F_TO_C(x) ( ( x - 32.0 ) / 1.8 )
 
-// FIXME  create parent class Thermocouple to avoid duplication
-
-// ---------------------------------------------------
+// ----------------- ITS-90 linearization of type K thermocouples
+//
 class TypeK {
   public:
     TypeK();
