@@ -1,8 +1,10 @@
-// 4-chan TC w/ mcp3424 and mcp9800 using only standard Aurdino libraries
+// ADCdvlp.pde
+//
+// 4-chan TC w/ mcp3424 and mcp9800
 
 // Development sketch for understanding/testing ADC
 // Jim Gallt 
-// Version: 20100620B
+// Version: 20100625
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -14,11 +16,18 @@
 
 #define DELAY 300   // ms between ADC samples (tested OK at 270)
 #define RES_11      // resolution on ambient temp chip
-#define NAMBIENT 8  // number of ambient samples to be averaged
-#define CFG CFG8  // select gain = 8
-#define NCHAN 4   // number of TC input channels  -- NOT WORKING  FIXME
+#define NAMBIENT 12  // number of ambient samples to be averaged
+#define CFG CFG8  // select gain = 8 on ADC
+#define NCHAN 2   // number of TC input channels
 #define BAUD 9600  // serial baud rate
-#define TC_TYPE TypeK
+#define TC_TYPE TypeK  // thermocouple type / library
+#define DP 0  // decimal places for output
+
+// ---------------------------- calibration of ADC and ambient temp sensor
+#define CAL_OFFSET  ( -1 )  // microvolts
+#define CAL_GAIN 1.0035
+#define TEMP_OFFSET ( 0.55 );  // Celsius offset
+
 
 // -------------- ADC configuration
 
@@ -41,7 +50,7 @@
 #define A_BITS11 B01000000
 #define A_BITS12 B01100000
 
-#define BITS_TO_uV 15.625
+#define BITS_TO_uV 15.625  // LSB = 15.625 uV
 
 // -------------------- MCP9800 configuration
 #ifdef RES_12
@@ -60,11 +69,6 @@
 // --------------------------
 #define A_ADC 0x68
 #define A_AMB 0x48
-
-// ----------------------------
-#define CAL_OFFSET  ( 0 )
-#define CAL_GAIN 1.00
-#define MICROVOLT_TO_C 0.4069
 
 // --------------------------------------------------------------
 // global variables
@@ -98,10 +102,10 @@ void logger()
   tod = millis() / 1000;
   Serial.print(tod);
   Serial.print(" , ");
-  Serial.print( x = 0.01 * ( 1.8 * avgamb + 3200.0 ) );
+  Serial.print( x = 0.01 * ( 1.8 * avgamb + 3200.0 ), DP );
   Serial.print(" , ");
   for (int i=0; i<NCHAN; i++) {
-     Serial.print( x = 0.01 * temps[i] );
+    Serial.print( x = 0.01 * temps[i], DP );
     //Serial.print(samples[i]);
     if (i < NCHAN - 1) Serial.print(" , ");
   }
@@ -138,22 +142,20 @@ void get_samples()
   
   // convert to microvolts
   v = round(v * BITS_TO_uV);
+
   // divide by gain
   v /= 1 << (CFG & 3);
-  v -= CAL_OFFSET;  // adjust calibration offset
+  v += CAL_OFFSET;  // adjust calibration offset
   v *= CAL_GAIN;    // calibration of gain
   samples[chan] = v;  // units = microvolts
+
   // convert mV to temperature using ambient temp adjustment
   tempC = tc.Temp_C( 0.001 * v, avgamb * 0.01 );
+  tempC += TEMP_OFFSET;
+
   // convert to F and multiply by 100 to preserve precision
   v = round( C_TO_F( tempC ) * 100 );
   temps[chan] = v;
-
-// FIXME
-//if (chan == 0) {
-  //static int32_t x = 0;
-  //temps[chan] = x++;
-//}
 
   chan++;
   chan &= ( NCHAN - 1 );
