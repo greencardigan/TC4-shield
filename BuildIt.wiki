@@ -8,7 +8,7 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 
   * 4-channel ADC chip: MCP3424 I2C
   * ambient temperature sensor MCP9800
-  * 2 DV voltage outputs with hardware PWM for driving SSR
+  * 2 DC voltage outputs with hardware PWM for driving SSR
 
 *Parts list:*
 
