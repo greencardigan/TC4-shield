@@ -1,29 +1,32 @@
 // Title: Datalogger and real-time display
-// Author: William Welch Copyright (c) 2010, all rights reserved.
+// Author: William Welch Copyright (c) 2009, all rights reserved.
 // MIT license: http://opensource.org/licenses/mit-license.php
 // Inspired by Tom Igoe's Grapher Pro: http://www.tigoe.net/pcomp/code/category/Processing/122
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
-// version 0.1  20 May 2010
+// version 0.3  22 June 2010
 
 String logfilename = "roast_" + year()+"_"+month()+"_"+day()+"_"+hour()+"_"+minute()+"_"+second()+".csv";
 PrintWriter logfile;
 
-int whichport = 0;
+String PROFILE = "myprofile.csv";
+String profile_data[];
+int whichport = 4;
 int baudrate = 57600;
 import processing.serial.*;
 Serial comport;
 
-int MAX_TEMP = 900; // fixme: support both F and C on plots.
+int MAX_TEMP = 500; // fixme: support both F and C on plots.
 int MAX_TIME = 1200;
 // int MAX_TEMP = 800; // fixme: support both F and C on plots.
 // int MAX_TIME = 30*60;
 int idx = 0;
-int [][] ambient = new int[2][MAX_TIME];
-int [][] T0 = new int[2][MAX_TIME];
-int [][] T1 = new int[2][MAX_TIME];
-int [][] T2 = new int[2][MAX_TIME];
-int [][] T3 = new int[2][MAX_TIME];
+int timestamp = 0;
+float [][] ambient = new float[2][MAX_TIME];
+float [][] T0 = new float[2][MAX_TIME];
+float [][] T1 = new float[2][MAX_TIME];
+float [][] T2 = new float[2][MAX_TIME];
+float [][] T3 = new float[2][MAX_TIME];
 
 PFont labelFont;
 
@@ -46,6 +49,8 @@ void setup() {
   comport.clear();
   comport.bufferUntil('\n');
 
+  profile_data = loadStrings(PROFILE);
+
 //  for (int i=0; i<10; i++) simulator();
 
 }
@@ -63,7 +68,7 @@ void drawgrid(){
   }
 }
 
-void drawchan(int [][] T, color c) {
+void drawchan(float [][] T, color c) {
   for (int i=1; i<idx; i++) {
     float x1 = T[0][i-1];
     float y1 = T[1][i-1];
@@ -81,6 +86,28 @@ void drawchan(int [][] T, color c) {
   }
 }
 
+void drawprofile() {
+  int x1, y1, x2, y2;
+  stroke(200,200,200);
+  x1 = 0;
+  y1 = 0;
+  for (int i=0; i<profile_data.length; i++) {
+    String[] rec = split(profile_data[i], ',');
+    x2 = int(rec[0]);
+    y2 = int(rec[1]);
+    // println("x1,y1,x2,y2 " + x1 + " " + y1 + " " + x2 + " " + y2 );
+    line(x1, MAX_TEMP-y1, x2, MAX_TEMP-y2);
+    x1 = x2;
+    y1 = y2;
+  }
+}
+
+void keyPressed()
+{
+  println(timestamp + " key " + key);
+  logfile.println(timestamp + " key " + key);
+}
+
 void draw() {
 //  simulator();
   float sx = 1.;
@@ -90,6 +117,7 @@ void draw() {
   scale(sx, sy);
   background(0);
   drawgrid();
+  drawprofile();
 
   drawchan(T0, color(255,0,0) );  
   drawchan(T1, color(0,255,0) );  
@@ -105,9 +133,10 @@ void serialEvent(Serial comport) {
   if (msg.length() == 0) return;
 
   // always store in file - good for debugging, version-tracking, etc.
-  logfile.println(msg);
+  //logfile.println(msg);
 
   if (msg.charAt(0) == '#') {
+    logfile.println(msg);
     println(msg);
     return;
   }
@@ -119,26 +148,30 @@ void serialEvent(Serial comport) {
     return;
   }
   
-  int timestamp = int(rec[0]);
+  timestamp = int(rec[0]);
   ambient[0][idx] = timestamp;
-  ambient[1][idx] = int(rec[1]);
+  ambient[1][idx] = float(rec[1]);
   T0[0][idx] = timestamp;
-  T0[1][idx] = int(rec[2]);
+  T0[1][idx] = float(rec[2]);
   T1[0][idx] = timestamp;
-  T1[1][idx] = int(rec[3]);
+  T1[1][idx] = float(rec[3]);
   T2[0][idx] = timestamp;
-  T2[1][idx] = int(rec[4]);
+  T2[1][idx] = float(rec[4]);
   T3[0][idx] = timestamp;
-  T3[1][idx] = int(rec[5]);
+  // hack for line-voltage monitoring. scale uV to 100
+  rec[5] = str( float(rec[5]) / 10000.) ;
+  T3[1][idx] = float(rec[5]);
   
 
   for (int i=0; i<6; i++) {
+    print(rec[i]);
     logfile.print(rec[i]);
+    if (i < 5) print(",");
     if (i < 5) logfile.print(",");
   }
   
   logfile.println();
-  println(msg);
+  println();
   
   idx++;
   idx = idx % MAX_TIME;
@@ -159,8 +192,6 @@ void stop() {
   logfile.close();
   println("Data was written to: " + logfilename);
 }
-
-
 
 
 
