@@ -26,7 +26,7 @@
 // ---------------------------- calibration of ADC and ambient temp sensor
 #define CAL_OFFSET  ( -1 )  // microvolts
 #define CAL_GAIN 1.0035
-#define TEMP_OFFSET ( 0.55 );  // Celsius offset
+#define TEMP_OFFSET ( 0.55 );  // Celsius offset, measured at 0C
 
 
 // -------------- ADC configuration
