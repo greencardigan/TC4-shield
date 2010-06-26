@@ -38,7 +38,7 @@ Note: If Mouser or Digikey are out of stock, you might try this search engine: [
   # Probably available locally at Radio Shack, etc.
   # Break apart to make all of the two-pin headers
   # Resistor values are not critical, but check sizes.  Hole spacing on PCB is only 7mm.
-  # MCP3424 currently on backorder at Mouser.
+  # MCP3424 currently on backorder at Mouser. Try [http://octopart.com/parts/search?q=MCP3424-E/SL OctoPart]
   # Male headers mounted to point downward, below board, to engage Arduino female sockets.
 
 ---------------------
