@@ -48,6 +48,7 @@ void setup() {
 
 // connect LED's to pins 9 and 10
 // fades them in and out, out of phase with one another
+// change ms to speed up or slow down
 
 void loop() {
   int i;
