@@ -1,5 +1,5 @@
 // Timer1 PWM control
-// Version date: June 19, 2010
+// Version date: June 27, 2010
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
@@ -96,7 +96,7 @@
 #define pwmN128Hz 127    // TOP values for various frequencies
 #define pwmN64Hz  255
 #define pwmN60Hz  272  // approx.; exact = 272.0667
-#define pwmN50Hz  326  // approx.; exact = 326.68
+#define pwmN50Hz  327  // approx.; exact = 326.68
 #define pwmN32Hz  511
 #define pwmN30Hz  545  // approx.; exact = 545.1333
 #define pwmN16Hz  1023
@@ -122,9 +122,11 @@
 class PWM16 {
   public:
     PWM16();
-    void Setup( unsigned int pwmF );
-    void Reset();
-    void Out( unsigned int dutyA, unsigned int dutyB );
+    void Setup( unsigned int pwmF );  // pwmF = TOP value for desired frequency
+    void Reset();  // restores timer1 to Arduino defaults
+    void Out( unsigned int dutyA, unsigned int dutyB );  // set duty cycle for PWM output on 
+                                                         // channels A and B
+                                                         // duty = 0 to 100
     unsigned int GetTOP(); // returns TOP value for counter
   private:
     unsigned int _pwmF;
