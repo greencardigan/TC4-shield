@@ -5,7 +5,7 @@
 // FIXME: use Jim Gallt's library for a full-featured logger.
 //       http://code.google.com/p/tc4-shield/ 
 
-char *banner = "a_logger14";
+char *banner = "a_logger14b";
 
 #include <Wire.h>
 
@@ -71,11 +71,7 @@ void logger()
   Serial.print(amb_f);
   Serial.print(",");
   for (int i=0; i<4; i++) {
-    if (i == 3) {
-      Serial.print(samples[i]);
-    } else {
-      Serial.print(temps[i]);
-    }
+    Serial.print(temps[i]);
     if (i < 3) Serial.print(",");
   }
   Serial.println();
@@ -225,8 +221,7 @@ void setup()
 
   sprintf(msg, "\n# %s: 4-chan TC", banner);
   Serial.println(msg);
-  Serial.println("# time,ambient,T0,T1,T2, uV3");
-  // Serial.println("# time,ambient,T0,T1,T2,T3");
+  Serial.println("# time,ambient,T0,T1,T2,T3");
  
   while ( millis() < 6000) {
     blinker();

@@ -5,7 +5,7 @@
 // FIXME: use Jim Gallt's library for a full-featured logger.
 //       http://code.google.com/p/tc4-shield/ 
 
-char *banner = "logger08";
+char *banner = "logger08b";
 
 #include <Wire.h>
 
@@ -51,21 +51,13 @@ void logger()
   unsigned long tod;
 
   tod = millis() / 1000;
-  //sprintf(msg, "t=%ld, %ld, %ld, %ld", tod, samples[ch0], temps[ch0], ambient);
   Serial.print(tod);
   Serial.print(",");
-//  Serial.print("\t");
   Serial.print(amb_f);
   Serial.print(",");
-//  Serial.print("\t");
   for (int i=0; i<4; i++) {
-    if (i == 3) {
-      Serial.print(samples[i]);
-    } else {
-      Serial.print(temps[i]);
-    }
+    Serial.print(temps[i]);
     if (i < 3) Serial.print(",");
-//    if (i < 3) Serial.print("\t");
   }
   Serial.println();
 }
@@ -95,17 +87,11 @@ void get_samples()
   v <<= 8;
   v |= c;
   
-  // sprintf(msg, "0x%x, %x, %x, %x, %x, %x, %ld", stat, rdy, chan, mode, ss, gain, v);
-  // Serial.print(msg);
-
   // convert to microvolts
   // divide by gain
   v = round(v * 15.625);
   v /= 1 << (CFG & 3);
   samples[chan] = v;  // units = microvolts
-
-  // sprintf(msg, ", %ld", v);
-  // Serial.print(msg);
 
   v = round(v / MICROVOLT_TO_C);
 
@@ -115,9 +101,6 @@ void get_samples()
   v = round(v * 1.8);
   v += 32;
   temps[chan] = v;
-
-  // sprintf(msg, ", %ld", v);
-  // Serial.println(msg);
 
   chan++;
   chan &= 3;
@@ -161,10 +144,8 @@ void blinker()
   static char on = 0;
   if (on) {
     digitalWrite(ledPin, HIGH);
-//  digitalWrite(ledPin, LOW);
   } else {
       digitalWrite(ledPin, LOW);
-//    digitalWrite(ledPin, HIGH);
   }
   on ^= 1;
 }
@@ -182,8 +163,7 @@ void setup()
 
   sprintf(msg, "\n# %s: 4-chan TC", banner);
   Serial.println(msg);
-  Serial.println("# time,ambient,T0,T1,T2, uV3");
-  // Serial.println("# time,ambient,T0,T1,T2,T3");
+  Serial.println("# time,ambient,T0,T1,T2,T3");
  
   while ( millis() < 6000) {
     blinker();

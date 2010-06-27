@@ -159,7 +159,7 @@ void serialEvent(Serial comport) {
   T2[1][idx] = float(rec[4]);
   T3[0][idx] = timestamp;
   // hack for line-voltage monitoring. scale uV to 100
-  rec[5] = str( float(rec[5]) / 10000.) ;
+  // rec[5] = str( float(rec[5]) / 10000.) ;
   T3[1][idx] = float(rec[5]);
   
 
