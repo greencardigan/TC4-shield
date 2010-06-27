@@ -13,7 +13,7 @@ This shield should fit any of the Arduino boards or clones. It has been tested w
 *Parts list:*
 
   * *Arduino or clone $30 + shipping*
-  * *PCB from Jim. $6 + shipping*
+  * *PCB from Jim. $6 + shipping.* [http://www.mlgp-llc.com/arduino/public/arduino-pcb.html Click here] for link.
 
 Note: If Mouser or Digikey are out of stock, you might try this search engine: [http://octopart.com/parts/search?q=MCP3424-E/SL OctoPart]
 
