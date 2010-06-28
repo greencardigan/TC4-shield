@@ -5,7 +5,7 @@
 // FIXME: use Jim Gallt's library for a full-featured logger.
 //       http://code.google.com/p/tc4-shield/ 
 
-char *banner = "a_logger14b";
+char *banner = "a_logger15";
 
 #include <Wire.h>
 
@@ -14,11 +14,10 @@ char *banner = "a_logger14b";
 
 #define MICROVOLT_TO_C 40.69 // K-type only, linear approx.
 
-#define CFG 0x8B     // one-shot, 16-bit, gain=8
-//#define CFG 0x1B     // continuous, 16-bit, gain=8
+#define CFG 0x1B     // continuous, 16-bit, gain=8
+//#define CFG 0x8B     // one-shot, 16-bit, gain=8
 
-#define AMB_INIT B01100001
-#define AMB_ONE_SHOT B11100001
+#define AMB_INIT B01100000
 
 void start_conversion(int chan);
 void get_samples16(int chan);
@@ -79,6 +78,13 @@ void logger()
 
 void start_conversion(int chan)
 {
+  // try a workaround to improve reliability.
+  // set chip to default settings
+  Wire.beginTransmission(A_ADC);
+  Wire.send(0x90);
+  Wire.endTransmission();
+
+  // set chip to actual desired settings
   Wire.beginTransmission(A_ADC);
   Wire.send(CFG | (chan << 5) );
   Wire.endTransmission();
@@ -86,36 +92,46 @@ void start_conversion(int chan)
 
 void get_samples16(int expect)
 {
-  int stat;
-  int a, b, dummy1, dummy2, rdy, gain, chan, mode, ss;
+  int stat1, stat2;
+  int a, b, rdy1, rdy2, gain, chan, mode, ss;
   int32_t v;
   float f;
 
-  Wire.requestFrom(A_ADC, 5); // request extra while debugging
-  if (Wire.available() != 5) {
-    Serial.println("# ADC available != 5 ???");
+  // in continous mode, we should see RDY change in the 2nd
+  // status byte since we have just read the data
+  Wire.requestFrom(A_ADC, 4);
+  if (Wire.available() != 4) {
+    Serial.println("# ADC available != 4 ???");
     return; // an old/stale value is better than incorrect value
   }
   
   a = Wire.receive();
   b = Wire.receive();
-  dummy1 = Wire.receive();
-  dummy2 = Wire.receive();
-  stat = Wire.receive();
+  stat1 = Wire.receive();
+  stat2 = Wire.receive();
 
-  rdy = (stat >> 7) & 1;
-  chan = (stat >> 5) & 3;
-  mode = (stat >> 4) & 1;
-  ss = (stat >> 2) & 3;
-  gain = stat & 3;
+  rdy1 = (stat1 >> 7) & 1;
+  chan = (stat1 >> 5) & 3;
+  mode = (stat1 >> 4) & 1;
+  ss = (stat1 >> 2) & 3;
+  gain = stat1 & 3;
+  rdy2 = (stat2 >> 7) & 1;
   
-  if (rdy != 0) {
-    Serial.print("# rdy != 0? ");
+  if (rdy1 != 0) {
+    Serial.print("# rdy1 != 0? ");
     Serial.print(a); Serial.print(" ");
     Serial.print(b); Serial.print(" ");
-    Serial.print(dummy1); Serial.print(" ");
-    Serial.print(dummy2); Serial.print(" ");
-    Serial.println(stat);
+    Serial.print(stat1); Serial.print(" ");
+    Serial.println(stat2);
+    return; // an old/stale value is better than incorrect value
+  }
+
+  if (rdy2 == 0) {
+    Serial.print("# rdy2 == 0? ");
+    Serial.print(a); Serial.print(" ");
+    Serial.print(b); Serial.print(" ");
+    Serial.print(stat1); Serial.print(" ");
+    Serial.println(stat2);
     return; // an old/stale value is better than incorrect value
   }
 
@@ -123,19 +139,26 @@ void get_samples16(int expect)
     Serial.print("# chan != expect: ");
     Serial.print(a); Serial.print(" ");
     Serial.print(b); Serial.print(" ");
-    Serial.print(dummy1); Serial.print(" ");
-    Serial.print(dummy2); Serial.print(" ");
-    Serial.println(stat);
+    Serial.print(stat1); Serial.print(" ");
+    Serial.println(stat2);
     return; // an old/stale value is better than incorrect value
   }
 
-  if ( (stat & 0x1F) != (CFG & 0x1F) ) {
+  if ( (stat1 & 0x1F) != (CFG & 0x1F) ) {
     Serial.print("# bad CFG: ");
     Serial.print(a); Serial.print(" ");
     Serial.print(b); Serial.print(" ");
-    Serial.print(dummy1); Serial.print(" ");
-    Serial.print(dummy2); Serial.print(" ");
-    Serial.println(stat);
+    Serial.print(stat1); Serial.print(" ");
+    Serial.println(stat2);
+    return; // an old/stale value is better than incorrect value
+  }
+
+  if ( (stat1 & 0x7F) != (stat2 & 0x7F) ) {
+    Serial.print("# stats mismatch: ");
+    Serial.print(a); Serial.print(" ");
+    Serial.print(b); Serial.print(" ");
+    Serial.print(stat1); Serial.print(" ");
+    Serial.println(stat2);
     return; // an old/stale value is better than incorrect value
   }
 
@@ -165,9 +188,10 @@ void get_ambient()
   byte a, b;
   int32_t v;
 
-  Wire.beginTransmission(A_AMB);
-  Wire.send(0); // point to temperature reg.
-  Wire.endTransmission();
+  // Wire.beginTransmission(A_AMB);
+  // Wire.send(0); // point to temperature reg.
+  // Wire.endTransmission();
+
   Wire.requestFrom(A_AMB, 2);
   if (Wire.available() != 2) {
     Serial.println("# AMB available != 2 ???");
@@ -188,11 +212,6 @@ void get_ambient()
   // convert to F
   amb_f = (ambient * 1.8) + 32. ;
 
-  // start next conversion
-  Wire.beginTransmission(A_AMB);
-  Wire.send(1); // point to config reg
-  Wire.send(AMB_ONE_SHOT);
-  Wire.endTransmission();
 }
 
 void blinker()
@@ -238,7 +257,7 @@ void setup()
   // configure mcp9800.
   Wire.beginTransmission(A_AMB);
   Wire.send(1); // point to config reg
-  Wire.send(AMB_INIT); // 12-bit mode
+  Wire.send(AMB_INIT);
   Wire.endTransmission();
 
   // see if we can read it back.
@@ -255,5 +274,11 @@ void setup()
   } else {
     Serial.println("# mcp9800 Config reg OK");
   }
+  
+  // set pointer to temperature register and
+  // leave it there for all future readings.
+  Wire.beginTransmission(A_AMB);
+  Wire.send(0);
+  Wire.endTransmission();
 }
 
