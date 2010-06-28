@@ -4,13 +4,14 @@
 // Inspired by Tom Igoe's Grapher Pro: http://www.tigoe.net/pcomp/code/category/Processing/122
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
-// version 0.3  22 June 2010
+// version 0.4  28 June 2010
 
 String logfilename = "roast_" + year()+"_"+month()+"_"+day()+"_"+hour()+"_"+minute()+"_"+second()+".csv";
 PrintWriter logfile;
 
 String PROFILE = "myprofile.csv";
 String profile_data[];
+String kb_note = "";
 int whichport = 4;
 int baudrate = 57600;
 import processing.serial.*;
@@ -21,7 +22,7 @@ int MAX_TIME = 1200;
 // int MAX_TEMP = 800; // fixme: support both F and C on plots.
 // int MAX_TIME = 30*60;
 int idx = 0;
-int timestamp = 0;
+float timestamp = 0;
 float [][] ambient = new float[2][MAX_TIME];
 float [][] T0 = new float[2][MAX_TIME];
 float [][] T1 = new float[2][MAX_TIME];
@@ -39,7 +40,7 @@ void setup() {
 
   // size(screen.width, screen.height);
   size(800, 600);
-  frameRate(1);
+  frameRate(5);
   smooth();
   background(0);
 
@@ -104,8 +105,23 @@ void drawprofile() {
 
 void keyPressed()
 {
-  println(timestamp + " key " + key);
-  logfile.println(timestamp + " key " + key);
+  if (( key == 13) || (key == 10) )  {
+    if (kb_note.length() > 0) {
+      println("# " + timestamp + " " + kb_note);
+      logfile.println("# " + timestamp + " " + kb_note);
+      kb_note = "";
+    }
+  } else {
+    kb_note = kb_note + key;
+  }
+}
+
+void drawnote() {
+  if (kb_note.length() > 0) {
+    textFont(labelFont);
+    stroke(128,128,128);
+    text(kb_note, 100, 100);
+  }
 }
 
 void draw() {
@@ -123,6 +139,7 @@ void draw() {
   drawchan(T1, color(0,255,0) );  
   drawchan(T2, color(0,0,255) );
   drawchan(T3, color(255,204,0) );  
+  drawnote();
 }
 
 void serialEvent(Serial comport) {
@@ -148,7 +165,7 @@ void serialEvent(Serial comport) {
     return;
   }
   
-  timestamp = int(rec[0]);
+  timestamp = float(rec[0]);
   ambient[0][idx] = timestamp;
   ambient[1][idx] = float(rec[1]);
   T0[0][idx] = timestamp;
