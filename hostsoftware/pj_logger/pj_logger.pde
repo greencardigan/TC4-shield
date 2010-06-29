@@ -18,8 +18,10 @@ int baudrate = 9600;
 import processing.serial.*;
 Serial comport;
 
-int MAX_TEMP = 500; // fixme: support both F and C on plots.
-int MAX_TIME = 1200;
+//int MAX_TEMP = 500; // fixme: support both F and C on plots.
+int MAX_TEMP = 1000;  // temporary, for testing
+// int MAX_TIME = 1200;
+int MAX_TIME = 600;  // temporary to facilitate testing
 // int MAX_TEMP = 800; // fixme: support both F and C on plots.
 // int MAX_TIME = 30*60;
 int idx = 0;
@@ -51,7 +53,7 @@ void setup() {
   comport.clear();
   comport.bufferUntil('\n');
 
-  profile_data = loadStrings(PROFILE);
+ // profile_data = loadStrings(PROFILE);
 
 //  for (int i=0; i<10; i++) simulator();
 
