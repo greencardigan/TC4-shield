@@ -19,17 +19,17 @@ Note: If Mouser or Digikey are out of stock, you might try this search engine: [
 
 || *Qty* || *Item* || *Mouser* || *Digikey*|| *Price (each)* || *Notes* ||
 || 1 || MCP3424 (SMD) || 579-MCP3424-E/SL ||  MCP3424-E/SL-ND ||   $4.26 || note 7 ||
-||1 || MCP9800 (SMD) ||579-MCP9800A0T-M/OT || MCP9800A0T-MOTGCT-ND ||  $1.26  || ||
+||1 || MCP9800 (SMD) ||579-MCP9800A0T-M/OT || MCP9800A0T-MOTGCT-ND ||  $1.76  || ||
 || 6 || Phoenix MPT2 screw term. || 651-1725656 || 277-1273-ND || $1.11 ||  ||
 || 2 || 8-pin male header || 538-22-28-4085 || WM6408-ND || $0.54 || note 1,2,8 ||
 || 2 || 6-pin male header || 538-22-28-4065 || WM6406-ND || $0.46 || note 1,2,8 ||
-|| 2 || 2N3904 NPN transistor || 610-2N3904 || 2N3904FS-ND || $0.10 || note 3,4 ||
+|| 2 || 2N3904 NPN transistor || 610-2N3904 || 2N3904FS-ND || $0.42 || note 3,4 ||
 || 2 || 4.7K ohm resistor, 1/8W || 270-4.7K-RC || RNF1/8T14.75KFRCT-ND || $0.15 || note 4,6 ||
 || 2 || 5.6K ohm resistor, 1/8W || 270-5.6K-RC || RNF1/8T15.36KFRCT-ND || $0.15 || note 4,6 ||
-|| 1 || 1N4148 diode || 512-1N4148 || 1N4148TACT-ND || $0.03 || note 4 ||
-|| 1 || 10 uF electrolytic capacitor || 647-UVR1C100MDD1TD || 493-1372-ND|| $0.03 || note 4 ||
-|| 2 || 0.1 uF ceramic capacitor || 594-K104Z15Y5VF5TL2 || BC1160CT-ND || $0.03 || note 4 ||
-|| 1 || Breakaway header || 538-22-28-4085 || WM6408-ND || $0.59 || note 5 ||
+|| 1 || 1N4148 diode || 512-1N4148 || 1N4148TACT-ND || $0.14 || note 4 ||
+|| 1 || 10 uF electrolytic capacitor || 647-UVR1C100MDD1TD || 493-1372-ND|| $0.24 || note 4 ||
+|| 2 || 0.1 uF ceramic capacitor || 594-K104Z15Y5VF5TL2 || BC1160CT-ND (min 10)|| $0.066 || note 4 ||
+|| 1 || Breakaway header || 538-22-28-4085 || WM6408-ND || $0.54 || note 5 ||
 
 *Notes*
   # Use 'stackable' headers, for example Sparkfun PRT-09280 and PRT-09279 if you want to stack another shield on top of this one
