@@ -4,7 +4,7 @@
 // Inspired by Tom Igoe's Grapher Pro: http://www.tigoe.net/pcomp/code/category/Processing/122
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
-// version 0.4  28 June 2010
+// version 0.5  1 July 2010
 
 String logfilename = "roast_" + year()+"_"+month()+"_"+day()+"_"+hour()+"_"+minute()+"_"+second()+".csv";
 PrintWriter logfile;
@@ -46,13 +46,19 @@ void setup() {
 
   // FIXME: add menu to choose com port from the list.
   println(Serial.list());
-  comport = new Serial(this, Serial.list()[whichport], baudrate);
-  comport.clear();
-  comport.bufferUntil('\n');
+  try {
+    comport = new Serial(this, Serial.list()[whichport], baudrate);
+    comport.clear();
+    comport.bufferUntil('\n');
+  } catch (Exception e) {
+    println("Error: no usable serial port found?");
+  }
 
-  profile_data = loadStrings(PROFILE);
-
-//  for (int i=0; i<10; i++) simulator();
+  try {
+    profile_data = loadStrings(PROFILE);
+  } catch (Exception e) {
+    println("guide/desired profile not found. OK.");
+  }
 
 }
 
@@ -88,6 +94,7 @@ void drawchan(float [][] T, color c) {
 }
 
 void drawprofile() {
+  if (profile_data == null) return;
   int x1, y1, x2, y2;
   stroke(200,200,200);
   x1 = 0;
@@ -125,7 +132,6 @@ void drawnote() {
 }
 
 void draw() {
-//  simulator();
   float sx = 1.;
   float sy = 1.;
   sx = float(width) / MAX_TIME;
@@ -194,21 +200,18 @@ void serialEvent(Serial comport) {
   idx = idx % MAX_TIME;
 }
 
-int zzz = 0;
-void simulator() {
-  T0[0][idx] = zzz;
-  T0[1][idx] = zzz;
-  zzz += 10;
-  idx ++;
-  idx = idx % MAX_TIME;
-}
-
 void stop() {
-  comport.stop();
-  logfile.flush();
-  logfile.close();
+  try {
+    comport.stop();
+  } catch (Exception e) {
+    println("Can't stop serial port");
+  }
+  try {
+    logfile.flush();
+    logfile.close();
+  } catch (Exception e) {
+    println("Can't flush/close log file");
+  }
   println("Data was written to: " + logfilename);
 }
-
-
 
