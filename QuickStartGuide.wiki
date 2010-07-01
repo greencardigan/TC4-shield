@@ -1,0 +1,15 @@
+Quick Start Guide for software setup and first test of tc4-shield
+
+= Introduction =
+
+  # download software
+  # 'burn' the program into the Arduino board
+  # run the PC real-time graphical display and logging program
+
+
+
+= Details =
+
+  # download and install "Processing.Org" software
+  # download and install "Arduino IDE" software
+  # download tc4-shield zip file
