@@ -59,8 +59,6 @@ void do_error_msg()
   if (error_msg == null) return;
     fill(255,0,0);
     text(error_msg, 100, 100);
-    float w = textWidth(error_msg);
-    line(100+w,50,100+w,100);
 }
   
 void drawgrid(){
