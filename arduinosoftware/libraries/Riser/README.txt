@@ -1,6 +1,9 @@
 Riser library
 -------------
 
+Copyright (C) 2010 MLG Properties, LLC
+Released under BSD license (see files).
+
 Create a folder and put these files in C:/Program Files/arduino-0018/libraries/Riser
 on your computer.
 
