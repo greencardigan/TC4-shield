@@ -12,10 +12,11 @@ PrintWriter logfile;
 String PROFILE = "myprofile.csv";
 String profile_data[];
 String kb_note = "";
-int whichport = 4;
+int whichport = -1;
 int baudrate = 57600;
 import processing.serial.*;
 Serial comport;
+String error_msg;
 
 int MAX_TEMP = 500; // fixme: support both F and C on plots.
 int MAX_TIME = 1200;
@@ -30,10 +31,12 @@ float [][] T2 = new float[2][MAX_TIME];
 float [][] T3 = new float[2][MAX_TIME];
 
 PFont labelFont;
+PFont menuFont;
 
 void setup() {
   frame.setResizable(true);
   labelFont = createFont("Courier", 18 );
+  menuFont = createFont("Courier", 12 );
   
   println(logfilename);
   logfile = createWriter(logfilename);
@@ -44,24 +47,22 @@ void setup() {
   smooth();
   background(0);
 
-  // FIXME: add menu to choose com port from the list.
-  println(Serial.list());
-  try {
-    comport = new Serial(this, Serial.list()[whichport], baudrate);
-    comport.clear();
-    comport.bufferUntil('\n');
-  } catch (Exception e) {
-    println("Error: no usable serial port found?");
-  }
-
   try {
     profile_data = loadStrings(PROFILE);
   } catch (Exception e) {
     println("guide/desired profile not found. OK.");
   }
-
 }
 
+void do_error_msg()
+{
+  if (error_msg == null) return;
+    fill(255,0,0);
+    text(error_msg, 100, 100);
+    float w = textWidth(error_msg);
+    line(100+w,50,100+w,100);
+}
+  
 void drawgrid(){
   textFont(labelFont);
   stroke(128,128,128);
@@ -118,7 +119,7 @@ void keyPressed()
       logfile.println("# " + timestamp + " " + kb_note);
       kb_note = "";
     }
-  } else {
+  } else if (key != CODED) {
     kb_note = kb_note + key;
   }
 }
@@ -132,12 +133,14 @@ void drawnote() {
 }
 
 void draw() {
+  background(0);
+  do_error_msg();
+  comport_menu();
   float sx = 1.;
   float sy = 1.;
   sx = float(width) / MAX_TIME;
   sy = float(height) / MAX_TEMP;
   scale(sx, sy);
-  background(0);
   drawgrid();
   drawprofile();
 
@@ -213,5 +216,10 @@ void stop() {
     println("Can't flush/close log file");
   }
   println("Data was written to: " + logfilename);
+}
+
+void mousePressed()
+{
+  comport_mousePressed();
 }
 
