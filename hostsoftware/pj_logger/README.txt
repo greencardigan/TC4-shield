@@ -1,18 +1,22 @@
-pj_logger.pde
+pRiser.pde
 -------------
 
-Test program that logs 4-channels of type K thermocouple
-input, and plots on screen.
+This program descends from Bill Welch's original p_logger file, but
+has been modified to plot traces of
 
-This program is based on p_logger program by Bill Welch.  Modifications
-have been made to
- - disable plotting of reference profile (myprofile.csv)
- - make compatible with Jim's COM ports
- - read and plot all 4 input channels as type K TC's
+ channel 0 temperature
+ channel 0 rate of rise
+ channel 1 temperature
+ channel 1 rate of rise
 
-Results from initial testing of the TC-4, v1.05R shield are contained
-in the testlog001 files.  Logged readings agreed with thermocouple calibrator
-output throughout the range 32F to 450F during this test, with only a handful
-of variations of 1F from the input value.
+The rate of rise values are exaggerated by 10X.  So a plotted value of 200
+corresponds to a rise rate of 20.0 degrees F per minute.
+
+This is the Processing half of the application that runs on the PC.
+
+The arduino half of the application, which must be flashed to the arduino
+board, is aRiser.pde.
 
 
+Jim Gallt
+7/1/2010
