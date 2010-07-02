@@ -36,7 +36,7 @@
 #ifndef RISER_H
 #define RISER_H
 
-#define MAX_N 16
+#define MAX_N 20
 #define SEC_PER_MIN 60
 
 // -------------------------------------------- class Riser
