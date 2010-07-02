@@ -20,7 +20,7 @@ Note: If Mouser or Digikey are out of stock, you might try this search engine: [
 || *Qty* || *Item* || *Mouser* || *Digikey*|| *Price (each)* || *Notes* ||
 || 1 || MCP3424 (SMD) || 579-MCP3424-E/SL ||  MCP3424-E/SL-ND ||   $4.26 || note 7 ||
 ||1 || MCP9800 (SMD) ||579-MCP9800A0T-M/OT || MCP9800A0T-MOTGCT-ND ||  $1.76  || ||
-|| 6 || Phoenix MPT2 screw term. || 651-1725656 || 277-1273-ND || $1.11 ||  ||
+|| 6 || Phoenix MPT2 screw term. || 651-1725656 || 277-1273-ND || $1.11 || note 9 ||
 || 2 || 8-pin male header || 538-22-28-4085 || WM6408-ND || $0.54 || note 1,2,8 ||
 || 2 || 6-pin male header || 538-22-28-4065 || WM6406-ND || $0.46 || note 1,2,8 ||
 || 2 || 2N3904 NPN transistor || 610-2N3904 || 2N3904FS-ND || $0.42 || note 3,4 ||
@@ -40,6 +40,7 @@ Note: If Mouser or Digikey are out of stock, you might try this search engine: [
   # Resistor values are not critical, but check sizes.  Hole spacing on PCB is only 7mm.
   # MCP3424 currently on backorder at Mouser. Try [http://octopart.com/parts/search?q=MCP3424-E/SL OctoPart]
   # Male headers mounted to point downward, below board, to engage Arduino female sockets.
+  # Tyco makes a less expensive, but still good quality terminal, priced at $0.65 ea at Digikey (item no. A98333-ND)
 
 ---------------------
                                                                   
