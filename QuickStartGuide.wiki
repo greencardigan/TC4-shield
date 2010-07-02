@@ -19,8 +19,8 @@ Quick Start Guide for software setup and first test of tc4-shield
       * make sure you can get the 'Blink' example working before you proceed
   # download tc4-shield zip file
       * unzip the tc4-shield files
-      * FIXME (JimG suggestions?) move arduino and libraries where they should go
-      * FIXME (JimG suggestions?) move hostsoftware and libraries where they should go
+      * library folders (with files) for arduino programs should be copied into C:/Program Files/arduino-0018/libraries (or wherever your Arduino executables are installed).  The Arduino IDE reads the libraries folder on startup, so you will need to exit the IDE and then restart before it will know about a new library.
+      * both Processing and Arduino sketches must be located in a folder whose name matches the name of the sketch (i.e. the .pde file).
   # Unplug the USB cable, install the tc4-shield
   # Plug in USB cable, confirm 'Blink' still works
   # 'burn' the demo1 sketch into the Arduino
