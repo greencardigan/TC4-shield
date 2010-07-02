@@ -6,22 +6,25 @@
 // Inspired by Tom Igoe's Grapher Pro: http://www.tigoe.net/pcomp/code/category/Processing/122
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
-// version 0.1  01 July 2010
-
-// modified 01 July 2010 by Jim Gallt
+// version 0.2  02 July 2010 by Jim Gallt
 
 String logfilename = "roast_" + year()+"_"+month()+"_"+day()+"_"+hour()+"_"+minute()+"_"+second()+".csv";
 PrintWriter logfile;
 
 int NCHAN = 2;  // 2 input channels
-int whichport = 3;
+
+// fixme This should be user selectable, maybe in a config text file
+// ---------------------------------------------------------
+int whichport = 2;
+// ---------------------------------------------------------
+
 int baudrate = 57600;
 import processing.serial.*;
 Serial comport;
 
 int MAX_TEMP = 500;  // degrees (or 10 * degF per minute)
-int MAX_TIME = 900; // seconds
-int MIN_TEMP = -100; // degrees
+int MAX_TIME = 960; // seconds
+int MIN_TEMP = -20; // degrees
 int TEMP_INCR = 20;  // degrees
 int idx = 0;
 float timestamp = 0.0;
@@ -118,7 +121,7 @@ void draw() {
   drawchan(T0, color(255,0,0) );  
   drawchan(T1, color(0,255,0) ); 
   if( NCHAN >= 2 )   drawchan(T2, color(0,0,255) );
-  if( NCHAN >= 2 )   drawchan(T3, color(255,204,0) );  
+  // if( NCHAN >= 2 )   drawchan(T3, color(255,204,0) );   // don't draw RoR for 2nd channel
 }
 
 // -------------------------------------------------------------
