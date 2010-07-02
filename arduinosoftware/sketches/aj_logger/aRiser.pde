@@ -1,5 +1,6 @@
 // aRiser.pde
 //
+
 // N-channel Rise-o-Meter
 // output on serial port:  timestamp, temperature, rise rate (degF per minute)
 
