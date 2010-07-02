@@ -1,5 +1,5 @@
 // Title: Datalogger and real-time display of rate of temperature rise
-
+// This is a Processing sketch intended to run on a host computer.
 
 // Author: William Welch Copyright (c) 2009, all rights reserved.
 // MIT license: http://opensource.org/licenses/mit-license.php
@@ -38,10 +38,8 @@ void setup() {
   // create arrays
   T0 = new float[2][MAX_TIME];
   T1 = new float[2][MAX_TIME];
-  //if( NCHAN >= 2 )   
-  T2 = new float[2][MAX_TIME];
-  //if( NCHAN >= 2 )   
-  T3 = new float[2][MAX_TIME];
+  if( NCHAN >= 2 )   T2 = new float[2][MAX_TIME];
+  if( NCHAN >= 2 )   T3 = new float[2][MAX_TIME];
   
   frame.setResizable(true);
   labelFont = createFont("Courier", 18 );
