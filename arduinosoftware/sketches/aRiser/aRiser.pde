@@ -6,7 +6,7 @@
 
 // Support for pRiser.pde
 // Jim Gallt 
-// Version: 20100701
+// Version: 20100702
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -26,9 +26,12 @@
 #define NCHAN 2   // number of TC input channels
 #define BAUD 57600  // serial baud rate
 #define TC_TYPE TypeK  // thermocouple type / library
-#define DP 3  // decimal places for output
+#define DP 1  // decimal places for output
+// fixme This value should be user selectable
+#define NSAMPLES 10 // samples used for moving average calc for temperature
 
 // ---------------------------- calibration of ADC and ambient temp sensor
+// fixme -- put this information in EEPROM
 #define CAL_OFFSET  ( -1 )  // microvolts
 #define CAL_GAIN 1.0035
 #define TEMP_OFFSET ( 0.55 );  // Celsius offset
@@ -100,10 +103,10 @@ int32_t avgamb = 0;
 
 int adc_delay;
 
-Riser rise1( 10 );
-Riser rise2( 10 );
-Riser rise3( 10 );
-Riser rise4( 10 );
+Riser rise1( NSAMPLES );
+Riser rise2( NSAMPLES );
+Riser rise3( NSAMPLES );
+Riser rise4( NSAMPLES );
 
 // ------------------------------------------------------------------
 void logger()
