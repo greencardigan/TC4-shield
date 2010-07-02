@@ -1,17 +1,23 @@
-aj_logger.pde
+aRiser.pde
 -------------
 
-This program has its roots in the ADCdvlp sketch.  But since I am changing the
-ADCdvlp code frequently to try out new things, I thought it might be useful
-to have a relatively static sketch (this one) for supporting the pj_logger
-Processing program.
+This program descends from Bill Welch's original a_logger file, but
+has been modified to plot traces of
 
-This program differs slightly from Bill Welch's a_logger sketch in that the
-a_logger sketch uses a different linearization model for converting mV readings
-into thermocouple temperatures.
+ channel 0 temperature
+ channel 0 rate of rise
+ channel 1 temperature
+ channel 1 rate of rise
 
-At some point we will merge the two source codes, at which point aj_logger will
-probably be mothballed.
+This programs outputs a series of records on the serial port:
+
+  timestamp, temp. channel 1, rise rate channel 1, temp. 1, rise 1
+
+This is the arduino half of the application.
+
+The Processing half of the application, which is the PC software to plot
+the graphs, is pRiser.pde
+
 
 Jim Gallt
-6/27/2010
+7/1/2010
