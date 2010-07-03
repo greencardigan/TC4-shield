@@ -196,11 +196,10 @@ void get_samples()
   v = round( C_TO_F( tempC ) * 100 );
   temps[chan] = v;
 
-  // Serial.print( v ); Serial.print(","); Serial.print( chan ); Serial.print(","); 
-  chan++;
-  chan &= ( NCHAN - 1 );
+  if( NCHAN == ++chan ) chan = 0;
+
   Wire.beginTransmission(A_ADC);
-  Wire.send(CFG | (chan << 5) );
+  Wire.send(CFG | (chan << 5) ); // setup the register for next conversion
   Wire.endTransmission();
 }
 
