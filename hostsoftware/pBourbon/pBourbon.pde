@@ -1,29 +1,43 @@
-// Title: Datalogger and real-time display of rate of temperature rise
+// Title: pBourbon
+// Roast logger with temperature on 2 channels and rate of rise on channel 1
+
 // This is a Processing sketch intended to run on a host computer.
 
-// Author: William Welch Copyright (c) 2009, all rights reserved.
+// MLG Properties, LLC Copyright (c) 2010, all rights reserved.
+// MIT license: http://opensource.org/licenses/mit-license.php
+
+// William Welch Copyright (c) 2009, all rights reserved.
 // MIT license: http://opensource.org/licenses/mit-license.php
 // Inspired by Tom Igoe's Grapher Pro: http://www.tigoe.net/pcomp/code/category/Processing/122
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
-// version 0.2  02 July 2010 by Jim Gallt
+// version 20100703 by Jim Gallt
 
-String logfilename = "roast_" + year()+"_"+month()+"_"+day()+"_"+hour()+"_"+minute()+"_"+second()+".csv";
+String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
+String CSVfilename = filename + ".csv";
 PrintWriter logfile;
+
+color c0 = color(255,0,0); // channel 0
+color c1 = color(0,255,0);
+color c2 = color(255,255,0);
+color c3 = color(255,204,0);
+color cmin = color( 0,255,255 );
+color cidx = color( 0,255,255 );
+color clabel = color( 255,255,160 );
 
 int NCHAN = 2;  // 2 input channels
 
 // fixme This should be user selectable, maybe in a config text file
 // ---------------------------------------------------------
-int whichport = 2;
+int whichport = 4;
 // ---------------------------------------------------------
 
 int baudrate = 57600;
 import processing.serial.*;
 Serial comport;
 
-int MAX_TEMP = 500;  // degrees (or 10 * degF per minute)
-int MAX_TIME = 960; // seconds
+int MAX_TEMP = 520;  // degrees (or 10 * degF per minute)
+int MAX_TIME = 1020; // seconds
 int MIN_TEMP = -20; // degrees
 int TEMP_INCR = 20;  // degrees
 int idx = 0;
@@ -45,13 +59,14 @@ void setup() {
   if( NCHAN >= 2 )   T3 = new float[2][MAX_TIME];
   
   frame.setResizable(true);
-  labelFont = createFont("Courier", 18 );
+  labelFont = createFont("Tahoma-Bold", 16 );
+  fill( clabel );
   
-  println(logfilename);
-  logfile = createWriter(logfilename);
+  println(CSVfilename);
+  logfile = createWriter(CSVfilename);
 
   // size(screen.width, screen.height);
-  size(800, 600);
+  size(1200, 800);
   frameRate(1);
   smooth();
   background(0);
@@ -66,19 +81,26 @@ void setup() {
 // --------------------------------------------------
 void drawgrid(){
   textFont(labelFont);
-  stroke(128,128,128);
+  stroke(64,64,64);
+  fill( clabel);
   
   // draw horizontal grid lines
   for (int i=MIN_TEMP + TEMP_INCR; i<MAX_TEMP; i+=TEMP_INCR) {
-    // float xi = i * 1.0;
-    text(str(i), 0, MAX_TEMP-i);
+    text(nf(i,3,0), 0, MAX_TEMP-i - 2);
+    text(nf(i,3,0), MAX_TIME -40, MAX_TEMP-i - 2);  // right side vert. axis labels
     line(0, MAX_TEMP-i, MAX_TIME, MAX_TEMP-i);
   }
   
   // draw vertical grid lines
-  for (int i= 60 ; i<MAX_TIME; i+= 60) {
-    int m = i / 60;
-    text(str(m), i, MAX_TEMP);
+  int m;
+  for (int i= 30 ; i<MAX_TIME; i+= 30) {
+    if( i % 60 == 0 ) {
+      m = i / 60;
+      text(str(m), i, MAX_TEMP - MIN_TEMP - 2 );
+      stroke(80,80,80);  // major gridlines should be a little bolder
+    }
+      else
+        stroke(64,64,64);
     line(i, 0, i, MAX_TEMP - MIN_TEMP);
   }
 }
@@ -108,6 +130,76 @@ void keyPressed()
   logfile.println(timestamp + " key " + key);
 }
 
+
+// ---------------------------------------- numeric values at top of screen
+void monitor( int t1, int t2 ) {
+  int minutes,seconds;
+  
+  if( idx > 0 ) {
+    String strng;
+    float w;
+    int iwidth = width;
+    int incr = iwidth / 8;
+    int pos = incr;
+  
+    fill( cmin );
+    seconds = int( T0[0][idx-1] ) % 60;
+    minutes = int ( T0[0][idx-1] ) / 60;;
+    strng = nf( minutes,2,0 ) + ":" + nf(seconds,2,0 );
+    w = textWidth(strng);
+    textFont( labelFont, t1 );
+    text(strng,pos-w,16);
+    strng = "TIME";
+    textFont( labelFont, t2 );
+    w = textWidth( strng );
+    text(strng,pos-w,32 );
+  
+    pos += incr;
+    fill( c0 );
+    strng = nf( T0[1][idx-1],2,1 );
+    w = textWidth(strng);
+    textFont( labelFont, t1 );
+    text(strng,pos-w,16);
+    strng = "CHAN_1";
+    textFont( labelFont, t2 );
+    text(strng,pos-w,32 );
+
+    pos += incr;
+    fill( c1 );
+    strng = nfp( 0.1* T1[1][idx-1],3,1 );
+    w = textWidth(strng);
+    textFont( labelFont, t1 );
+    text(strng,pos-w,16);
+    strng = "  RoR_1";
+    textFont( labelFont, t2 );
+    w = textWidth( strng );
+    text(strng,pos-w,32 );
+
+    pos += incr;
+    fill( c2 );
+    strng = nf( T2[1][idx-1],3,1 );
+    w = textWidth(strng);
+    textFont( labelFont, t1 );
+    text(strng,pos-w,16);
+    strng = "CHAN_2";
+    textFont( labelFont, t2 );
+    text(strng,pos-w,32 );
+
+/*
+    pos += incr;
+    fill( cidx );
+    strng = nf( idx,4,0 );
+    w = textWidth(strng);
+    textFont( labelFont, t1 );
+    text(strng,pos-w,16);
+    strng = "INDEX";
+    textFont( labelFont, t2 );
+    text(strng,pos-w,32 );
+*/
+
+  }
+}
+
 // ------------------------------------------------------
 void draw() {
   float sx = 1.;
@@ -118,10 +210,13 @@ void draw() {
   background(0);
   drawgrid();
 
-  drawchan(T0, color(255,0,0) );  
-  drawchan(T1, color(0,255,0) ); 
-  if( NCHAN >= 2 )   drawchan(T2, color(0,0,255) );
-  // if( NCHAN >= 2 )   drawchan(T3, color(255,204,0) );   // don't draw RoR for 2nd channel
+  drawchan(T0, c0 );  
+  drawchan(T1, c1 ); 
+  if( NCHAN >= 2 )   drawchan(T2, c2 );
+  // if( NCHAN >= 2 )   drawchan(T3, c3 );   // don't draw RoR for 2nd channel
+
+  // put numeric monitor at top of screen
+  monitor( 18, 16 );
 }
 
 // -------------------------------------------------------------
@@ -176,11 +271,16 @@ void serialEvent(Serial comport) {
   idx = idx % MAX_TIME;
 } // serialEvent
 
+// ------------------------------- save a frame when mouse is clicked
+void mouseClicked() {
+  saveFrame(filename + "-##" + ".jpg" );
+}
+
 // ---------------------------------------------------
 void stop() {
   comport.stop();
   logfile.flush();
   logfile.close();
-  println("Data was written to: " + logfilename);
+  println("Data was written to: " + CSVfilename);
 }
 
