@@ -8,7 +8,7 @@ Quick Start Guide for software setup and first test of tc4-shield
 
 
 
-= Details =
+= Details for Windows =
 
   # download and install "Processing.Org" software
       * follow the instructions here: [http://processing.org/download/]
@@ -17,15 +17,14 @@ Quick Start Guide for software setup and first test of tc4-shield
       * follow the instructions here: [http://www.arduino.cc/en/Main/Software]
       * try the 'Blink' example (do not attach your tc4-shield yet)
       * make sure you can get the 'Blink' example working before you proceed
-  # download tc4-shield zip file
-      * unzip the tc4-shield files
-      * library folders (with files) for arduino programs should be copied into C:/Program Files/arduino-0018/libraries (or wherever your Arduino executables are installed).  The Arduino IDE reads the libraries folder on startup, so you will need to exit the IDE and then restart before it will know about a new library.
-      * both Processing and Arduino sketches must be located in a folder whose name matches the name of the sketch (i.e. the .pde file).
-  # Unplug the USB cable, install the tc4-shield
-  # Plug in USB cable, confirm 'Blink' still works
-  # 'burn' the demo1 sketch into the Arduino
-  # bring up the 'Serial Monitor' in the Arduino IDE, 57600 baud.
-  # verify that sketch is running, should say 'mcp9800 config OK'
-  # Close Serial Monitor and Arduino IDE
-  # Run the Processing IDE, select the Logger sketch and run it
-  # FIXME: more to come
+  # download the Bourbon-xxxx zip file
+
+  # In My Documents, there is a folder named Arduino. This is what they call your sketchbook. In the My Documents/Arduino folder are individual folders containing sketches. The name of the folder must be the same as the name of the sketch file (*.pde) it contains. For instance, the My Documents/Arduino/aBourbon folder should contain aBourbon.pde.
+
+  # Also inside the My Documents/Arduino folder is a libraries folder. The IDE is set up to look here (My Documents/Arduino/libraries) for contributed libraries. Each library (TypeK, Riser, etc) gets its own folder under libraries. The *.cpp and *.h files reside inside the folder (TypeK.h is in the TypeK folder, e.g.).
+
+  # Repeat the steps above, but this time for Processing instead of Arduino. Same folder structure. (None of our stuff so far, however, uses any contributed Processing libraries).
+
+  # Sketch naming convention: the distribution name (Bourbon, e.g.) preceded by a lower case a or p, depending on whether it is an Arduino sketch (to be flashed to the chip) or a Processing sketch (to run on the host PC).
+
+  # the zip file for the Bourbon release should already match the above. I think you can just unzip the file under My Documents and everything will find its way to the right place?
