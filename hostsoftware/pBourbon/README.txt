@@ -7,7 +7,7 @@ has been modified to plot traces of
  channel 0 temperature
  channel 0 rate of rise
  channel 1 temperature
- channel 1 rate of rise
+
 
 The rate of rise values are exaggerated by 10X.  So a plotted value of 200
 corresponds to a rise rate of 20.0 degrees F per minute.
@@ -18,6 +18,7 @@ The arduino half of the application, which must be flashed to the arduino
 board, is aBourbon.pde.
 
 A mouseclick will capture a JPG version of the screen to a file.
+
 
 
 Jim Gallt
