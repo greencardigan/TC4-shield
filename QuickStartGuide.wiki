@@ -1,5 +1,7 @@
 Quick Start Guide for software setup and first test of tc4-shield
 
+See also Randy's setup guide available from the Downloads section.
+
 = Introduction =
 
   # download software
