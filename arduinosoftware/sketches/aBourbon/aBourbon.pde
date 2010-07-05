@@ -296,9 +296,9 @@ void setup()
   if( adc_delay < MIN_DELAY ) adc_delay = MIN_DELAY ;
   Serial.begin(BAUD);
 
-  while ( millis() < 3000) {
+  while ( millis() < 1000) {
     blinker();
-    delay(500);
+    delay(100);
   }
 
   Serial.println(msg);
@@ -308,9 +308,9 @@ void setup()
   if( NCHAN >= 4 ) Serial.print(",T3,rate3");
   Serial.println();
  
-  while ( millis() < 6000) {
+  while ( millis() < 3000) {
     blinker();
-    delay(500);
+    delay(100);
   }
 
   Wire.begin();
