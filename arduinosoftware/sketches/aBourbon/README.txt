@@ -4,6 +4,7 @@ aBourbon.pde
 This program descends from Bill Welch's original a_logger file, but
 has been modified to plot traces of
 
+ ambient temperature
  channel 0 temperature
  channel 0 rate of rise
  channel 1 temperature
@@ -11,7 +12,7 @@ has been modified to plot traces of
 
 This programs outputs a series of records on the serial port:
 
-  timestamp, temp. channel 1, rise rate channel 1, temp. 1, rise 1
+  timestamp, ambient, temp. channel 1, rise rate channel 1, temp. 1, rise 1
 
 This is the arduino half of the application.
 

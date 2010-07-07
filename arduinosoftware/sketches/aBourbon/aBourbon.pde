@@ -6,7 +6,7 @@
 
 // Support for pBourbon.pde
 // Jim Gallt 
-// Version: 20100707
+// Version: 20100707b
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -14,12 +14,13 @@
 #include <Wire.h>
 #include <TypeK.h>
 #include <Riser.h>
+#include <LiquidCrystal.h>
 
 // ------------------------ conditional compiles
 
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
 #define MCP9800_DELAY 100 // sample period for MCP9800
-#define MAGIC_NUMBER 990 // not quite 1000 to make up for processing time
+#define MAGIC_NUMBER 960 // not quite 1000 to make up for processing time
 #define RES_11      // resolution on ambient temp chip
 #define NAMBIENT 12  // number of ambient samples to be averaged
 #define CFG CFG8  // select gain = 8 on ADC
@@ -89,7 +90,7 @@ void blinker();
 void logger();
 
 int ledPin = 13;
-char msg[80];
+//char msg[80];
 
 // updated at intervals of DELAY ms
 int32_t samples[NCHAN];
@@ -112,7 +113,9 @@ Riser rise4( NSAMPLES );
 char smin[3],ssec[3],st1[6],st2[6],st3[6],sRoR1[7];
 char LCD01[17];
 char LCD02[17];
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
+float timestamp = 0;
 
 // ------------------------------------------------------------------
 void logger()
@@ -124,6 +127,10 @@ void logger()
   // print timestamp
   tod = millis() * 0.001;
   Serial.print(tod, DP);
+
+  // print ambient
+  Serial.print(",");
+  Serial.print( C_TO_F(avgamb * 0.01), DP );
    
   // print temperature, rate for each channel
   i = 0;
@@ -177,6 +184,10 @@ void logger()
   sprintf( st2, "%6.1f", t2 );  // fixme limit t2 to 999.9
   strcat( LCD02, st2 );
   
+  lcd.setCursor(0,0);
+  lcd.print(LCD01);
+  lcd.setCursor(0,1);
+  lcd.print(LCD02);
 };
 
 // --------------------------------------------------------------------------
@@ -319,6 +330,8 @@ void setup()
   byte a;
   pinMode(ledPin, OUTPUT);
 
+  lcd.begin(16, 2);
+
 // want delay between sample sets to be at least 1 second
   adc_delay = MAGIC_NUMBER / NCHAN;
   if( adc_delay < MIN_DELAY ) adc_delay = MIN_DELAY ;
@@ -329,8 +342,8 @@ void setup()
     delay(100);
   }
 
-  Serial.println(msg);
-  Serial.print("# time,T0,rate0");
+//  Serial.println(msg);
+  Serial.print("# time,ambient,T0,rate0");
   if( NCHAN >= 2 ) Serial.print(",T1,rate1");
   if( NCHAN >= 3 ) Serial.print(",T2,rate2");
   if( NCHAN >= 4 ) Serial.print(",T3,rate3");
@@ -376,6 +389,12 @@ void setup()
 // -----------------------------------------------------------------
 void loop()
 {
+  float idletime;
+
+  // limit sample rate to once per second
+  while ( (millis() % 1000) != 0 ) ;  
+  timestamp = float(millis()) / 1000.;
+
   get_ambient();
   avg_ambient();
   for (int i=0; i<NCHAN; i++) {
@@ -384,7 +403,14 @@ void loop()
     delay( adc_delay );
   }
   logger();
+
+  idletime = float(millis()) / 1000.;
+  idletime = 1.0 - (idletime - timestamp);
+  // arbitrary: complain if we don't have at least 10mS left
+  if (idletime < 0.010) {
+    Serial.print("# idle: ");
+    Serial.println(idletime);
+  }
+
 }
-
-
 

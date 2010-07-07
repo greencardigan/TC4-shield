@@ -11,7 +11,7 @@
 // Inspired by Tom Igoe's Grapher Pro: http://www.tigoe.net/pcomp/code/category/Processing/122
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
-// version 20100705 by Jim Gallt
+// version 20100707 by Jim Gallt
 
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
@@ -48,6 +48,7 @@ int TEMP_INCR = 20;  // degrees
 int idx = 0;
 float timestamp = 0.0;
 
+float ambient;
 float [][] T0;
 float [][] T1;
 float [][] T2;
@@ -252,31 +253,33 @@ void serialEvent(Serial comport) {
   }
   
   String[] rec = split(msg, ",");  // comma separated input list
-  if (rec.length != 2 * NCHAN + 1 ) {
+  if (rec.length != 2 * NCHAN + 2 ) {
     println("Ignoring unknown msg from logger: " + msg);
     return;
   }
   
   timestamp = float(rec[0]);
+  ambient = float(rec[1]);
+
   T0[0][idx] = timestamp;
-  T0[1][idx] = float(rec[1]); 
+  T0[1][idx] = float(rec[2]); 
   T1[0][idx] = timestamp;
-  T1[1][idx] = float(rec[2]) * 10.0;  // exaggerate the rate traces
+  T1[1][idx] = float(rec[3]) * 10.0;  // exaggerate the rate traces
   
   if( NCHAN >= 2 ) {
     T2[0][idx] = timestamp;
-    T2[1][idx] = float(rec[3]);
+    T2[1][idx] = float(rec[4]);
   }
   if( NCHAN >= 2 ) {
     T3[0][idx] = timestamp;
-    T3[1][idx] = float(rec[4]) * 10.0;  // exaggerate the rate traces
+    T3[1][idx] = float(rec[5]) * 10.0;  // exaggerate the rate traces
   };
   
-  for (int i=0; i<(2 * NCHAN + 1); i++) {
+  for (int i=0; i<(2 * NCHAN + 2); i++) {
     print(rec[i]);
     logfile.print(rec[i]);
-    if (i < 2 * NCHAN ) print(",");
-    if (i < 2 * NCHAN ) logfile.print(",");
+    if (i < 2 * NCHAN +1 ) print(",");
+    if (i < 2 * NCHAN +1 ) logfile.print(",");
   }
   
   logfile.println();
