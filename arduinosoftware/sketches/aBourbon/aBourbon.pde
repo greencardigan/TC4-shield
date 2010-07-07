@@ -6,7 +6,7 @@
 
 // Support for pBourbon.pde
 // Jim Gallt 
-// Version: 20100703
+// Version: 20100707
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -108,28 +108,35 @@ Riser rise2( NSAMPLES );
 Riser rise3( NSAMPLES );
 Riser rise4( NSAMPLES );
 
+// LCD output strings
+char smin[3],ssec[3],st1[6],st2[6],st3[6],sRoR1[7];
+char LCD01[17];
+char LCD02[17];
+
+
 // ------------------------------------------------------------------
 void logger()
 {
   float tod;
   int i;
+  float RoR,t1,t2;
 
   // print timestamp
   tod = millis() * 0.001;
   Serial.print(tod, DP);
-  
+   
   // print temperature, rate for each channel
   i = 0;
   if( NCHAN >= 1 ) {
     Serial.print(",");
-    Serial.print( 0.01 * temps[i], DP );
+    Serial.print( t1 = 0.01 * temps[i], DP );
     Serial.print(",");
-    Serial.print( rise1.CalcRate( tod, 0.01 * temps[i++] ), DP );
+    Serial.print( RoR = rise1.CalcRate( tod, 0.01 * temps[i++] ), DP );
   };
   
   if( NCHAN >= 2 ) {
     Serial.print(",");
-    Serial.print( 0.01 * temps[i], DP );
+    Serial.print( t2 = 0.01 * temps[i], DP );
     Serial.print(",");
     Serial.print( rise2.CalcRate( tod, 0.01 * temps[i++] ), DP );
   };
@@ -149,6 +156,27 @@ void logger()
   };
   
   Serial.println();
+   
+  // ----------------------------- LCD output  (fixme needs testing)
+  // form the TOD output string in min:sec format
+  sprintf( smin, "%02u", int( tod ) / 60 ); // fixme limit tod to 3599
+  sprintf( ssec, "%02u", round( tod ) % 60 );
+  strcpy( LCD01, smin );
+  strcat( LCD01, ":" );
+  strcat( LCD01, ssec );
+
+  // channel 1 temperature and RoR
+  sprintf( st1, "%6.1f", t1 ); // fixme limit t1 to 999.9
+  sprintf( sRoR1, "%0+5.1f", RoR );  // fixme limit RoR to 99.9
+  strcat( LCD01, "    " ); // 4 space separation on line 1
+  strcat( LCD01, st1 );
+  strcpy( LCD02, sRoR1 );
+  strcat( LCD02, "    " ); // 4 space separation on line 2
+
+  // channel 2 temperature 
+  sprintf( st2, "%6.1f", t2 );  // fixme limit t2 to 999.9
+  strcat( LCD02, st2 );
+  
 };
 
 // --------------------------------------------------------------------------
