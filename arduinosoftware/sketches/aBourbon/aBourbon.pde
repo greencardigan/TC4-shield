@@ -5,8 +5,8 @@
 // output on serial port:  timestamp, temperature, rise rate (degF per minute)
 
 // Support for pBourbon.pde
-// Jim Gallt 
-// Version: 20100707b
+// Jim Gallt and Bill Welch
+// Version: 20100707c
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -33,9 +33,9 @@
 
 // ---------------------------- calibration of ADC and ambient temp sensor
 // fixme -- put this information in EEPROM
-#define CAL_OFFSET  ( -1 )  // microvolts
+#define CAL_OFFSET  ( 0 )  // microvolts
 #define CAL_GAIN 1.0035
-#define TEMP_OFFSET ( 0.55 );  // Celsius offset
+#define TEMP_OFFSET ( 1.0 );  // Celsius offset
 
 
 // -------------- ADC configuration
@@ -164,30 +164,52 @@ void logger()
   
   Serial.println();
    
-  // ----------------------------- LCD output  (fixme needs testing)
+  // ----------------------------- LCD output
   // form the TOD output string in min:sec format
-  sprintf( smin, "%02u", int( tod ) / 60 ); // fixme limit tod to 3599
-  sprintf( ssec, "%02u", round( tod ) % 60 );
+  int itod = round( tod );
+  if( itod > 3599 ) itod = 3599;
+  sprintf( smin, "%02u", itod / 60 );
+  sprintf( ssec, "%02u", itod % 60 );
   strcpy( LCD01, smin );
   strcat( LCD01, ":" );
   strcat( LCD01, ssec );
 
   // channel 1 temperature and RoR
-  sprintf( st1, "%6.1f", t1 ); // fixme limit t1 to 999.9
-  sprintf( sRoR1, "%0+5.1f", RoR );  // fixme limit RoR to 99.9
-  strcat( LCD01, "    " ); // 4 space separation on line 1
+  int it01 = round( t1 );
+  if( it01 > 999 ) 
+    it01 = 999;
+  else
+    if( it01 < -999 ) it01 = -999;
+  sprintf( st1, "%4d", it01 );
+
+  int iRoR = round( RoR );
+  if( iRoR > 99 ) 
+    iRoR = 99;
+  else
+   if( iRoR < -99 ) iRoR = -99; 
+  sprintf( sRoR1, "%0+3d", iRoR );
+
+  strcat( LCD01, "       " ); // 7 space separation on line 1
   strcat( LCD01, st1 );
-  strcpy( LCD02, sRoR1 );
-  strcat( LCD02, "    " ); // 4 space separation on line 2
+  strcpy( LCD02, "  "); // two leading spaces on line 2
+  strcat( LCD02, sRoR1 );
+  strcat( LCD02, "       " ); // 7 space separation on line 2
 
   // channel 2 temperature 
-  sprintf( st2, "%6.1f", t2 );  // fixme limit t2 to 999.9
+  int it02 = round( t2 );
+  if( it02 > 999 ) it02 = 999;
+  else if( it02 < -999 ) it02 = -999;
+  sprintf( st2, "%4d", it02 );
   strcat( LCD02, st2 );
   
   lcd.setCursor(0,0);
   lcd.print(LCD01);
   lcd.setCursor(0,1);
   lcd.print(LCD02);
+  
+  // Serial.println("0123456789ABCDEF");
+  // Serial.println( LCD01 );
+  // Serial.println( LCD02 );
 };
 
 // --------------------------------------------------------------------------
