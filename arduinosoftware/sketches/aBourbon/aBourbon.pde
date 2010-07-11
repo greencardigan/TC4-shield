@@ -8,7 +8,7 @@
 
 // Support for pBourbon.pde and 16 x 2 LCD
 // Jim Gallt and Bill Welch
-// Version: 20100710
+// Version: 20100710a
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -201,11 +201,11 @@ void logger()
    if( iRoR < -99 ) iRoR = -99; 
   sprintf( sRoR1, "%0+3d", iRoR );
 
-  strcat( LCD01, "       " ); // 7 space separation on line 1
+  strcat( LCD01, "    T1:" );
   strcat( LCD01, st1 );
-  strcpy( LCD02, "  "); // two leading spaces on line 2
+  strcpy( LCD02, "RoR1:");
   strcat( LCD02, sRoR1 );
-  strcat( LCD02, "       " ); // 7 space separation on line 2
+  strcat( LCD02, " T2:" );
 
   // channel 2 temperature 
   int it02 = round( t2 );
