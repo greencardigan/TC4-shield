@@ -2,7 +2,7 @@ aBourbon.pde
 -------------
 
 This program descends from Bill Welch's original a_logger file, but
-has been modified to plot traces of
+has been modified to output the following information on the serial interface:
 
  ambient temperature
  channel 0 temperature
@@ -17,8 +17,18 @@ This programs outputs a series of records on the serial port:
 This is the arduino half of the application.
 
 The Processing half of the application, which is the PC software to plot
-the graphs, is pBourbon.pde
+the realtime graphs, is pBourbon.pde
+
+As of the 20100710 version, aBourbon.pde also provides output intended for a 16 x 2 LCD display
+as follows (LCD signal and corresponding Arduino pin):
+
+#define RS 2 
+#define ENABLE 4 
+#define DB4 7 
+#define DB5 8 
+#define DB6 12 
+#define DB7 13 
 
 
 Jim Gallt
-7/3/2010
+7/10/2010
