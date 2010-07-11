@@ -3,10 +3,12 @@
 
 // N-channel Rise-o-Meter
 // output on serial port:  timestamp, temperature, rise rate (degF per minute)
+// output on LCD : timestamp, channel 1 temperature
+//                   RoR 1,    channel 2 temperature
 
-// Support for pBourbon.pde
+// Support for pBourbon.pde and 16 x 2 LCD
 // Jim Gallt and Bill Welch
-// Version: 20100707c
+// Version: 20100710
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -35,7 +37,7 @@
 // fixme -- put this information in EEPROM
 #define CAL_OFFSET  ( 0 )  // microvolts
 #define CAL_GAIN 1.0035
-#define TEMP_OFFSET ( 1.0 );  // Celsius offset
+#define TEMP_OFFSET ( 1.5 );  // Celsius offset
 
 
 // -------------- ADC configuration
@@ -113,7 +115,17 @@ Riser rise4( NSAMPLES );
 char smin[3],ssec[3],st1[6],st2[6],st3[6],sRoR1[7];
 char LCD01[17];
 char LCD02[17];
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+// LiquidCrystal lcd(12, 11, 5, 4, 3, 2);  // default Liquid Crystal settings
+
+// proposed new LCD settings?
+#define RS 2
+#define ENABLE 4
+#define DB4 7
+#define DB5 8
+#define DB6 12
+#define DB7 13
+LiquidCrystal lcd( RS, ENABLE, DB4, DB5, DB6, DB7 );
 
 float timestamp = 0;
 
