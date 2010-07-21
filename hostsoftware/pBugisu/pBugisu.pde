@@ -16,7 +16,7 @@
 // version 20100721 by Jim Gallt & Bill Welch
 
 // choose network or serial connection
-boolean use_tcp = true;
+boolean use_tcp = false;
 import processing.net.*; 
 Client myClient; 
 String SERVER = "10.0.0.222";
@@ -27,7 +27,7 @@ String CSVfilename = filename + ".csv";
 PrintWriter logfile;
 String appname = "Bugisu Roast Logger v1.00";
 
-String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
+String cfgfilename = "pBugisu.cfg"; // whichport, baudrate
 
 String PROFILE = "myprofile.csv";
 String profile_data[];
@@ -111,8 +111,13 @@ void setup() {
   println(CSVfilename);
   logfile = createWriter(CSVfilename);
 
-  size(800, 600);
-  frameRate(5);
+  if ((screen.width >= 1200) && (screen.height >= 800) ) {
+    size(1200, 800);
+  } else {
+    size(800, 600);
+  }
+
+  frameRate(5); // better feedback on keybd notes
   smooth();
   background(cbgnd);
 
@@ -296,11 +301,6 @@ void draw() {
    monitor( 18, 16 );
   };
 }
-
-
-
-
-
 
 // -------------------------------------------------------------
 void parse_record(String msg) {
