@@ -3,7 +3,7 @@
 
 // This is a Processing sketch intended to run on a host computer.
 
-// This version reads from a tcp/ip socket rather than a serial port
+// This version optionally reads from a tcp/ip socket rather than a serial port
 
 // MLG Properties, LLC Copyright (c) 2010, all rights reserved.
 // MIT license: http://opensource.org/licenses/mit-license.php
@@ -13,11 +13,12 @@
 // Inspired by Tom Igoe's Grapher Pro: http://www.tigoe.net/pcomp/code/category/Processing/122
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
-// version 20100720 by Jim Gallt & Bill Welch
+// version 20100721 by Jim Gallt & Bill Welch
 
+// choose network or serial connection
+boolean use_tcp = true;
 import processing.net.*; 
 Client myClient; 
-
 String SERVER = "10.0.0.222";
 int TCPPORT = 50073;
 
@@ -25,6 +26,8 @@ String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0
 String CSVfilename = filename + ".csv";
 PrintWriter logfile;
 String appname = "Bugisu Roast Logger v1.00";
+
+String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
 
 String PROFILE = "myprofile.csv";
 String profile_data[];
@@ -43,7 +46,13 @@ int cbgnd = 80;  // background color
 
 int NCHAN = 2;  // 2 input channels
 
+// default values for port and baud rate
+String whichport = "COM1";
+int baudrate = 57600;
 boolean started;  // waits for a keypress
+
+import processing.serial.*;
+Serial comport;
 
 int MAX_TEMP = 520;  // degrees (or 10 * degF per minute)
 int MAX_TIME = 1020; // seconds
@@ -63,9 +72,32 @@ PFont labelFont;
 
 // ----------------------------------------
 void setup() {
+
+  if (use_tcp) {  
+    myClient = new Client(this, SERVER, TCPPORT); 
+  }
+
+  // read com port settings from config file
+  // format is: value, comment/n
+  try {
+    String[] lines = loadStrings( cfgfilename );
+    if( lines.length >= 1 ) {
+      String[] portstring = split( lines[0], "," );
+      whichport = portstring[0];
+    };
+    if( lines.length >= 2 ) {
+      String[] baudstring = split( lines[1], "," );
+      baudrate = int( baudstring[0] );
+    };
+  } catch (Exception e) {
+    println("config file not found. OK.");
+  }
   
-  myClient = new Client(this, "10.0.0.222", 50073); 
-  
+  if (!use_tcp) {
+    print( "COM Port: "); println( whichport );
+    print( "Baudrate: "); println( baudrate );
+  }
+
   // create arrays
   T0 = new float[2][MAX_TIME];
   T1 = new float[2][MAX_TIME];
@@ -242,7 +274,7 @@ void draw() {
   scale(sx, sy);
   background( cbgnd );
 
-  if (myClient.available() > 0) { 
+  if (use_tcp && (myClient.available() > 0) ) { 
     String msg = myClient.readStringUntil('\n');
     ClientMsg(msg);
   } 
@@ -265,9 +297,14 @@ void draw() {
   };
 }
 
+
+
+
+
+
 // -------------------------------------------------------------
-void ClientMsg(String msg)
-{
+void parse_record(String msg) {
+
   if (msg == null) return;
   msg = trim(msg);
   if (msg.length() == 0) return;
@@ -289,12 +326,15 @@ void ClientMsg(String msg)
 
   // since we can't reset the Arduino from here, just fake a zero
   // starting time by subtracting off the 'epoch'
-  if( !started ) {
-    epoch = timestamp;
-    return;
-  } else {
-    timestamp = timestamp - epoch;
-    rec[0] = str(timestamp);
+
+  if (use_tcp) {
+    if( !started ) {
+      epoch = timestamp;
+      return;
+    } else {
+      timestamp = timestamp - epoch;
+      rec[0] = str(timestamp);
+    }
   }
   
   T0[0][idx] = timestamp;
@@ -325,9 +365,21 @@ void ClientMsg(String msg)
   idx = idx % MAX_TIME;
 }
 
+void serialEvent(Serial comport) {
+  // grab a line of ascii text from the logger and sanity check it.
+  String msg = comport.readStringUntil('\n');
+  parse_record(msg);
+}
+
+void ClientMsg(String msg)
+{
+  parse_record(msg);
+}
+
 // ------------------------------- save a frame when mouse is clicked
 void mouseClicked() {
   if( !started ) {
+    if (!use_tcp) startSerial();
     started = true;
   }
   else {
@@ -339,6 +391,7 @@ void mouseClicked() {
 void keyPressed()
 { 
   if( !started )  {
+   if (!use_tcp) startSerial();
    started = true;
    return;
   }
@@ -353,10 +406,31 @@ void keyPressed()
     kb_note = kb_note + key;
   }
 }
+// ------------------------------------------
+void startSerial() {
+  started = true;
+
+  textFont( labelFont );
+  text( appname + "\nPress a key or click to begin logging ..." 
+    + "\nOpening serial port (this may take several seconds) ...",110, 110 );
+
+  comport = new Serial(this, whichport, baudrate);
+  println( whichport + " comport opened.");
+  comport.clear();
+  println( "comport clear()'ed." );
+  comport.bufferUntil('\n'); 
+  println( "buffering..." );
+};
 
 // ---------------------------------------------------
 void stop() {
-  if( started ) myClient.stop();
+  if( started ) {
+    if (use_tcp) {
+      myClient.stop();
+    } else {
+      comport.stop();
+    }
+  }
   logfile.flush();
   logfile.close();
   println("Data was written to: " + CSVfilename);
