@@ -8,7 +8,7 @@
 
 // Support for pBourbon.pde and 16 x 2 LCD
 // Jim Gallt and Bill Welch
-// Version: 20100724
+// Version: 20100724 (support for hardware interfaces moved to cADC library)
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -51,6 +51,7 @@ int32_t temps[NCHAN];
 
 int adc_delay;
 
+// class objects perform RoR calculations
 Riser rise1( NSAMPLES );
 Riser rise2( NSAMPLES );
 Riser rise3( NSAMPLES );
@@ -61,7 +62,7 @@ char smin[3],ssec[3],st1[6],st2[6],st3[6],sRoR1[7];
 char LCD01[17];
 char LCD02[17];
 
-// LCD pin settings
+// LCD interface definition
 #define RS 2
 #define ENABLE 4
 #define DB4 7
@@ -176,20 +177,20 @@ void get_samples()
   TC_TYPE tc;
   float tempC;
    
-  v = adc.getuV( chan ); // get a microvolt sample from ADC
+  v = adc.getuV( chan ); // get a microvolt sample from MCP3424 ADC
   samples[chan] = v; // units = microvolts
 
   // convert mV to temperature using ambient temp adjustment
   tempC = tc.Temp_C( 0.001 * v, (float)amb.getCurrent() * AMB_LSB );
   tempC += amb.getOffset();
 
-  // convert to F and multiply by 100 to preserve precision
+  // convert to F and multiply by 100 to preserve precision while storing in integer variable
   v = round( C_TO_F( tempC ) * 100 );
   temps[chan] = v;
 
   if( NCHAN == ++chan ) chan = 0;
   
-  adc.nextConversion( chan ); // setup the register for next conversion
+  adc.nextConversion( chan ); // setup the ADC register for next conversion
 };
   
 // ---------------------------------------------------------------------
@@ -238,6 +239,7 @@ void setup()
   adc.initADC(); // initialize the MCP3424
   amb.config(); // configure MCP9800
   amb.init();  // initialize ambient temp averaging
+  amb.setOffset( 1.4 / 1.8 );
 }
 
 // -----------------------------------------------------------------
