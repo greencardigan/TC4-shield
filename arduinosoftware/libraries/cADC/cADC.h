@@ -111,7 +111,7 @@ class cADC {
 #define MCP9800_DELAY 250 // sample period for MCP9800
 
 #define NAMBIENT 4  // number of ambient samples to be averaged
-#define TEMP_OFFSET ( 1.5 )  // Celsius offset -- fixme read from EEPROM
+#define TEMP_OFFSET ( 0.0 )  // Celsius offset -- fixme read from EEPROM
 #define MAX_AMB 8 // array size for ambient samples
 #define AMB_LSB 0.0625 // value of MCP9800 LSB in 12-bit mode
 
@@ -126,6 +126,7 @@ class ambSensor {
   int32_t getCurrent(); // returns current value of averaged amb. temp
   int32_t readAmbientC(); // returns 16x the ambient Celsius temperature
   float getOffset(); // returns calibration information
+  void setOffset( float tempC ); // allows override of default offset
  protected:
  private:
   int nsamp; // number of samples for averaging

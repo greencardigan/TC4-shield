@@ -209,6 +209,10 @@ float ambSensor::getOffset() {
  return temp_offset;
 };
 
+// ---------------------------------------
+void ambSensor::setOffset( float tempC ) {
+ temp_offset = tempC;
+};
 
 
 
