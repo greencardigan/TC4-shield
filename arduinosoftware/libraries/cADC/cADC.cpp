@@ -215,4 +215,19 @@ void ambSensor::setOffset( float tempC ) {
 };
 
 
+// --------------------------------------------------- dFilterRC
+filterRC::filterRC() {
+ level = 0;
+ y = 0;
+};
 
+// ----------------------------------------------------
+void filterRC::init( int percent, int32_t y0 ) {
+ level = percent;
+ y = y0;
+};
+
+// ------------------------------------
+int32_t filterRC::doFilter ( int32_t xi ) {
+ return y = ( ( 100 - level ) * xi + level * y  ) / 100;
+};

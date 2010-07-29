@@ -65,6 +65,8 @@
 
 #define BITS_TO_uV 15.625  // LSB = 15.625 uV
 
+#define MAX_CHAN 4 // maximum number of channels to sample
+
 // ---------------------------- calibration of ADC and ambient temp sensor
 // fixme -- put this information in EEPROM
 #define CAL_OFFSET  ( 0 )  // microvolts
@@ -137,6 +139,20 @@ class ambSensor {
   int32_t current; // current value of ambient temp
   int32_t ambs[MAX_AMB];
 };
+
+
+// -------------------------------------------------------------------
+// class for digital filtering of ADC signals
+class filterRC {
+public: 
+ filterRC();
+ void init( int percent, int32_t y0 = 0 );  // y = initial function value
+ int32_t doFilter( int32_t xi );
+protected:
+ int level; // filtering level, 0 to 100%
+ int32_t y; // most recent value of function
+};
+
 
 
 #endif
