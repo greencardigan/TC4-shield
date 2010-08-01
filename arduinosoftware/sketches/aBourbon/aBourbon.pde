@@ -27,6 +27,8 @@
 #define BAUD 57600  // serial baud rate
 #define TC_TYPE TypeK  // thermocouple type / library
 #define DP 1  // decimal places for output
+#define BT_FILTER 40 // filtering level (percent) for T1
+#define ET_FILTER 60 // filtering level (percent) for T2
 
 // fixme This value should be user selectable
 #define NSAMPLES 10 // samples used for moving average calc for temperature
@@ -41,6 +43,8 @@ void logger();
 // class objects
 cADC adc( A_ADC );
 ambSensor amb( A_AMB, NAMBIENT );
+filterRC fT[NCHAN];
+
 
 int ledPin = 13;
 //char msg[80];
@@ -186,7 +190,7 @@ void get_samples()
 
   // convert to F and multiply by 100 to preserve precision while storing in integer variable
   v = round( C_TO_F( tempC ) * 100 );
-  temps[chan] = v;
+  temps[chan] = fT[chan].doFilter( v );
 
   if( NCHAN == ++chan ) chan = 0;
   
@@ -240,6 +244,8 @@ void setup()
   amb.config(); // configure MCP9800
   amb.init();  // initialize ambient temp averaging
   amb.setOffset( 1.4 / 1.8 );
+  fT[0].init( BT_FILTER, 7500 ); // digital filtering on BT
+  fT[1].init( ET_FILTER, 7500 ); // digital filtering on ET
 }
 
 // -----------------------------------------------------------------
