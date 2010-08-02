@@ -9,8 +9,12 @@
  *      Version 20100731
  */
 
+//#define DEBUG
 
-// fixme  flakey behavior when ptr approaches 128 ??
+#ifdef DEBUG
+#define DPRINTLN(s,var) Serial.print(s);Serial.print(var,DEC);Serial.println()
+#define DPRINT(s,var) Serial.print(s);Serial.print(var,DEC);Serial.print(",")
+#endif
 
 #include <mcEEPROM.h>
 
@@ -20,60 +24,84 @@ mcEEPROM::mcEEPROM( uint8_t select ) {
 	Wire.begin();
 }
 
-// -------------------------- read array of bytes
-uint16_t mcEEPROM::read( uint16_t ptr, uint8_t* barray, uint16_t count ) {
-//	Serial.println( count, DEC );
-	if( count > MAX_COUNT )
-		return 0;
-	uint16_t i, j, k, n;
-	k = 0;
-	for( i = 0; i < count; i += BUFFER_SIZE ){
-		DELAY;
-		Wire.beginTransmission( chip_addr );
-		Serial.print( (uint8_t)( ptr >> 8 ), HEX ); Serial.print(",");
-		Serial.print( (uint8_t)( ptr >> 0 ), HEX ); // Serial.print(",");
-		Serial.println();
-		Wire.send( (uint8_t)( ptr >> 8 ) ); // MSB of pointer
-		Wire.send( (uint8_t)( ptr >> 0 ) ) ; // LSB of pointer)
-		Wire.endTransmission();
-		Wire.requestFrom( chip_addr, (uint8_t)BUFFER_SIZE );
-		n = Wire.available();
-//		Serial.print("n = "); Serial.println( n, DEC );
-		for( j = 0; (j < n && k < count ); j++ ) {
-			barray[k] = Wire.receive();
-			// Serial.println(barray[k], HEX );
-			++k;
-		}
-		ptr += BUFFER_SIZE;
-	}
-	return k;
+// -------------------------- returns bytes available on this page
+uint16_t mcEEPROM::bytesOnPage( uint16_t ptr ) {
+	return PAGE_SIZE - ( ptr % PAGE_SIZE );
 }
 
-// ------------------------------- read string
-uint16_t mcEEPROM::read( uint16_t ptr, char str[] ) {
-	uint16_t i, j, k, n;
-	uint8_t max = 0xFF;
+// -------------------------- read array of bytes
+uint16_t mcEEPROM::read( uint16_t ptr, uint8_t barray[], uint16_t count ) {
+	uint16_t j, k, n;
+//	if( count > MAX_COUNT )
+//		return 0;
+	if( ptr != 0 && count >( MAX_ADDR - ptr ) + 1 ) // don't go past the end
+		count = ( MAX_ADDR - ptr ) + 1;
 	k = 0;
-	uint8_t done = 0;
-	for( i = 0; i < max && done == 0; i += BUFFER_SIZE ){
+	while( k < count ) {
 		DELAY;
 		Wire.beginTransmission( chip_addr );
 		Wire.send( (uint8_t)( ptr >> 8 ) ); // MSB of pointer
 		Wire.send( (uint8_t)( ptr >> 0 ) ) ; // LSB of pointer)
-		Wire.endTransmission();
-		Wire.requestFrom( chip_addr, (uint8_t)BUFFER_SIZE );
-		n = Wire.available();
-		for( j = 0; (j < n && k < max ); j++ ) {
-			uint8_t b;
-			b = Wire.receive();
-			str[k++] = (char)b;
-			if( (char)b == '\0' ) {
-				done = 1;
-				break;
+		Wire.endTransmission(); // send two byte address to chip
+		n = BUFFER_SIZE; // don't exceed the Wire buffer size
+		if( n + k >= count )  // don't exceed requested byte count
+			n = count - k;
+		Wire.requestFrom( chip_addr, (uint8_t)n );
+		if( n == Wire.available() ) {
+			for( j = 0; j < n ; j++ ) {  // read the next "n" bytes
+				barray[k] = Wire.receive();
+				++k;
 			}
+			ptr += n;
 		}
-		ptr += BUFFER_SIZE;
+		else  // exit if there is a mismatch
+			break;
 	}
+
+	return k;
+}
+// -------------------------- read string
+uint16_t mcEEPROM::read( uint16_t ptr, char str[], uint16_t max ) {
+
+	uint16_t j, k, n;
+	uint8_t b;
+	uint8_t done = 0;
+
+	if( ptr != 0 && max > ( MAX_ADDR - ptr ) + 1  ) // don't go past the end
+		max = ( MAX_ADDR - ptr ) + 1;
+
+	k = 0;
+	while( done == 0 ) {
+		DELAY;
+		Wire.beginTransmission( chip_addr );
+		Wire.send( (uint8_t)( ptr >> 8 ) ); // MSB of pointer
+		Wire.send( (uint8_t)( ptr >> 0 ) ); // LSB of pointer)
+		Wire.endTransmission(); // send the two-byte address to EEPROM
+		n = BUFFER_SIZE; // don't exceed the Wire buffer size
+		if( n > max - k )  // don't exceed max byte count
+			n = max - k;
+		Wire.requestFrom( chip_addr, (uint8_t)n );
+		if( n == Wire.available() ) { // exit if there is a mismatch
+			for( j = 0; j < n && done == 0 ; j++ ) {  // read the next "n" bytes
+				b = Wire.receive();
+				str[k] = (char)b;
+#ifdef DEBUG
+				DPRINT("k = ",k);
+				DPRINTLN("byte = ",b );
+#endif
+				++k;
+				if( k == max ) {
+					done = 1;
+					str[k-1] = '\0'; // force string termination
+				} else
+				if( (char)b == '\0' )
+					done = 1;
+			} // end for
+			ptr += n;
+		} // end if
+		else
+			done = 1;
+	} // end while
 	return k;
 }
 
@@ -82,64 +110,82 @@ uint16_t mcEEPROM::read( uint16_t ptr, float f[] ) {
 	return read( ptr, (uint8_t*)f, sizeof( float ) );
 }
 
+// --------------------------- read double
+uint16_t mcEEPROM::read( uint16_t ptr, double d[] ) {
+	return read( ptr, (uint8_t*)d, sizeof( double ) );
+}
+
 // --------------------------- read integer
-uint16_t mcEEPROM::read( uint16_t ptr, int m[] ) {
-	return read( ptr, (uint8_t*)m, sizeof( int ));
+uint16_t mcEEPROM::read( uint16_t ptr, int16_t m[] ) {
+	return read( ptr, (uint8_t*)m, sizeof( int16_t ));
 }
 
-/*
-// -------------------------- write array of bytes
-uint16_t mcEEPROM::write( uint16_t ptr, uint8_t* barray, uint16_t count ) {
-//	Serial.println( count, DEC );
-	if( count > MAX_COUNT )
-		return 0;
-	uint16_t i;
-
-	for( i = 0; i < count; i++ ){  // fixme try and write more than 1 byte at a time
-		// Serial.println( barray[i], HEX );
-		DELAY;
-		Wire.beginTransmission( chip_addr );
-		Wire.send( (uint8_t)( ptr >> 8 ) ); // MSB of pointer
-		Wire.send( (uint8_t)( ptr >> 0 ) ) ; // LSB of pointer)
-		Wire.send( barray[i] );
-		Wire.endTransmission();
-		++ptr;
-	}
-	return i;
+// --------------------------- read unsigned integer
+uint16_t mcEEPROM::read( uint16_t ptr, uint16_t m[] ) {
+	return read( ptr, (uint8_t*)m, sizeof( uint16_t ));
 }
-*/
+
+// --------------------------- read long integer
+uint16_t mcEEPROM::read( uint16_t ptr, int32_t m[] ) {
+	return read( ptr, (uint8_t*)m, sizeof( int32_t ));
+}
+
+// --------------------------- read unsigned long integer
+uint16_t mcEEPROM::read( uint16_t ptr, uint32_t m[] ) {
+	return read( ptr, (uint8_t*)m, sizeof( uint32_t ));
+}
 
 // -------------------------- write array of bytes
-uint16_t mcEEPROM::write( uint16_t ptr, uint8_t* barray, uint16_t count ) {
-//	Serial.println( count, DEC );
-	if( count > MAX_COUNT )
-		return 0;
-	uint16_t i,j,k;
+uint16_t mcEEPROM::write( uint16_t ptr, uint8_t barray[], uint16_t count ) {
+#ifdef DEBUG
+	DPRINTLN("count = ", count );
+#endif
+//	if( count > MAX_COUNT )
+//		return 0;
+	uint16_t j,k,n;
 	k = 0;
-	for( i = 0; i < count; i+= BUFFER_SIZE ){  //
-		// Serial.println( barray[i], HEX );
+	while( k < count ) {
 		DELAY;
 		Wire.beginTransmission( chip_addr );
-		Serial.print( (uint8_t)( ptr >> 8 ), HEX ); Serial.print(",");
-		Serial.print( (uint8_t)( ptr >> 0 ), HEX ); // Serial.print(",");
-		Serial.println();
 		Wire.send( (uint8_t)( ptr >> 8 ) ); // MSB of pointer
 		Wire.send( (uint8_t)( ptr >> 0 ) ) ; // LSB of pointer)
+
 		// next, fill up the remaining buffer with data
-		for( j = 0; j < BUFFER_SIZE - 2 && k < count; j++, k++ ) {
-			Wire.send( barray[k] );
-//			Serial.print( k, DEC ); Serial.print(","); Serial.println( barray[k], BYTE);
+#ifdef DEBUG
+		DPRINTLN("ptr = ",ptr);
+#endif
+		n = bytesOnPage( ptr ); // cannot write across page boundaries
+		if( n > BUFFER_SIZE - 2 ) // don't exceed Wire buffer
+			n = BUFFER_SIZE - 2;
+		if( n > count - k ) // don't exceed requested byte count
+			n = count - k;
+		if( ptr != 0 && n > ( MAX_ADDR - ptr ) + 1 ) // cannot allow n == 0
+			n = ( MAX_ADDR - ptr ) + 1;
+#ifdef DEBUG
+		DPRINTLN("n = ",n);
+#endif
+		for( j = 0; j < n; j++ ) {
+#ifdef DEBUG
+			DPRINT("k = ",k);
+			DPRINTLN("byte = ",barray[k]);
+#endif
+			Wire.send( barray[k] ); // fill the transmit buffer
+			k++;
 		}
 		Wire.endTransmission(); // buffer is written by this call
-//		Serial.println("End transmission.");
-		ptr += BUFFER_SIZE - 2;
-	}
+		if( ptr == ( MAX_ADDR - n ) + 1 )
+			break;
+		ptr += n;
+	} // end while
 	return k;
 }
 
 // ----------------------------------- write string
 uint16_t mcEEPROM::write( uint16_t ptr, char str[] ) {
 	int len = strlen ( str ) + 1;
+#ifdef DEBUG
+	DPRINTLN("STR length = ",len);
+#endif
 	return write( ptr, (uint8_t*)str, len );
 }
 
@@ -148,11 +194,29 @@ uint16_t mcEEPROM::write( uint16_t ptr, float f[] ) {
 	return write( ptr, (uint8_t*)f, sizeof( float ) );
 }
 
-// ---------------------------------------- write integer
-uint16_t mcEEPROM::write( uint16_t ptr, int m[] ) {
-	return write( ptr, (uint8_t*)m, sizeof( int ) );
+// --------------------------------------- write double
+uint16_t mcEEPROM::write( uint16_t ptr, double f[] ) {
+	return write( ptr, (uint8_t*)f, sizeof( double ) );
 }
 
+// ---------------------------------------- write integer
+uint16_t mcEEPROM::write( uint16_t ptr, int16_t m[] ) {
+	return write( ptr, (uint8_t*)m, sizeof( int16_t ) );
+}
 
+// ---------------------------------------- write unsigned integer
+uint16_t mcEEPROM::write( uint16_t ptr, uint16_t m[] ) {
+	return write( ptr, (uint8_t*)m, sizeof( uint16_t ) );
+}
+
+// ---------------------------------------- write long integer
+uint16_t mcEEPROM::write( uint16_t ptr, int32_t m[] ) {
+	return write( ptr, (uint8_t*)m, sizeof( int32_t ) );
+}
+
+// ---------------------------------------- write unsigned long integer
+uint16_t mcEEPROM::write( uint16_t ptr, uint32_t m[] ) {
+	return write( ptr, (uint8_t*)m, sizeof( uint32_t ) );
+}
 
 
