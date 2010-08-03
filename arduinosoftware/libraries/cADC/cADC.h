@@ -70,7 +70,7 @@
 // ---------------------------- calibration of ADC and ambient temp sensor
 // fixme -- put this information in EEPROM
 #define CAL_OFFSET  ( 0 )  // microvolts
-#define CAL_GAIN 1.0035
+#define CAL_GAIN 1.00
 
 // I2C address
 #define A_ADC 0x68
@@ -78,16 +78,17 @@
 // --------------------------------------------------------------
 class cADC {
  public:
-  cADC( uint8_t addr ); // constructor
+  cADC( uint8_t addr = A_ADC ); // constructor
   void initADC();  // set up the ADC
   int32_t getuV( byte& chan ); // retrieves sample and converts to uV
   void nextConversion( byte chan );  // sets up the next conversion
+  void setCal( float gain, int8_t offs ); // sets calibration gain/offset for 50000 uV and 0 uV
  protected:
  private:
   byte cfg;
   uint8_t a_adc;
   float cal_gain;
-  float cal_offset;
+  int8_t cal_offset;
 };
 
 
@@ -121,7 +122,7 @@ class cADC {
 // this class communicates with MCP9800 ambient sensor and performs averaging
 class ambSensor {
  public:
-  ambSensor( uint8_t addr, int navg ); // default constructor
+  ambSensor( uint8_t addr = A_AMB, int navg = NAMBIENT ); // default constructor
   void config(); // configure the MCP9800
   void init(); // initialize array for averaging
   int32_t calcAvg(); // updates and returns average amb temp
@@ -132,7 +133,7 @@ class ambSensor {
  protected:
  private:
   int nsamp; // number of samples for averaging
-  float temp_offset;  // calibration data
+  float temp_offset;  // calibration data (Celsius)
   uint8_t a_amb;  // I2C address
   int32_t sumamb; // used for averaging
   int32_t avgamb;
@@ -146,10 +147,10 @@ class ambSensor {
 class filterRC {
 public: 
  filterRC();
- void init( int percent, int32_t y0 = 0 );  // y = initial function value
+ void init( int32_t percent, int32_t y0 = 0 );  // y = initial function value
  int32_t doFilter( int32_t xi );
 protected:
- int level; // filtering level, 0 to 100%
+ int32_t level; // filtering level, 0 to 100%
  int32_t y; // most recent value of function
 };
 

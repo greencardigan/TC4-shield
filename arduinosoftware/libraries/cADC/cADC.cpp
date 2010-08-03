@@ -47,6 +47,12 @@ cADC::cADC( uint8_t addr ) {
   cal_offset = CAL_OFFSET;
 };
 
+// --------------------------------------------------setCal
+void cADC::setCal( float gain, int8_t offs ) {
+  cal_gain = gain;
+  cal_offset = offs;
+};
+
 // -----------------------------------------------------------
 int32_t cADC::getuV( byte& chan ) {
   int stat;
@@ -78,8 +84,8 @@ int32_t cADC::getuV( byte& chan ) {
   // divide by gain
   v >>= gain;
   // v /= 1 << ( gain );
-  v += cal_offset;  // adjust calibration offset
   v *= cal_gain;    // calibration of gain
+  v += cal_offset;  // adjust calibration offset
 
   return v;
 };
@@ -222,12 +228,15 @@ filterRC::filterRC() {
 };
 
 // ----------------------------------------------------
-void filterRC::init( int percent, int32_t y0 ) {
+void filterRC::init( int32_t percent, int32_t y0 ) {
  level = percent;
  y = y0;
 };
 
 // ------------------------------------
 int32_t filterRC::doFilter ( int32_t xi ) {
- return y = ( ( 100 - level ) * xi + level * y  ) / 100;
+	float yy = (float)(100 - level) * (float)xi * 0.01;
+	float yyy = (float)level * (float)y * 0.01;
+	yy += yyy;
+    return y = round( yy );
 };
