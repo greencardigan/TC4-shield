@@ -207,6 +207,7 @@ int32_t ambSensor::readAmbientC() { // returns 16X actual temp
   v <<= 3;
 #endif
 
+// Serial.println( v );
  return current = v;  
 };
 
@@ -225,18 +226,24 @@ void ambSensor::setOffset( float tempC ) {
 filterRC::filterRC() {
  level = 0;
  y = 0;
+ first = true;
 };
 
 // ----------------------------------------------------
-void filterRC::init( int32_t percent, int32_t y0 ) {
+void filterRC::init( int32_t percent ) {
  level = percent;
- y = y0;
+ first = true;
 };
 
 // ------------------------------------
 int32_t filterRC::doFilter ( int32_t xi ) {
-	float yy = (float)(100 - level) * (float)xi * 0.01;
-	float yyy = (float)level * (float)y * 0.01;
-	yy += yyy;
-    return y = round( yy );
+   if( first) {
+      y = xi;
+	first = false;
+      return y;
+   }
+   float yy = (float)(100 - level) * (float)xi * 0.01;
+   float yyy = (float)level * (float)y * 0.01;
+   yy += yyy;
+   return y = round( yy );
 };

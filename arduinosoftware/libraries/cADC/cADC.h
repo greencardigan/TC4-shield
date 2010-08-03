@@ -147,11 +147,12 @@ class ambSensor {
 class filterRC {
 public: 
  filterRC();
- void init( int32_t percent, int32_t y0 = 0 );  // y = initial function value
+ void init( int32_t percent );
  int32_t doFilter( int32_t xi );
 protected:
  int32_t level; // filtering level, 0 to 100%
  int32_t y; // most recent value of function
+ bool first; // special handling of first call
 };
 
 
