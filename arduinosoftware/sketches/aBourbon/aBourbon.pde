@@ -27,8 +27,8 @@
 #define BAUD 57600  // serial baud rate
 #define TC_TYPE TypeK  // thermocouple type / library
 #define DP 1  // decimal places for output
-#define BT_FILTER 40 // filtering level (percent) for T1
-#define ET_FILTER 60 // filtering level (percent) for T2
+#define BT_FILTER 50 // filtering level (percent) for T1
+#define ET_FILTER 50 // filtering level (percent) for T2
 
 // fixme This value should be user selectable
 #define NSAMPLES 10 // samples used for moving average calc for temperature
@@ -244,8 +244,8 @@ void setup()
   amb.config(); // configure MCP9800
   amb.init();  // initialize ambient temp averaging
   amb.setOffset( 1.4 / 1.8 );
-  fT[0].init( BT_FILTER, 7500 ); // digital filtering on BT
-  fT[1].init( ET_FILTER, 7500 ); // digital filtering on ET
+  fT[0].init( BT_FILTER ); // digital filtering on BT
+  fT[1].init( ET_FILTER ); // digital filtering on ET
 }
 
 // -----------------------------------------------------------------
