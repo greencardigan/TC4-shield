@@ -11,12 +11,12 @@
 // Inspired by Tom Igoe's Grapher Pro: http://www.tigoe.net/pcomp/code/category/Processing/122
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
-// version 20100707 by Jim Gallt
+// version 20100806 by Jim Gallt
 
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
 PrintWriter logfile;
-String appname = "Bourbon Roast Logger v1.00";
+String appname = "Bourbon Roast Logger v1.01";
 
 String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
 
@@ -36,7 +36,7 @@ int NCHAN = 2;  // 2 input channels
 // default values for port and baud rate
 String whichport = "COM1";
 int baudrate = 57600;
-boolean started;  // waits for a keypress
+boolean started;  // waits for a keypress to begin logging
 
 import processing.serial.*;
 Serial comport;
@@ -47,6 +47,7 @@ int MIN_TEMP = -20; // degrees
 int TEMP_INCR = 20;  // degrees
 int idx = 0;
 float timestamp = 0.0;
+float tstart = 0.0;
 
 float ambient;
 float [][] T0;
@@ -58,6 +59,8 @@ PFont labelFont;
 
 // ----------------------------------------
 void setup() {
+  
+  started = false; // don't plot until started; keep timestamp == 0
   
   // read com port settings from config file
   // format is: value, comment/n
@@ -73,6 +76,10 @@ void setup() {
 
   print( "COM Port: "); println( whichport );
   print( "Baudrate: "); println( baudrate );
+  
+  // initialize the COM port (this can take a loooooong time on some computers)
+  println("Initializing COM port.  Please stand by....");
+  startSerial();
   
   // create arrays
   T0 = new float[2][MAX_TIME];
@@ -91,8 +98,6 @@ void setup() {
   frameRate(1);
   smooth();
   background(cbgnd);
-
-  started = false;  // force a key press to begin reading from serial port
 
 } // setup
 
@@ -232,68 +237,70 @@ void draw() {
 
    // put numeric monitor at top of screen
    monitor( 18, 16 );
-  };
+  }; // end else
 }
 
 // -------------------------------------------------------------
 void serialEvent(Serial comport) {
-  // grab a line of ascii text from the logger and sanity check it.
-  String msg = comport.readStringUntil('\n');
-  if (msg == null) return;
-  msg = trim(msg);
-  if (msg.length() == 0) return;
 
-  // always store in file - good for debugging, version-tracking, etc.
-  //logfile.println(msg);
+    // grab a line of ascii text from the logger and sanity check it.
+    String msg = comport.readStringUntil('\n');
+    if (msg == null) return; // *****************
+    msg = trim(msg);
+    if (msg.length() == 0) return; // ****************
 
-  if (msg.charAt(0) == '#') {
-    logfile.println(msg);
-    println(msg);
-    return;
-  }
-  
-  String[] rec = split(msg, ",");  // comma separated input list
-  if (rec.length != 2 * NCHAN + 2 ) {
-    println("Ignoring unknown msg from logger: " + msg);
-    return;
-  }
-  
-  timestamp = float(rec[0]);
-  ambient = float(rec[1]);
+    //always store in file - good for debugging, version-tracking, etc.
+    //logfile.println(msg);
 
-  T0[0][idx] = timestamp;
-  T0[1][idx] = float(rec[2]); 
-  T1[0][idx] = timestamp;
-  T1[1][idx] = float(rec[3]) * 10.0;  // exaggerate the rate traces
+    if (msg.charAt(0) == '#') {
+      logfile.println(msg);
+      println(msg);
+      return; // ******************
+    }
   
-  if( NCHAN >= 2 ) {
-    T2[0][idx] = timestamp;
-    T2[1][idx] = float(rec[4]);
-  }
-  if( NCHAN >= 2 ) {
-    T3[0][idx] = timestamp;
-    T3[1][idx] = float(rec[5]) * 10.0;  // exaggerate the rate traces
-  };
+    String[] rec = split(msg, ",");  // comma separated input list
+    if (rec.length != 2 * NCHAN + 2 ) {
+      println("Ignoring unknown msg from logger: " + msg);
+      return; // *******************
+    }
   
-  for (int i=0; i<(2 * NCHAN + 2); i++) {
-    print(rec[i]);
-    logfile.print(rec[i]);
-    if (i < 2 * NCHAN +1 ) print(",");
-    if (i < 2 * NCHAN +1 ) logfile.print(",");
-  }
+    timestamp = float(rec[0]);
+    if( !started ) tstart = timestamp;
+    timestamp -= tstart;
+    ambient = float(rec[1]);
+
+    T0[0][idx] = timestamp;
+    T0[1][idx] = float(rec[2]); 
+    T1[0][idx] = timestamp;
+    T1[1][idx] = float(rec[3]) * 10.0;  // exaggerate the rate traces
   
-  logfile.println();
-  println();
+    if( NCHAN >= 2 ) {
+      T2[0][idx] = timestamp;
+      T2[1][idx] = float(rec[4]);
+    }
+    if( NCHAN >= 2 ) {
+      T3[0][idx] = timestamp;
+      T3[1][idx] = float(rec[5]) * 10.0;  // exaggerate the rate traces
+    };
   
-  idx++;
-  idx = idx % MAX_TIME;
+    for (int i=0; i<(2 * NCHAN + 2); i++) {
+      print(rec[i]);
+      logfile.print(rec[i]);
+      if (i < 2 * NCHAN +1 ) print(",");
+      if (i < 2 * NCHAN +1 ) logfile.print(",");
+    }
+  
+    logfile.println();
+    println();
+  
+    idx++;
+    idx = idx % MAX_TIME;
+
 } // serialEvent
 
 // ------------------------------- save a frame when mouse is clicked
 void mouseClicked() {
-  if( !started ) {
-    startSerial();
-  }
+  if( !started ) { started = true; }
   else {
    saveFrame(filename + "-##" + ".jpg" );
   };
@@ -302,9 +309,7 @@ void mouseClicked() {
 // ---------------------------------------------
 void keyPressed()
 { 
-  if( !started )  {
-   startSerial();
-  }
+  if( !started )  { started = true; }
   else {
   // fixme -- add specific behavior for F (first crack), S (second crack), and E (eject) keys
    println(timestamp + " key " + key);
@@ -314,12 +319,6 @@ void keyPressed()
 
 // ------------------------------------------
 void startSerial() {
-  started = true;
-
-  textFont( labelFont );
-  text( appname + "\nPress a key or click to begin logging ..." 
-    + "\nOpening serial port (this may take several seconds) ...",110, 110 );
-
   comport = new Serial(this, whichport, baudrate);
   println( whichport + " comport opened.");
   comport.clear();
@@ -330,7 +329,7 @@ void startSerial() {
 
 // ---------------------------------------------------
 void stop() {
-  if( started ) comport.stop();
+  comport.stop();
   logfile.flush();
   logfile.close();
   println("Data was written to: " + CSVfilename);
