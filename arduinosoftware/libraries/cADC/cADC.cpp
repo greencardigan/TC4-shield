@@ -72,7 +72,6 @@ cADC::cADC( uint8_t addr ) {
   a_adc = addr; // address of ADC chip
   cal_gain = CAL_GAIN;
   cal_offset = CAL_OFFSET;
-  initFilter(0); // by default, no filtering
 }
 
 // --------------------------------------------------setCal
@@ -109,25 +108,14 @@ int32_t cADC::readuV() {
   v >>= gain;
   v *= cal_gain;    // calibration of gain
   v += cal_offset;  // adjust calibration offset
-  raw = v;
-
-  return filtered = filter.doFilter( v );
+  return v;
 };
-
-// --------------------------------------
-int32_t cADC::getRaw() { return raw; }
-int32_t cADC::getFiltered() { return filtered; }
 
 // -------------------------------------
 void cADC::nextConversion( uint8_t chan ) {
   Wire.beginTransmission( a_adc );
   Wire.send( cfg | ( chan << 5 ) );
   Wire.endTransmission();
-};
-
-// ------------------------------------------
-void cADC::initFilter( int fpercent ) {
-  filter.init( fpercent );
 };
 
 // ----------------------------------------------------------- ambSensor

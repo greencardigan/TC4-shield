@@ -110,20 +110,14 @@ protected:
 class cADC {
  public:
   cADC( uint8_t addr = A_ADC ); // constructor
-  void initFilter( int fpercent = 0 );  // set up filtering (optional)
   int32_t readuV(); // retrieves sample and converts to uV
   void nextConversion( uint8_t chan );  // requests the next conversion
   void setCal( float gain, int8_t offs ); // sets calibration gain/offset for 50000 uV and 0 uV
-  int32_t getRaw(); // returns unfiltered uV reading
-  int32_t getFiltered(); // returns last filtered uV reading
  protected:
   uint8_t cfg;
   uint8_t a_adc;
   float cal_gain;
   int8_t cal_offset;
-  filterRC filter;
-  int32_t raw;
-  int32_t filtered;
 };
 
 // -------------------- MCP9800 configuration
