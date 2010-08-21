@@ -32,6 +32,7 @@
 #define CAL_OFFSET 0 // subsitute known value for uV offset in ADC
 #define AMB_OFFSET 0 // substitute known value for amb temp offset
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings
+#define D_MULT 0.001 // multiplier to convert temperatures from int to float
 
 // --------------------------------------------------------------
 // global variables
@@ -76,7 +77,7 @@ boolean first;
 float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ) {
   int32_t dt = t2 - t1;
   if( dt == 0 ) return 0.0;
-  float dT = (T2 - T1) * 0.01;
+  float dT = (T2 - T1) * D_MULT;
   float dS = dt * 0.001;
   return ( dT / dS ) * 60.0; // rise per minute
 }
@@ -100,7 +101,7 @@ void logger()
   i = 0;
   if( NCHAN >= 1 ) {
     Serial.print(",");
-    Serial.print( t1 = 0.01 * temps[i], DP );
+    Serial.print( t1 = D_MULT*temps[i], DP );
     Serial.print(",");
     RoR = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
     Serial.print( RoR , DP );
@@ -109,7 +110,7 @@ void logger()
   
   if( NCHAN >= 2 ) {
     Serial.print(",");
-    Serial.print( t2 = 0.01 * temps[i], DP );
+    Serial.print( t2 = D_MULT * temps[i], DP );
     Serial.print(",");
     rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
     Serial.print( rx , DP );
@@ -118,7 +119,7 @@ void logger()
   
   if( NCHAN >= 3 ) {
     Serial.print(",");
-    Serial.print( 0.01 * temps[i], DP );
+    Serial.print( D_MULT * temps[i], DP );
     Serial.print(",");
     rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
     Serial.print( rx , DP );
@@ -127,7 +128,7 @@ void logger()
   
   if( NCHAN >= 4 ) {
     Serial.print(",");
-    Serial.print( 0.01 * temps[i], DP );
+    Serial.print( D_MULT * temps[i], DP );
     Serial.print(",");
     rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
     Serial.print( rx , DP );
@@ -202,7 +203,7 @@ void get_samples()
     amb.readSensor();
     v = adc.readuV(); // microvolt sample from MCP3424
     tempC = tc.Temp_C( 0.001 * v, amb.getAmbC() ); // convert to Celsius
-    v = round( C_TO_F( tempC ) * 100 ); // store results as integers x 100
+    v = round( C_TO_F( tempC ) / D_MULT ); // store results as integers
     temps[j] = fT[j].doFilter( v ); // apply digital filtering
     ftemps[j] =fRise[j].doFilter( v ); // heavy filtering for RoR
   }
