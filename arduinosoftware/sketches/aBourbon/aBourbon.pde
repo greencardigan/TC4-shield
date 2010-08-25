@@ -1,13 +1,13 @@
 // aBourbon.pde
 //
 // N-channel Rise-o-Meter
-// output on serial port:  timestamp, temperature, rise rate (degF per minute)
+// output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, power
 // output on LCD : timestamp, channel 1 temperature
 //                 RoR 1,     channel 2 temperature
 
 // Support for pBourbon.pde and 16 x 2 LCD
 // Jim Gallt and Bill Welch
-// Version: 20100821
+// Version: 20100821a
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -59,16 +59,16 @@
 // global variables
 
 // class objects
-cADC adc( A_ADC );
+cADC adc( A_ADC ); // MCP3424
 ambSensor amb( A_AMB ); // MCP9800
-filterRC fT[NCHAN];
+filterRC fT[NCHAN]; // filter for displayed/logged ET, BT
 filterRC fRise[NCHAN]; // heavily filtered for calculating RoR
 
-int32_t temps[NCHAN];
+int32_t temps[NCHAN]; //  stored temperatures are divided by D_MULT
 int32_t ftemps[NCHAN]; // heavily filtered temps
 int32_t ftimes[NCHAN]; // filtered sample timestamps
 int32_t flast[NCHAN]; // for calculating derivative
-int32_t lasttimes[NCHAN];
+int32_t lasttimes[NCHAN]; // for calculating derivative
 
 #ifdef ANALOG_IN
 int32_t aval = 0; // analog input value for manual control
@@ -157,8 +157,16 @@ void logger()
     Serial.print( rx , DP );
     i++;
   };
-  
+
+// log the power level to the serial port
+  Serial.print(",");
+#ifdef ANALOG_IN
+  Serial.print( power );
+#else
+  Serial.print( (int32_t)0 );
+#endif
   Serial.println();
+
   updateLCD( t1, t2, RoR );  
 };
 
@@ -174,16 +182,14 @@ void updateLCD( float t1, float t2, float RoR ) {
   lcd.print( ":" );
   lcd.print( ssec );
  
-  // channel 1 temperature
-  int it01 = round( t1 );
-  if( it01 > 999 ) 
-    it01 = 999;
-  else
-    if( it01 < -999 ) it01 = -999;
-  sprintf( st1, "%3d", it01 );
-  lcd.setCursor(11,0);
-  lcd.print("B ");
-  lcd.print(st1);
+  // channel 2 temperature 
+  int it02 = round( t2 );
+  if( it02 > 999 ) it02 = 999;
+  else if( it02 < -999 ) it02 = -999;
+  sprintf( st2, "%3d", it02 );
+  lcd.setCursor( 11, 0 );
+  lcd.print( "E " );
+  lcd.print( st2 ); 
 
   // channel 1 RoR
   int iRoR = round( RoR );
@@ -196,14 +202,17 @@ void updateLCD( float t1, float t2, float RoR ) {
   lcd.print( "RoR1:");
   lcd.print( sRoR1 );
 
-  // channel 2 temperature 
-  int it02 = round( t2 );
-  if( it02 > 999 ) it02 = 999;
-  else if( it02 < -999 ) it02 = -999;
-  sprintf( st2, "%3d", it02 );
+  // channel 1 temperature
+  int it01 = round( t1 );
+  if( it01 > 999 ) 
+    it01 = 999;
+  else
+    if( it01 < -999 ) it01 = -999;
+  sprintf( st1, "%3d", it01 );
   lcd.setCursor( 11, 1 );
-  lcd.print( "E " );
-  lcd.print( st2 ); 
+  lcd.print("B ");
+  lcd.print(st1);
+
 }
 
 #ifdef ANALOG_IN
@@ -236,7 +245,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   TC_TYPE tc;
   float tempC;
   
-  for( int j = 0; j < NCHAN; j++ ) {
+  for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
     adc.nextConversion( j ); // start ADC conversion on channel j
     amb.nextConversion(); // start ambient sensor conversion
     checkStatus( MIN_DELAY ); // give the chips time to perform the conversions
