@@ -16,30 +16,27 @@ long i = 0;
 void setup() {
   Serial.begin(57600);
   Wire.begin();
-  adc.initADC();
-  adc.setCal (1.00166, -3 );
-  f.init( 80, 7200 );
-  amb.config();
-  amb.init();
-  amb.setOffset( -0.9 / 1.8 );
+  adc.setCal (1.00311, -1 );
+  f.init( 70 );
+  amb.init( 70 );
+  amb.setOffset( -0.3 );
 }
 
 void loop() {
   Serial.print( i++ ); Serial.print( "," );
 
-  amb.readAmbientC();
-  amb.calcAvg();
-  
+  amb.nextConversion();  
   adc.nextConversion( 0 );
   delay( 300 );
-  int32_t v = adc.getuV( rchan );
+  int32_t v = adc.readuV();
   Serial.print( v ); Serial.print( "," );
   
-  ctemp = amb.getCurrent() * AMB_LSB;
+  amb.readSensor();
+  ctemp = amb.getAmbC();
   Serial.print( ctemp ); Serial.print( "," );
   
   float tempC = tc.Temp_C( 0.001 * v, ctemp ) ;
-  tempC += amb.getOffset();
+//  tempC += amb.getOffset();
   Serial.print( tempC ); Serial.print( "," );
   
   v = round( C_TO_F( tempC ) * 100 );
