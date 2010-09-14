@@ -103,10 +103,11 @@ double TypeK::Temp_C( float mv ) {
   double x = 1.0;
   double sum = 0.0;
   int i,j,ind;
+  ind = 0;
   if ( ! inrange_mV( mv ) ) return TC_RANGE_ERR;
   // first figure out which range of values
   for( j = 0; j < nranges_inv; j++ ) {
-    if(mv >= range_inv[0][j] & mv <= range_inv[1][j])
+    if((mv >= range_inv[0][j]) && (mv <= range_inv[1][j]))
       ind = j;
   };
 //  Serial.println(ind);
@@ -161,7 +162,7 @@ double TypeK::mV_C( float ambC ) {
   int i;
   if( !inrange_C( ambC ) ) return TC_RANGE_ERR;
 
-  if( ambC >= range_dir[0][0] & ambC <= range_dir[1][0] ) {
+  if( (ambC >= range_dir[0][0]) && ( ambC <= range_dir[1][0] ) ) {
     for( i = 0; i < 11; i++ ) {
       sum += x * coeff_dir[i][0];
       x *= ambC;
