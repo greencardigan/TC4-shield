@@ -12,13 +12,17 @@
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
 // version 20100806 by Jim Gallt
+// added guide-profile 18 sept William Welch
 
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
 PrintWriter logfile;
-String appname = "Bourbon Roast Logger v1.01";
+String appname = "Bourbon Roast Logger v1.01b";
 
 String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
+String PROFILE = "myprofile.csv";
+String profile_data[];
+String kb_note = "";
 
 color c0 = color(255,0,0); // channel 0
 color c1 = color(0,255,0);
@@ -99,6 +103,12 @@ void setup() {
   smooth();
   background(cbgnd);
 
+  try {
+    profile_data = loadStrings(PROFILE);
+  } catch (Exception e) {
+    println("guide/desired profile not found. OK.");
+  }
+
 } // setup
 
 // --------------------------------------------------
@@ -143,6 +153,22 @@ void drawchan(float [][] T, color c) {
     if (y2 < MIN_TEMP) y2 = MIN_TEMP;
     stroke(c);
     line(x1, MAX_TEMP-y1, x2, MAX_TEMP-y2);
+  }
+}
+void drawprofile() {
+  if (profile_data == null) return;
+  int x1, y1, x2, y2;
+  stroke(200,200,200);
+  x1 = 0;
+  y1 = 0;
+  for (int i=0; i<profile_data.length; i++) {
+    String[] rec = split(profile_data[i], ',');
+    x2 = int(rec[0]);
+    y2 = int(rec[1]);
+    // println("x1,y1,x2,y2 " + x1 + " " + y1 + " " + x2 + " " + y2 );
+    line(x1, MAX_TEMP-y1, x2, MAX_TEMP-y2);
+    x1 = x2;
+    y1 = y2;
   }
 }
 
@@ -215,6 +241,14 @@ void monitor( int t1, int t2 ) {
   }
 }
 
+void drawnote() {
+  if (kb_note.length() > 0) {
+    textFont(labelFont);
+    stroke(128,128,128);
+    text(kb_note, 100, 100);
+  }
+}
+
 // ------------------------------------------------------
 void draw() {
   float sx = 1.;
@@ -230,6 +264,8 @@ void draw() {
   }
   else {
    drawgrid();
+   drawprofile();
+   drawnote();
    drawchan(T0, c0 );  
    drawchan(T1, c1 ); 
    if( NCHAN >= 2 )   drawchan(T2, c2 );
@@ -311,10 +347,19 @@ void keyPressed()
 { 
   if( !started )  { started = true; }
   else {
-  // fixme -- add specific behavior for F (first crack), S (second crack), and E (eject) keys
-   println(timestamp + " key " + key);
-   logfile.println(timestamp + " key " + key);
-  };
+
+    // fixme -- add specific behavior for F (first crack), S (second crack), and E (eject) keys
+
+    if (( key == 13) || (key == 10) )  {
+      if (kb_note.length() > 0) {
+        println("# " + timestamp + " " + kb_note);
+        logfile.println("# " + timestamp + " " + kb_note);
+        kb_note = "";
+      }
+    } else if (key != CODED) {
+      kb_note = kb_note + key;
+    }
+  }
 }
 
 // ------------------------------------------
