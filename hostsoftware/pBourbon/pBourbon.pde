@@ -56,6 +56,7 @@ float timestamp = 0.0;
 float tstart = 0.0;
 
 float ambient;
+float power;
 float [][] T0;
 float [][] T1;
 float [][] T2;
@@ -297,7 +298,7 @@ void serialEvent(Serial comport) {
     }
   
     String[] rec = split(msg, ",");  // comma separated input list
-    if (rec.length != 2 * NCHAN + 2 ) {
+    if (rec.length != 2 * NCHAN + 3 ) {
       println("Ignoring unknown msg from logger: " + msg);
       return; // *******************
     }
@@ -321,11 +322,11 @@ void serialEvent(Serial comport) {
       T3[1][idx] = float(rec[5]) * 10.0;  // exaggerate the rate traces
     };
   
-    for (int i=0; i<(2 * NCHAN + 2); i++) {
+    for (int i=0; i<(2 * NCHAN + 3); i++) {
       print(rec[i]);
       logfile.print(rec[i]);
-      if (i < 2 * NCHAN +1 ) print(",");
-      if (i < 2 * NCHAN +1 ) logfile.print(",");
+      if (i < 2 * NCHAN +2 ) print(",");
+      if (i < 2 * NCHAN +2 ) logfile.print(",");
     }
   
     logfile.println();
