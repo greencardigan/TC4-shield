@@ -20,6 +20,8 @@ PrintWriter logfile;
 String appname = "Bourbon Roast Logger v1.01b";
 
 String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
+
+boolean enable_guideprofile = false; // set true to enable
 String PROFILE = "myprofile.csv";
 String profile_data[];
 String kb_note = "";
@@ -64,6 +66,10 @@ PFont labelFont;
 // ----------------------------------------
 void setup() {
   
+  // open the logfile early to avoid race condition in SerialEvent handler
+  println(CSVfilename);
+  logfile = createWriter(CSVfilename);
+
   started = false; // don't plot until started; keep timestamp == 0
   
   // read com port settings from config file
@@ -95,18 +101,14 @@ void setup() {
   labelFont = createFont("Tahoma-Bold", 16 );
   fill( clabel );
   
-  println(CSVfilename);
-  logfile = createWriter(CSVfilename);
 
   size(1200, 800);
   frameRate(1);
   smooth();
   background(cbgnd);
 
-  try {
+  if (enable_guideprofile) {
     profile_data = loadStrings(PROFILE);
-  } catch (Exception e) {
-    println("guide/desired profile not found. OK.");
   }
 
 } // setup
