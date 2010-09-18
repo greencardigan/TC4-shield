@@ -274,6 +274,7 @@ void setup()
   if( NCHAN >= 2 ) Serial.print(",T1,rate1");
   if( NCHAN >= 3 ) Serial.print(",T2,rate2");
   if( NCHAN >= 4 ) Serial.print(",T3,rate3");
+  Serial.print(",power");
   Serial.println();
  
   Wire.begin(); 
