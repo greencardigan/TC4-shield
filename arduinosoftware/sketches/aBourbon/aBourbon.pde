@@ -7,22 +7,37 @@
 
 // Support for pBourbon.pde and 16 x 2 LCD
 // Jim Gallt and Bill Welch
-// Version: 20100821a
+
+// Version: 20100922
+//   20100922: Added support for I2C LCD interface (optional). 
+//             This program now requires use of cLCD library.
+//             This program supports TC4 hardware versions V1.06 and V3.00
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
 
+// this library included with the arduino distribution
 #include <Wire.h>
+
+// these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <TypeK.h>
-#include <LiquidCrystal.h>
 #include <cADC.h>
 #include <PWM16.h>
+#include <cLCD.h>
 
+// *************************************************************************************
+// NOTE TO USERS: the following parameters should be
+// be reviewed to suit your preferences and hardware setup.  
+// First, load and edit this sketch in the Arduino IDE.
+// Next compile the sketch and upload it to the Duemilanove.
 
-// ********************************************************************
-// NOTE TO USERS: if desired, the following parameters can
-// be adjusted to suit your preferences.  Edit this file in the Arduino
-// IDE, then upload to the board.
+// ------------------ optionally, use I2C port expander for LCD interface
+//#define I2C_LCD //comment out to use the standard parallel LCD 4-bit interface
+
+// ------ optionally connect a potentiomenter to ANLG1 for manual heater control using Ot1
+//#define ANALOG_IN // comment this line out if you do not use this feature
+#define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1 (if used)
+
 #define BAUD 57600  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for displayed BT
 #define ET_FILTER 10 // filtering level (percent) for displayed ET
@@ -37,15 +52,13 @@
 
 // future versions will read all calibration values from EEPROM
 #define CAL_GAIN 1.00 // substitute known gain adjustment from calibration
-#define CAL_OFFSET 0 // subsitute known value for uV offset in ADC
+#define UV_OFFSET 0 // subsitute known value for uV offset in ADC
 #define AMB_OFFSET 0 // substitute known value for amb temp offset (Celsius)
 
-// ambient sensor should be stable, so quick variations are probably noise
+// ambient sensor should be stable, so quick variations are probably noise -- filter heavily
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings
-#define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1
-#define ANALOG_IN // comment this line out if you do not connect a pot to anlg1 port
 
-// *******************************************************************
+// *************************************************************************************
 
 
 // ------------------------ other compile directives
@@ -80,19 +93,26 @@ PWM16 output;
 // LCD output strings
 char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
 
-// LCD interface definition
+// ---------------------------------- LCD interface definition
+#ifdef I2C_LCD
+cLCD lcd; // I2C LCD interface
+#else
 #define RS 2
 #define ENABLE 4
-#define DB4 7
-#define DB5 8
-#define DB6 12
-#define DB7 13
-LiquidCrystal lcd( RS, ENABLE, DB4, DB5, DB6, DB7 );
+#define D4 7
+#define D5 8
+#define D6 12
+#define D7 13
+LiquidCrystal lcd( RS, ENABLE, D4, D5, D6, D7 ); // standard 4-bit parallel interface
+#endif
 
 // used in main loop
 float timestamp = 0;
 boolean first;
 uint32_t nextLoop;
+
+// this declaration needed to maintain compatibility with Eclipse/WinAVR/gcc
+void updateLCD( float t1, float t2, float RoR );
 
 // ---------------------------------------------------
 // T1, T2 = temperatures x 1000
@@ -212,7 +232,6 @@ void updateLCD( float t1, float t2, float RoR ) {
   lcd.setCursor( 11, 1 );
   lcd.print("B ");
   lcd.print(st1);
-
 }
 
 #ifdef ANALOG_IN
@@ -223,7 +242,7 @@ void readPot() { // read analog port 1
   power = aval * 100;
   power /= 1023;
   lcd.setCursor( 6, 0 );
-  sprintf( pstr, "%3d", power );
+  sprintf( pstr, "%3d", (int)power );
   lcd.print( pstr ); lcd.print("%");
 }
 #endif
@@ -265,6 +284,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
 void setup()
 {
   delay(100);
+  Wire.begin(); 
   lcd.begin(16, 2);
   nextLoop = 1000;
 
@@ -277,8 +297,7 @@ void setup()
   Serial.print(",power");
   Serial.println();
  
-  Wire.begin(); 
-  adc.setCal( CAL_GAIN, CAL_OFFSET );
+  adc.setCal( CAL_GAIN, UV_OFFSET );
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
   amb.setOffset( AMB_OFFSET );
   fT[0].init( BT_FILTER ); // digital filtering on BT
