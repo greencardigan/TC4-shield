@@ -1,17 +1,18 @@
 // aBourbon.pde
 //
 // N-channel Rise-o-Meter
-// output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, power
-// output on LCD : timestamp, channel 1 temperature
-//                 RoR 1,     channel 2 temperature
+// output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, 0.0 (placeholder)
+// output on LCD : timestamp, channel 2 temperature
+//                 RoR 1,     channel 1 temperature
 
 // Support for pBourbon.pde and 16 x 2 LCD
 // Jim Gallt and Bill Welch
 
-// Version: 20100922
+// Version: 20100927
 //   20100922: Added support for I2C LCD interface (optional). 
 //             This program now requires use of cLCD library.
 //             This program supports TC4 hardware versions V1.06 and V3.00
+//   20100927: converted aBourbon to be a roast monitor only
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -22,7 +23,6 @@
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <TypeK.h>
 #include <cADC.h>
-#include <PWM16.h>
 #include <cLCD.h>
 
 // *************************************************************************************
@@ -33,10 +33,6 @@
 
 // ------------------ optionally, use I2C port expander for LCD interface
 //#define I2C_LCD //comment out to use the standard parallel LCD 4-bit interface
-
-// ------ optionally connect a potentiomenter to ANLG1 for manual heater control using Ot1
-//#define ANALOG_IN // comment this line out if you do not use this feature
-#define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1 (if used)
 
 #define BAUD 57600  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for displayed BT
@@ -83,20 +79,16 @@ int32_t ftimes[NCHAN]; // filtered sample timestamps
 int32_t flast[NCHAN]; // for calculating derivative
 int32_t lasttimes[NCHAN]; // for calculating derivative
 
-#ifdef ANALOG_IN
-int32_t aval = 0; // analog input value for manual control
-uint8_t anlg = 0; // analog input pin
-int32_t power = 0; // power output to heater
-PWM16 output;
-#endif
-
 // LCD output strings
 char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
 
 // ---------------------------------- LCD interface definition
 #ifdef I2C_LCD
+
+#define BACKLIGHT lcd.backlight();
 cLCD lcd; // I2C LCD interface
 #else
+#define BACKLIGHT ;
 #define RS 2
 #define ENABLE 4
 #define D4 7
@@ -111,7 +103,7 @@ float timestamp = 0;
 boolean first;
 uint32_t nextLoop;
 
-// this declaration needed to maintain compatibility with Eclipse/WinAVR/gcc
+// declarations needed to maintain compatibility with Eclipse/WinAVR/gcc
 void updateLCD( float t1, float t2, float RoR );
 
 // ---------------------------------------------------
@@ -178,15 +170,9 @@ void logger()
     i++;
   };
 
-// log the power level to the serial port
-  Serial.print(",");
-#ifdef ANALOG_IN
-  Serial.print( power );
-#else
-  Serial.print( (int32_t)0 );
-#endif
-  Serial.println();
-
+// log the placeholder to serial port
+  Serial.println(",0");
+  
   updateLCD( t1, t2, RoR );  
 };
 
@@ -234,29 +220,6 @@ void updateLCD( float t1, float t2, float RoR ) {
   lcd.print(st1);
 }
 
-#ifdef ANALOG_IN
-// ---------------------------------
-void readPot() { // read analog port 1
-  char pstr[5];
-  aval = analogRead( anlg );
-  power = aval * 100;
-  power /= 1023;
-  lcd.setCursor( 6, 0 );
-  sprintf( pstr, "%3d", (int)power );
-  lcd.print( pstr ); lcd.print("%");
-}
-#endif
-
-// ----------------------------------
-void checkStatus( uint32_t ms ) { // this is an active delay loop
-  uint32_t tod = millis();
-  while( millis() < tod + ms ) {
-#ifdef ANALOG_IN
-    readPot();
-#endif
-  }
-}
-
 // --------------------------------------------------------------------------
 void get_samples() // this function talks to the amb sensor and ADC via I2C
 {
@@ -267,7 +230,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
     adc.nextConversion( j ); // start ADC conversion on channel j
     amb.nextConversion(); // start ambient sensor conversion
-    checkStatus( MIN_DELAY ); // give the chips time to perform the conversions
+    delay( MIN_DELAY ); // give the chips time to perform the conversions
     ftimes[j] = millis(); // record timestamp for RoR calculations
     amb.readSensor(); // retrieve value from ambient temp register
     v = adc.readuV(); // retrieve microvolt sample from MCP3424
@@ -286,7 +249,7 @@ void setup()
   delay(100);
   Wire.begin(); 
   lcd.begin(16, 2);
-  nextLoop = 1000;
+  BACKLIGHT;
 
   Serial.begin(BAUD);
   // write header to serial port
@@ -294,7 +257,7 @@ void setup()
   if( NCHAN >= 2 ) Serial.print(",T1,rate1");
   if( NCHAN >= 3 ) Serial.print(",T2,rate2");
   if( NCHAN >= 4 ) Serial.print(",T3,rate3");
-  Serial.print(",power");
+  Serial.print(",0");
   Serial.println();
  
   adc.setCal( CAL_GAIN, UV_OFFSET );
@@ -304,10 +267,9 @@ void setup()
   fT[1].init( ET_FILTER ); // digital filtering on ET
   fRise[0].init( RISE_FILTER ); // digital filtering for RoR calculation
   fRise[1].init( RISE_FILTER ); // digital filtering for RoR calculation
+
+  nextLoop = 1000;
   first = true;
-#ifdef ANALOG_IN
-  output.Setup( TIME_BASE );
-#endif
 }
 
 // -----------------------------------------------------------------
@@ -316,21 +278,16 @@ void loop()
   float idletime;
 
   // update on even 1 second boundaries
-  while ( millis() < nextLoop ) {
-#ifdef ANALOG_IN
-    readPot();  
-#endif
+  while ( millis() < nextLoop ) { // delay until time for next loop
   }
+  
   nextLoop += 1000; // time mark for start of next update 
-  timestamp = float(millis()) * 0.001;
+  timestamp = float( millis() ) * 0.001;
   get_samples(); // retrieve values from MCP9800 and MCP3424
   if( first ) // use first samples for RoR base values only
     first = false;
   else {
     logger(); // output results to serial port
- #ifdef ANALOG_IN
-    output.Out( power, 0 ); // update the power output on the SSR drive Ot1
- #endif
   }
 
   for( int j = 0; j < NCHAN; j++ ) {
@@ -338,7 +295,7 @@ void loop()
    lasttimes[j] = ftimes[j];
   }
 
-  idletime = float(millis()) / 1000.;
+  idletime = float( millis() ) * 0.001;
   idletime = 1.0 - (idletime - timestamp);
   // arbitrary: complain if we don't have at least 10mS left
   if (idletime < 0.010) {
