@@ -8,12 +8,13 @@
 // Support for pBourbon.pde and 16 x 2 LCD
 // Jim Gallt and Bill Welch
 
-// Version: 20100927
+// Version: 20100928
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
 
 // Derived from aBourbon.pde
+#define BANNER_CAT "Catuai 20100928"
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -24,6 +25,7 @@
 #include <PWM16.h>
 #include <cLCD.h>
 #include <cButton.h>
+#include <mcEEPROM.h>
 
 // *************************************************************************************
 // NOTE TO USERS: the following parameters should be
@@ -34,7 +36,7 @@
 // ------------------ optionally, use I2C port expander for LCD interface
 #define I2C_LCD //comment out to use the standard parallel LCD 4-bit interface
 
-// ------ optionally connect a potentiomenter to ANLG1 for manual heater control using Ot1
+// ------ connect a potentiomenter to ANLG1 for manual heater control using Ot1
 #define ANALOG_IN // comment this line out if you do not use this feature
 #define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1 (if used)
 
@@ -70,6 +72,18 @@
 
 // --------------------------------------------------------------
 // global variables
+
+// eeprom calibration data structure
+struct infoBlock {
+  char PCB[40]; // identifying information for the board
+  char version[16];
+  float cal_gain;  // calibration factor of ADC at 50000 uV
+  int16_t cal_offset; // uV, probably small in most cases
+  float T_offset; // temperature offset (Celsius) at 0.0C (type T)
+  float K_offset; // same for type K
+};
+mcEEPROM eeprom;
+infoBlock caldata;
 
 // class objects
 cADC adc( A_ADC ); // MCP3424
@@ -316,11 +330,34 @@ void setup()
   Wire.begin(); 
   lcd.begin(16, 2);
   BACKLIGHT;
+  lcd.setCursor( 0, 0 );
+  lcd.print( BANNER_CAT ); // display version banner
 #ifdef I2C_LCD
   buttons.begin( 4 );
+  buttons.readButtons();
 #endif
 
   Serial.begin(BAUD);
+
+   // read calibration and identification data from eeprom
+  if( eeprom.read( 0, (uint8_t*) &caldata, sizeof( caldata) ) == sizeof( caldata ) ) {
+    Serial.println("# EEPROM data read: ");
+    Serial.print("# ");
+    Serial.print( caldata.PCB); Serial.print("  ");
+    Serial.println( caldata.version );
+    Serial.print("# ");
+    Serial.print( caldata.cal_gain, 4 ); Serial.print("  ");
+    Serial.println( caldata.K_offset, 2 );
+    lcd.setCursor( 0, 1 ); // echo EEPROM data to LCD
+    lcd.print( caldata.PCB );
+    adc.setCal( caldata.cal_gain, caldata.cal_offset );
+    amb.setOffset( caldata.K_offset );
+  }
+  else { // if there was a problem with EEPROM read, then use default values
+    adc.setCal( CAL_GAIN, UV_OFFSET );
+    amb.setOffset( AMB_OFFSET );
+  }   
+
   // write header to serial port
   Serial.print("# time,ambient,T0,rate0");
   if( NCHAN >= 2 ) Serial.print(",T1,rate1");
@@ -329,16 +366,15 @@ void setup()
   Serial.print(",power");
   Serial.println();
  
-  adc.setCal( CAL_GAIN, UV_OFFSET );
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
-  amb.setOffset( AMB_OFFSET );
   fT[0].init( BT_FILTER ); // digital filtering on BT
   fT[1].init( ET_FILTER ); // digital filtering on ET
   fRise[0].init( RISE_FILTER ); // digital filtering for RoR calculation
   fRise[1].init( RISE_FILTER ); // digital filtering for RoR calculation
 
-  nextLoop = 1000;
   first = true;
+  delay( 3000 );
+  lcd.clear();
   resetTimer();
 #ifdef ANALOG_IN
   output.Setup( TIME_BASE );
@@ -352,12 +388,14 @@ void loop()
 
   // update on even 1 second boundaries
   while ( ( millis() - time0 ) < nextLoop ) { // delay until time for next loop
+    if( !first ) {
 #ifdef ANALOG_IN
     readPot();
 #endif
 #ifdef I2C_LCD
     checkButtons();
 #endif
+    }
   }
   
   nextLoop += 1000; // time mark for start of next update 
