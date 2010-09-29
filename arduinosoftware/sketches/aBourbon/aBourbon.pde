@@ -13,6 +13,7 @@
 //             This program now requires use of cLCD library.
 //             This program supports TC4 hardware versions V1.06 and V3.00
 //   20100927: converted aBourbon to be a roast monitor only
+//   20100928: added EEPROM support (optional)
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -25,6 +26,8 @@
 #include <cADC.h>
 #include <cLCD.h>
 
+#define BANNER_BRBN "Bourbon 20100928"
+
 // *************************************************************************************
 // NOTE TO USERS: the following parameters should be
 // be reviewed to suit your preferences and hardware setup.  
@@ -33,6 +36,7 @@
 
 // ------------------ optionally, use I2C port expander for LCD interface
 //#define I2C_LCD //comment out to use the standard parallel LCD 4-bit interface
+//#define EEPROM_BRBN // comment out if no calibration information stored in 64K EEPROM
 
 #define BAUD 57600  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for displayed BT
@@ -46,16 +50,15 @@
 // you get above 85%.
 #define RISE_FILTER 70 // heavy filtering on non-displayed BT for RoR calculations
 
-// future versions will read all calibration values from EEPROM
+// needed for usesr without calibration values stored in EEPROM
 #define CAL_GAIN 1.00 // substitute known gain adjustment from calibration
 #define UV_OFFSET 0 // subsitute known value for uV offset in ADC
-#define AMB_OFFSET 0 // substitute known value for amb temp offset (Celsius)
+#define AMB_OFFSET 0.0 // substitute known value for amb temp offset (Celsius)
 
 // ambient sensor should be stable, so quick variations are probably noise -- filter heavily
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings
 
 // *************************************************************************************
-
 
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
@@ -66,6 +69,21 @@
 
 // --------------------------------------------------------------
 // global variables
+
+#ifdef EEPROM_BRBN // optional code if EEPROM flag is active
+#include <mcEEPROM.h>
+// eeprom calibration data structure
+struct infoBlock {
+  char PCB[40]; // identifying information for the board
+  char version[16];
+  float cal_gain;  // calibration factor of ADC at 50000 uV
+  int16_t cal_offset; // uV, probably small in most cases
+  float T_offset; // temperature offset (Celsius) at 0.0C (type T)
+  float K_offset; // same for type K
+};
+mcEEPROM eeprom;
+infoBlock caldata;
+#endif
 
 // class objects
 cADC adc( A_ADC ); // MCP3424
@@ -84,10 +102,9 @@ char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
 
 // ---------------------------------- LCD interface definition
 #ifdef I2C_LCD
-
 #define BACKLIGHT lcd.backlight();
 cLCD lcd; // I2C LCD interface
-#else
+#else // equivalent to standard LiquidCrystal interface
 #define BACKLIGHT ;
 #define RS 2
 #define ENABLE 4
@@ -250,8 +267,35 @@ void setup()
   Wire.begin(); 
   lcd.begin(16, 2);
   BACKLIGHT;
-
+  lcd.setCursor( 0, 0 );
+  lcd.print( BANNER_BRBN ); // display version banner
   Serial.begin(BAUD);
+  amb.init( AMB_FILTER );  // initialize ambient temp filtering
+
+#ifdef EEPROM_BRBN
+  // read calibration and identification data from eeprom
+  if( eeprom.read( 0, (uint8_t*) &caldata, sizeof( caldata) ) == sizeof( caldata ) ) {
+    Serial.println("# EEPROM data read: ");
+    Serial.print("# ");
+    Serial.print( caldata.PCB); Serial.print("  ");
+    Serial.println( caldata.version );
+    Serial.print("# ");
+    Serial.print( caldata.cal_gain, 4 ); Serial.print("  ");
+    Serial.println( caldata.K_offset, 2 );
+    lcd.setCursor( 0, 1 ); // echo EEPROM data to LCD
+    lcd.print( caldata.PCB );
+    adc.setCal( caldata.cal_gain, caldata.cal_offset );
+    amb.setOffset( caldata.K_offset );
+  }
+  else { // if there was a problem with EEPROM read, then use default values
+    adc.setCal( CAL_GAIN, UV_OFFSET );
+    amb.setOffset( AMB_OFFSET );
+  }   
+#else
+  adc.setCal( CAL_GAIN, UV_OFFSET );
+  amb.setOffset( AMB_OFFSET );
+#endif
+
   // write header to serial port
   Serial.print("# time,ambient,T0,rate0");
   if( NCHAN >= 2 ) Serial.print(",T1,rate1");
@@ -259,17 +303,16 @@ void setup()
   if( NCHAN >= 4 ) Serial.print(",T3,rate3");
   Serial.print(",0");
   Serial.println();
- 
-  adc.setCal( CAL_GAIN, UV_OFFSET );
-  amb.init( AMB_FILTER );  // initialize ambient temp filtering
-  amb.setOffset( AMB_OFFSET );
+  
   fT[0].init( BT_FILTER ); // digital filtering on BT
   fT[1].init( ET_FILTER ); // digital filtering on ET
   fRise[0].init( RISE_FILTER ); // digital filtering for RoR calculation
   fRise[1].init( RISE_FILTER ); // digital filtering for RoR calculation
 
-  nextLoop = 1000;
+  delay( 1800 );
+  nextLoop = 2000;
   first = true;
+  lcd.clear();
 }
 
 // -----------------------------------------------------------------
