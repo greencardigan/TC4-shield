@@ -2,19 +2,16 @@
 //
 // 2-channel Rise-o-Meter and manual roast controller
 // output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, power
-// output on LCD : timestamp, channel 2 temperature
-//                 RoR 1,     channel 1 temperature
+// output on LCD : timestamp, power(%), channel 2 temperature
+//                 RoR 1,               channel 1 temperature
 
 // Support for pBourbon.pde and 16 x 2 LCD
+// MIT license: http://opensource.org/licenses/mit-license.php
 // Jim Gallt and Bill Welch
+// Derived from aBourbon.pde by Jim Gallt and Bill Welch
+// Originally adapted from the a_logger.pde by Bill Welch.
 
-// Version: 20100928
-
-// This code was adapted from the a_logger.pde file provided
-// by Bill Welch.
-
-// Derived from aBourbon.pde
-#define BANNER_CAT "Catuai 20100928"
+#define BANNER_CAT "Catuai 20101009" // version
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -137,7 +134,7 @@ uint32_t nextLoop;
 void updateLCD( float t1, float t2, float RoR );
 void resetTimer();
 
-// ---------------------------------------------------
+// --------------------------------------------------- returns RoR
 // T1, T2 = temperatures x 1000
 // t1, t2 = time marks, milliseconds
 float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ) {
@@ -242,7 +239,7 @@ void updateLCD( float t1, float t2, float RoR ) {
    if( iRoR < -99 ) iRoR = -99; 
   sprintf( sRoR1, "%0+3d", iRoR );
   lcd.setCursor(0,1);
-  lcd.print( "RoR1:");
+  lcd.print( "RoR:");
   lcd.print( sRoR1 );
 
   // channel 1 temperature
@@ -259,23 +256,45 @@ void updateLCD( float t1, float t2, float RoR ) {
 
 #ifdef ANALOG_IN
 // ---------------------------------
-void readPot() { // read analog port 1
+void readPot() { // read analog port 1, round to nearest 5% output value
   char pstr[5];
+  int32_t mod, trial;
   aval = analogRead( anlg );
-  power = aval * 100;
-  power /= 1023;
-  lcd.setCursor( 6, 0 );
-  sprintf( pstr, "%3d", (int)power );
-  lcd.print( pstr ); lcd.print("%");
+  trial = aval * 100;
+  trial /= 1023;
+  mod = trial % 5;
+  trial = ( trial / 5 ) * 5; // truncate to multiple of 5
+  if( mod >= 3 )
+    trial += 5;
+  if( trial <= 100 && trial != power ) { // did it change?
+    power = trial;
+    sprintf( pstr, "%3d", (int)power );
+    lcd.setCursor( 6, 0 );
+    lcd.print( pstr ); lcd.print("%");
+  }
 }
 #endif
 
 #ifdef I2C_LCD
 // ----------------------------------
 void checkButtons() { // take action if a button is pressed
-  if( buttons.readButtons() ) { // if any button has been pressed, reset the timer
-    resetTimer();
-    Serial.println("# Manual timer reset");
+  if( buttons.readButtons() ) {
+    if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) {// left button = start the roast
+      resetTimer();
+      Serial.println( "# STRT (timer reset)");
+    }
+    else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // 2nd button marks first crack
+      resetTimer();
+      Serial.println( "# FC (timer reset)");
+    }
+    else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // 3rd button marks second crack
+      resetTimer();
+      Serial.println( "# SC (timer reset)");
+    }
+    else if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // 4th button marks eject
+      resetTimer();
+      Serial.println( "# EJCT (timer reset)");
+    }
   }
 }
 #endif
@@ -354,6 +373,9 @@ void setup()
     amb.setOffset( caldata.K_offset );
   }
   else { // if there was a problem with EEPROM read, then use default values
+    Serial.println("# Failed to read EEPROM.  Using default calibration data. ");
+    lcd.setCursor( 0, 1 ); // echo EEPROM data to LCD
+    lcd.print( "No EEPROM - OK" );
     adc.setCal( CAL_GAIN, UV_OFFSET );
     amb.setOffset( AMB_OFFSET );
   }   
@@ -372,18 +394,18 @@ void setup()
   fRise[0].init( RISE_FILTER ); // digital filtering for RoR calculation
   fRise[1].init( RISE_FILTER ); // digital filtering for RoR calculation
 
-  first = true;
-  delay( 3000 );
-  lcd.clear();
-  resetTimer();
 #ifdef ANALOG_IN
   output.Setup( TIME_BASE );
 #endif
+  
+  first = true;
+  delay( 3000 ); // display banner for a while
+  lcd.clear();
+  resetTimer();
 }
 
 // -----------------------------------------------------------------
-void loop()
-{
+void loop() {
   float idletime;
 
   // update on even 1 second boundaries
