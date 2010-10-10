@@ -11,7 +11,7 @@
 // Derived from aBourbon.pde by Jim Gallt and Bill Welch
 // Originally adapted from the a_logger.pde by Bill Welch.
 
-#define BANNER_CAT "Catuai 20101009" // version
+#define BANNER_CAT "Catuai 20101010" // version
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -389,12 +389,15 @@ void setup()
   Serial.println();
  
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
-  fT[0].init( BT_FILTER ); // digital filtering on BT
-  fT[1].init( ET_FILTER ); // digital filtering on ET
-  fRise[0].init( RISE_FILTER ); // digital filtering for RoR calculation
-  fRise[1].init( RISE_FILTER ); // digital filtering for RoR calculation
+  for( int j = 0; j < NCHAN; j++ ) { // initialize digital filters for each channel
+    if( j == 1 )
+      fT[j].init( ET_FILTER ); // special value for channel 2 (ET)
+    else
+      fT[j].init( BT_FILTER ); // digital filtering on BT
+    fRise[j].init( RISE_FILTER ); // digital filtering for RoR calculation
+  }
 
-#ifdef ANALOG_IN
+  #ifdef ANALOG_IN
   output.Setup( TIME_BASE );
 #endif
   
