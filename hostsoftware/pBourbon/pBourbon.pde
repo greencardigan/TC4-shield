@@ -13,11 +13,13 @@
 
 // version 20100806 by Jim Gallt
 // added guide-profile 18 sept William Welch
+// version 20101008 by Rama Roberts
+// added a TC reading average to help with reported fluctuations
 
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
 PrintWriter logfile;
-String appname = "Bourbon Roast Logger v1.01b";
+String appname = "Bourbon Roast Logger v1.02";
 
 String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
 
@@ -35,7 +37,7 @@ color cidx = color( 0,255,255 );
 color clabel = color( 255,255,160 );
 color cgrid_maj = color(120,120,120); // major grid lines
 color cgrid_min = color (90,90,90);
-int cbgnd = 80;  // background color
+int cbgnd = 0;  // background color black
 
 int NCHAN = 2;  // 2 input channels
 
@@ -64,6 +66,11 @@ float [][] T3;
 
 PFont labelFont;
 
+int SAMPLESIZE = 20; // how many seconds we want to look back for the average
+float [] T1_avg = new float[SAMPLESIZE]; // the previous T1 values
+int avg_idx = 0; // index to our rolling window
+
+
 // ----------------------------------------
 void setup() {
   
@@ -84,10 +91,16 @@ void setup() {
     String[] baudstring = split( lines[1], "," );
     baudrate = int( baudstring[0] );
   };
+  if( lines.length >= 3 ) {
+    String[] sampsize = split( lines[2], "," );
+    SAMPLESIZE = int( sampsize[0] );
+  };
 
   print( "COM Port: "); println( whichport );
   print( "Baudrate: "); println( baudrate );
-  
+  print( "TC average sample size: "); println( SAMPLESIZE );
+
+
   // initialize the COM port (this can take a loooooong time on some computers)
   println("Initializing COM port.  Please stand by....");
   startSerial();
@@ -114,7 +127,21 @@ void setup() {
 
 } // setup
 
+
 // --------------------------------------------------
+
+// returns the average value for a given float array
+float arrayAverage(float[] T) {
+  int sum = 0;
+  for (int i=0; i < T.length; i++) {
+     sum += T[i];
+  }
+  return (sum / T.length);
+}
+
+
+// --------------------------------------------------
+
 void drawgrid(){
   textFont(labelFont);
   stroke(cgrid_maj);
@@ -204,7 +231,7 @@ void monitor( int t1, int t2 ) {
     w = textWidth(strng);
     textFont( labelFont, t1 );
     text(strng,pos-w,16);
-    strng = "CHAN_1";
+    strng = "BEAN";
     textFont( labelFont, t2 );
     text(strng,pos-w,32 );
 
@@ -214,7 +241,24 @@ void monitor( int t1, int t2 ) {
     w = textWidth(strng);
     textFont( labelFont, t1 );
     text(strng,pos-w,16);
-    strng = "  RoR_1";
+    strng = "  RoR";
+    textFont( labelFont, t2 );
+    w = textWidth( strng );
+    text(strng,pos-w,32 );
+
+    // T1 RoR Average
+    // move this logic somewhere else, serialEvent() ?
+    if (avg_idx == SAMPLESIZE) avg_idx = 0; // put our pointer at the beginning
+    T1_avg[avg_idx] = T1[1][idx-1];
+    avg_idx++;
+
+    pos += incr;
+    fill( c1 );
+    strng = nfp( 0.1* arrayAverage(T1_avg),3,1 );
+    w = textWidth(strng);
+    textFont( labelFont, t1 );
+    text(strng,pos-w,16);
+    strng = SAMPLESIZE + "s avg";
     textFont( labelFont, t2 );
     w = textWidth( strng );
     text(strng,pos-w,32 );
@@ -225,7 +269,7 @@ void monitor( int t1, int t2 ) {
     w = textWidth(strng);
     textFont( labelFont, t1 );
     text(strng,pos-w,16);
-    strng = "CHAN_2";
+    strng = "ENV";
     textFont( labelFont, t2 );
     text(strng,pos-w,32 );
 
