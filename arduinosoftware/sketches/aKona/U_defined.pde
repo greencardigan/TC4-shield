@@ -110,21 +110,21 @@ PROGMEM  prog_uint16_t profile_maxtemp_05[] = {540};   //max temp allowed for ct
   
 
 //***********Profile 06 Definition
-prog_uchar profile_name_06[] PROGMEM  = {"R Eth hr06       "};    //Name of this profile, Max string size is 16 characters
-PROGMEM  prog_uint16_t profile_ror_06[] =  {150, 150, 250, 330, 410, 445, 480, 500, 520, 525, 540, 540, 580, 580};  //temperature
-PROGMEM  prog_uint16_t profile_temp_06[] =  {  0,   1,  60,  90,  90,  60,  60, 120, 240, 240, 240,   4,   5,   6};  //temp per step
-PROGMEM  prog_uint16_t profile_time_06[] =  {  0,   1,  60,  90,  90,  90,  90, 180, 180, 180, 240,   1,   2,   3};  //time per step
-PROGMEM  prog_uint16_t profile_offset_06[]= {  0,   0,   0,  10,  20,  35,  45,  55,  60,  60,  60,  60,  60,  60};  // offset correction to temp, per step
-PROGMEM  prog_uint16_t profile_fan_06[] =   { 90,  90,  85,  80,  75,  70,  65,  60,  60,  55,  55,  55,  55,  55}; // fan speed profile
-//step                                        0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,
-PROGMEM  prog_uint16_t profile_maxtemp_06[] = {540};   //max temp allowed for ct, used only for ror roast methods.  
+prog_uchar profile_name_06[] PROGMEM  = {"R AR test01      "};    //Name of this profile, Max string size is 16 characters
+PROGMEM  prog_uint16_t profile_ror_06[] =  {  70,  50,  20,  10,   5,   5,   5,   0,   0,   0,   0,   0,   0,   0};  //ror 
+PROGMEM  prog_uint16_t profile_temp_06[] =  {140, 220, 300, 325, 350, 420, 430, 430, 430, 430, 430, 430, 430, 430};  //temp per step
+PROGMEM  prog_uint16_t profile_time_06[] =  {  0,   0,   0,   0,   0,   0,   0, 180, 180, 180, 240,   1,   2,   3};  //time per step
+PROGMEM  prog_uint16_t profile_offset_06[]= {  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1};  // offset correction to temp, per step
+PROGMEM  prog_uint16_t profile_fan_06[] =   { 90,  90,  85,  80,  80,  75,  70,  65,  65,  65,  65,  65,  65,  65}; // fan speed profile
+//step                                        0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13    
+PROGMEM  prog_uint16_t profile_maxtemp_06[] = {540};  //max temp allowed for ct, used only for ror roast methods.
 
 //***********Profile 07 Definition
-prog_uchar profile_name_07[] PROGMEM  = {"ror  00        "};    //Name of this profile, Max string size is 16 characters
-PROGMEM  prog_uint16_t profile_ror_07[] =  {150, 150, 150, 280, 280, 380, 455, 540, 550, 550, 550, 580, 580, 580};  //ROR
-PROGMEM  prog_uint16_t profile_temp_07[] =  {  0,   1,   1,  60,   1, 180, 180, 360, 180, 180, 240,   8,   9,  10};  //temp per step
-PROGMEM  prog_uint16_t profile_time_07[] =  {  0,   1,  60,  90,  90,  90,  90, 180, 180, 180, 240,   1,   2,   3};  //time per step
-PROGMEM  prog_uint16_t profile_offset_07[]= {  0,   0,   0,  20,  20,  25,  30,  35,  40,  40,  40,  40,  40,  40};  // offset correction to temp, per step
+prog_uchar profile_name_07[] PROGMEM  = {"T AR test01    "};    //Name of this profile, Max string size is 16 characters
+PROGMEM  prog_uint16_t profile_ror_07[] =  {  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0};  //ROR
+PROGMEM  prog_uint16_t profile_temp_07[] =  {300, 390, 460, 480, 480, 500, 500, 500, 500, 500, 500,   8,   9,  10};  //temp per step
+PROGMEM  prog_uint16_t profile_time_07[] =  {120, 150, 300, 240, 240,  90,  90, 180, 180, 180, 240,   1,   2,   3};  //time per step
+PROGMEM  prog_uint16_t profile_offset_07[]= {  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1};  // offset correction to temp, per step
 PROGMEM  prog_uint16_t profile_fan_07[] =   { 90,  90,  90,  85,  85,  80,  75,  70,  70,  70,  70,  70,  70,  70}; // fan speed profile
 //step                                         0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13
 PROGMEM  prog_uint16_t profile_maxtemp_07[] = {540};   //max temp allowed for ct, used only for ror roast methods.

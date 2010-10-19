@@ -1,5 +1,21 @@
 //PID.pde
 
+// *** BSD License ***
+// ------------------------------------------------------------------------------------------
+// Contributor:  Randy Tsuchiyama
+//
+// THIS SOFTWARE IS PROVIDED BY THE CONTRIBUTOR "AS IS" AND ANY EXPRESS 
+// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// ------------------------------------------------------------------------------------------
+
+
 //************************************************************************
 // ------------------------- PID routine -------------------------------
 //************************************************************************
@@ -14,7 +30,7 @@
 
 //  NOTE: Assume we are running once per second, so dt=1
 
-int PID()
+void PID()
 {
 //setpoint is the target temperature
 //slope (global variable) is the change in temperature in one sec, so it is the D term

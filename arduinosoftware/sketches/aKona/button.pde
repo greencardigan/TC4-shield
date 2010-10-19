@@ -1,6 +1,23 @@
 //button.pde
+// *** BSD License ***
+// ------------------------------------------------------------------------------------------
+// Contributor:  Randy Tsuchiyama
+//
+// THIS SOFTWARE IS PROVIDED BY THE CONTRIBUTOR "AS IS" AND ANY EXPRESS 
+// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// ------------------------------------------------------------------------------------------
+
 /*
 routines to read button pushes
+all logic to read the buttons is here, except in one place in mode.pde at the beginning of
+fly_changes().
 
 */
 
@@ -20,11 +37,11 @@ boolean pushed;
 pushed = false;
 read_button =0;
 while (pushed == false) { // wait for a button to be pushed
-	read_button = analogRead (RIGHT_PLUS_BUTTON);
+	read_button = analogRead (ESC_PLUS_BUTTON);
 	if (read_button > ANYKEY) { 
-		read_button = analogRead (RIGHT_PLUS_BUTTON);  
-		if (read_button > RIGHT_VALUE) {  //RIGHT key was pushed
-			button_pushed = RIGHT;
+		read_button = analogRead (ESC_PLUS_BUTTON);  
+		if (read_button > ESC_VALUE) {  //RIGHT key was pushed
+			button_pushed = ESCAPE;
 			pushed = true;
 			}
 		else if (read_button > PLUS_VALUE) {  //plus key pushed, it is lowest one
@@ -41,20 +58,20 @@ while (pushed == false) { // wait for a button to be pushed
 			}
 		}   
 		
-	read_button = analogRead (LEFT_BUTTON);  
-	if (read_button > LEFT_VALUE) { 
-		read_button = analogRead (LEFT_BUTTON);  
-		if (read_button > LEFT_VALUE) {  //LEFT key was pushed
-			button_pushed = LEFT;
+	read_button = analogRead (SELECT_BUTTON);  
+	if (read_button > SELECT_VALUE) { 
+		read_button = analogRead (SELECT_BUTTON);  
+		if (read_button > SELECT_VALUE) {  //LEFT key was pushed
+			button_pushed = SELECT;
 			pushed = true;
 			}
 		}  
 		
-	read_button = analogRead (SELECT_BUTTON);  
-	if (read_button > SELECT_VALUE) { 
-		read_button = analogRead (SELECT_BUTTON);  
-		if (read_button > SELECT_VALUE) {  //SELECT key was pushed
-			button_pushed = SELECT;
+	read_button = analogRead (FIFTH_BUTTON);  
+	if (read_button > FIFTH_VALUE) { 
+		read_button = analogRead (FIFTH_BUTTON);  
+		if (read_button > FIFTH_VALUE) {  //FIFTH key was pushed
+			button_pushed = FIFTH;
 			pushed = true;
 			}
 		}
@@ -73,11 +90,11 @@ boolean pushed;
 
 read_button =0;
 button_pushed = NOBUTTON;
-read_button = analogRead (RIGHT_PLUS_BUTTON);  
+read_button = analogRead (ESC_PLUS_BUTTON);  
 if (read_button > ANYKEY) { 
-    read_button = analogRead (RIGHT_PLUS_BUTTON);  
-    if (read_button > RIGHT_VALUE) {  //RIGHT key was pushed
-		button_pushed = RIGHT;
+    read_button = analogRead (ESC_PLUS_BUTTON);  
+    if (read_button > ESC_VALUE) {  //RIGHT key was pushed
+		button_pushed = ESCAPE;
 		pushed = true;
         }
     else if (read_button > PLUS_VALUE) {  //plus key pushed, it is lowest one
@@ -94,23 +111,25 @@ if (read_button > MINUS_VALUE) {
         }
     }   
 	
-read_button = analogRead (LEFT_BUTTON);  
-if (read_button > LEFT_VALUE) { 
-	read_button = analogRead (LEFT_BUTTON);  
-	if (read_button > LEFT_VALUE) {  //LEFT key was pushed
-		button_pushed = LEFT;
-		pushed = true;
-		}
-	}  
-	
 read_button = analogRead (SELECT_BUTTON);  
 if (read_button > SELECT_VALUE) { 
 	read_button = analogRead (SELECT_BUTTON);  
-	if (read_button > SELECT_VALUE) {  //SELECT key was pushed
+	if (read_button > SELECT_VALUE) {  //LEFT key was pushed
 		button_pushed = SELECT;
 		pushed = true;
 		}
 	}  
+
+/*
+read_button = analogRead (FIFTH_BUTTON);  
+if (read_button > FIFTH_VALUE) { 
+	read_button = analogRead (FIFTH_BUTTON);  
+	if (read_button > FIFTH_VALUE) {  //FIFTH key was pushed
+		button_pushed = FIFTH;
+		pushed = true;
+		}
+	}  
+*/
 
 return button_pushed;  
 

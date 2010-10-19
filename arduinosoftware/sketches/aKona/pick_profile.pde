@@ -1,3 +1,18 @@
+// *** BSD License ***
+// ------------------------------------------------------------------------------------------
+// Contributor:  Randy Tsuchiyama
+//
+// THIS SOFTWARE IS PROVIDED BY THE CONTRIBUTOR "AS IS" AND ANY EXPRESS 
+// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// ------------------------------------------------------------------------------------------
+
 /*
 pick_profile.pde
 
@@ -24,15 +39,15 @@ while (picked == false) {  //do until a profile is picked
 	switch (cntr){
 		case (0):
 			for (ind = 0; ind < 16; ind++) {   //send name of this profile to display
-                                #ifdef EEROM
-                                read_profile(ind);
-                                #endif
+				#ifdef EEROM
+				//read_profile(ind);
+				#endif
 				Profile_Name_buffer[ind] = pgm_read_byte_near(profile_name_00 + ind);
 				}
 			display_profile(cntr);
 			buttonValue = wait_button();       
-			if (buttonValue == RIGHT) {}
-                        else if (buttonValue == LEFT) {}
+			if (buttonValue == FIFTH) {}
+                        else if (buttonValue == ESCAPE) {}
 			else if (buttonValue == SELECT) {
 				picked = true;
 				max_temp = pgm_read_word_near(profile_maxtemp_00);
@@ -59,8 +74,8 @@ while (picked == false) {  //do until a profile is picked
 			}
 			display_profile(cntr);
 			buttonValue = wait_button();       
-			if (buttonValue == RIGHT) {}
-                        else if (buttonValue == LEFT) {}
+			if (buttonValue == FIFTH) {}
+                        else if (buttonValue == ESCAPE) {}
 			else if (buttonValue == SELECT) {
 				picked = true;
 				max_temp = pgm_read_word_near(profile_maxtemp_01);
@@ -83,8 +98,8 @@ while (picked == false) {  //do until a profile is picked
 				}
 			display_profile(cntr);
 			buttonValue = wait_button();       
-			if (buttonValue == RIGHT) { }
-                        else if (buttonValue == LEFT) {}
+			if (buttonValue == FIFTH) { }
+                        else if (buttonValue == ESCAPE) {}
 			else if (buttonValue == SELECT) {
 				picked = true;
 				max_temp = pgm_read_word_near(profile_maxtemp_02);
@@ -107,8 +122,8 @@ while (picked == false) {  //do until a profile is picked
 				}
 			display_profile(cntr);
 			buttonValue = wait_button();       
-			if (buttonValue == RIGHT) { }
-                        else if (buttonValue == LEFT) {}
+			if (buttonValue == FIFTH) { }
+                        else if (buttonValue == ESCAPE) {}
 			else if (buttonValue == SELECT) {
 				picked = true;
 				max_temp = pgm_read_word_near(profile_maxtemp_03);
@@ -131,8 +146,8 @@ while (picked == false) {  //do until a profile is picked
 				}
 			display_profile(cntr);
 			buttonValue = wait_button();       
-			if (buttonValue == RIGHT) {}
-                        else if (buttonValue == LEFT) {}
+			if (buttonValue == FIFTH) {}
+                        else if (buttonValue == ESCAPE) {}
 			else if (buttonValue == SELECT) {
 				picked = true;
 				max_temp = pgm_read_word_near(profile_maxtemp_04);				
@@ -155,8 +170,8 @@ while (picked == false) {  //do until a profile is picked
 			}
 			display_profile(cntr);
 			buttonValue = wait_button();       
-			if (buttonValue == RIGHT) {}
-                        else if (buttonValue == LEFT) {}
+			if (buttonValue == FIFTH) {}
+                        else if (buttonValue == ESCAPE) {}
 			else if (buttonValue == SELECT) {
 				picked = true;
 				max_temp = pgm_read_word_near(profile_maxtemp_05);				
@@ -179,8 +194,8 @@ while (picked == false) {  //do until a profile is picked
 				}
 			display_profile(cntr);
 			buttonValue = wait_button();       
-			if (buttonValue == RIGHT) {}
-                        else if (buttonValue == LEFT) {}
+			if (buttonValue == FIFTH) {}
+                        else if (buttonValue == ESCAPE) {}
 			else if (buttonValue == SELECT) {
 				picked = true;
 				max_temp = pgm_read_word_near(profile_maxtemp_06);
@@ -203,8 +218,8 @@ while (picked == false) {  //do until a profile is picked
 				}
 			display_profile(cntr);
 			buttonValue = wait_button();       
-			if (buttonValue == RIGHT) {  }
-                        else if (buttonValue == LEFT) {}
+			if (buttonValue == FIFTH) {  }
+                        else if (buttonValue == ESCAPE) {}
 			else if (buttonValue == SELECT) {
 				picked = true;
 				max_temp = pgm_read_word_near(profile_maxtemp_07);				
@@ -227,8 +242,8 @@ while (picked == false) {  //do until a profile is picked
 				}
 			display_profile(cntr);
 			buttonValue = wait_button();       
-			if (buttonValue == RIGHT) {    }
-                        else if (buttonValue == LEFT) {}
+			if (buttonValue == FIFTH) {    }
+                        else if (buttonValue == ESCAPE) {}
 			else if (buttonValue == SELECT) {
 				picked = true;
 				max_temp = pgm_read_word_near(profile_maxtemp_08);				
@@ -251,8 +266,8 @@ while (picked == false) {  //do until a profile is picked
 				}
 			display_profile(cntr);
 			buttonValue = wait_button();       
-			if (buttonValue == RIGHT) {}
-                        else if (buttonValue == LEFT) {}
+			if (buttonValue == FIFTH) {}
+                        else if (buttonValue == ESCAPE) {}
 			else if (buttonValue == SELECT) {
 				picked = true;
 				max_temp = pgm_read_word_near(profile_maxtemp_09);				

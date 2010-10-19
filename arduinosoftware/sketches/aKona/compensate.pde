@@ -1,16 +1,30 @@
 //compensate.pde
+// *** BSD License ***
+// ------------------------------------------------------------------------------------------
+// Contributor:  Randy Tsuchiyama
+//
+// THIS SOFTWARE IS PROVIDED BY THE CONTRIBUTOR "AS IS" AND ANY EXPRESS 
+// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// ------------------------------------------------------------------------------------------
+
 /*
 routine to compensate for the PID temp setpoint
 
 The PID program has error, which changes with temperature, where the target temp is not matching the setpoint
 The routine is intended to reduce the error to a single digit number
 
-
+Called from PID
 */
 
-//include "user.h"
-
-//boolean enable_comp = false;
+//note that the follwoing line is in the main init program, to disable this routing if offset array not equal to 0
+//if (Offset_array[6] != 0) {enable_comp = false;} 
 
 // ------------------------------------------------------------------------
 

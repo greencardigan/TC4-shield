@@ -1,3 +1,18 @@
+// *** BSD License ***
+// ------------------------------------------------------------------------------------------
+// Contributor:  Randy Tsuchiyama
+//
+// THIS SOFTWARE IS PROVIDED BY THE CONTRIBUTOR "AS IS" AND ANY EXPRESS 
+// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// ------------------------------------------------------------------------------------------
+
 // serial.pde
 
 /* send data to the serial (USB) port, for logging and display on a PC
@@ -29,12 +44,10 @@ int i;
   Serial.print(",");
   Serial.print( RoRct, DP );
 
-
   //send setpoint to logfile
   Serial.print(",");
   Serial.print( setpoint, DP );  //send setpoint, to compare setpoint to temps
   
-
   Serial.print(",");
   Serial.print( step );  //send step number
 
@@ -46,6 +59,10 @@ int i;
 
   Serial.print(",");
   Serial.print( FanSpeed);
+
+  Serial.print(",");
+  Serial.print( ROR, DP );
+
 
   Serial.println();
    
@@ -77,9 +94,7 @@ Serial.print(max_temp);
 Serial.println();
 
 //send header information to log file
-Serial.print("# time,ambient,T0,rate0");
-if( NCHAN >= 2 ) Serial.print(",T1,rate1");
-Serial.print(",Setpoint,Step,Step Timer,Heat,Fanspeed,Delta T(sp-ct)");
+Serial.print("# Time,Ambient,MT,ROR MT,CT,ROR CT,Setpoint,Step,Step Timer,Heat,Fanspeed,ROR,Delta T(sp-ct)");
 Serial.println();
  
 }

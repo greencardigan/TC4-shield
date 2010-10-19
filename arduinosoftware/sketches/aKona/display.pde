@@ -1,4 +1,18 @@
 // display.pde
+// *** BSD License ***
+// ------------------------------------------------------------------------------------------
+// Contributor:  Randy Tsuchiyama
+//
+// THIS SOFTWARE IS PROVIDED BY THE CONTRIBUTOR "AS IS" AND ANY EXPRESS 
+// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// ------------------------------------------------------------------------------------------
 
 /* display is a 20x4 Character LCD Module
 The routines in this file/tab format and send the data to the LCD display
@@ -62,7 +76,7 @@ void display_ask_end()
 	2x16 display format
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
     m m : s s   C T : t t t      
-    M T : t t t   C o o l i n g 
+    M T : t t t     C o o l i n g 
     Cooling           
 */
 void display_ending()
@@ -86,14 +100,15 @@ void display_ending()
 	lcd.setCursor(0,1);
 
   //format and display mt
+  lcd.setCursor(0,1);    
   tmp = round(mt);
   if( tmp > 999 ) tmp = 999;
   else if( tmp < -999 ) tmp = -999;  
   lcd.print ("MT:");    //00-01
   lcd.print(tmp);     //2-4
 
-  lcd.setCursor(5,1);
-  lcd.print("Cooling ");
+  lcd.setCursor(8,1);
+  lcd.print("Cooling");
 	
 }
 

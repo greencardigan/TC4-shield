@@ -1,3 +1,18 @@
+// *** BSD License ***
+// ------------------------------------------------------------------------------------------
+// Contributor:  Randy Tsuchiyama
+//
+// THIS SOFTWARE IS PROVIDED BY THE CONTRIBUTOR "AS IS" AND ANY EXPRESS 
+// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// ------------------------------------------------------------------------------------------
+
 // ------------------------------------------------------------------------
 // this routine selects the roasting mode for on the fly changes during the roast
 
@@ -11,8 +26,8 @@ roast_mode=0;
 while (picked == false) {
         display_roast_menu();  //in display.pde
   	buttonValue = wait_button();       
-	if (buttonValue == RIGHT) {}
-        else if (buttonValue == LEFT) {}
+	if (buttonValue == ESCAPE) {}
+        else if (buttonValue == FIFTH) {}
 	else if (buttonValue == UP_PLUS) {
 		if (roast_mode == 3) {roast_mode=0;}  
 		else {roast_mode++;}
@@ -34,18 +49,23 @@ while (picked == false) {
 
 void fly_changes()
 {
+int read_button;
 
+//check to see if holding down minus and escape.  If hold down both for 3 secs, start cooling and end roast
    buttonValue = get_button(); 
-   if (buttonValue == SELECT) {// hold down select button to end roast
-     display_ask_end();
-     //step = NMAX+1;
-     			if ((last_sel_button == true) and (second_last_sel_button == true))
+if ((buttonValue == DOWN_MINUS)) { // hold down_minus button to end roast
+    read_button = analogRead (ESC_PLUS_BUTTON);  
+	if (read_button > ANYKEY) { 
+		read_button = analogRead (ESC_PLUS_BUTTON);  
+		if (read_button > ESC_VALUE) {  //ESCAPE button is also pushed
+        		if ((last_sel_button == true) and (second_last_sel_button == true))
 				{step = NMAX+1;}  //if select was held down for 3 secs, set step to end, so roast will end.
 			if (last_sel_button == true) 
 				{second_last_sel_button = true;}
 			last_sel_button = true;
 			}
-
+		}
+	}
 switch (roast_mode){
 	case (0):  //change target temp for this ramp, or fanspeed for this ramp for this case   
 		if (buttonValue == UP_PLUS) { // check if plus was pushed
@@ -118,7 +138,7 @@ switch (roast_mode){
 				{second_last_button = true;}
 			last_button = true;
 			}
-		else if (buttonValue == RIGHT) { // 
+		else if (buttonValue == ESCAPE) { // 
 			if ((last_button == true) and (second_last_button == true))
 				{FanSpeed = FanSpeed + 5;}
 			else {FanSpeed = FanSpeed + 1;}
@@ -126,7 +146,7 @@ switch (roast_mode){
 				{second_last_button = true;}
 			last_button = true;
 		}	
-		else if (buttonValue == LEFT) {  //
+		else if (buttonValue == SELECT) {  //
 			if ((last_button == true) and (second_last_button == true))
 				{FanSpeed = FanSpeed - 5;}
 			else {FanSpeed = FanSpeed - 1;}
@@ -161,7 +181,7 @@ switch (roast_mode){
 				{second_last_button = true;}
 			last_button = true;
 			}
-		else if (buttonValue == RIGHT) { // Escape key was pushed
+		else if (buttonValue == ESCAPE) { // Escape key was pushed
 			if ((last_button == true) and (second_last_button == true))
 				{FanSpeed = FanSpeed + 5;}
 			else {FanSpeed = FanSpeed + 1;}
@@ -169,7 +189,7 @@ switch (roast_mode){
 				{second_last_button = true;}
 			last_button = true;
 		}	
-		else if (buttonValue == LEFT) {  //SELECT key was pushed
+		else if (buttonValue == SELECT) {  //SELECT key was pushed
 			if ((last_button == true) and (second_last_button == true))
 				{FanSpeed = FanSpeed - 5;}
 			else {FanSpeed = FanSpeed - 1;}
@@ -204,7 +224,7 @@ switch (roast_mode){
 				{second_last_button = true;}
 			last_button = true;
 			}
-		else if (buttonValue == RIGHT) { // RIGHT key was pushed
+		else if (buttonValue == ESCAPE) { // ESCAPE key was pushed
 			if ((last_button == true) and (second_last_button == true))
 				{D = D + 5;}
 			else {D = D + 1;}
@@ -212,7 +232,7 @@ switch (roast_mode){
 				{second_last_button = true;}
 			last_button = true;
 		}	
-		else if (buttonValue == LEFT) {  //LEFT key was pushed
+		else if (buttonValue == SELECT) {  //SELECT key was pushed
 			if ((last_button == true) and (second_last_button == true))
 				{D = D - 5;}
 			else {D = D - 1;}
@@ -267,7 +287,7 @@ switch (roast_mode){
 				{second_last_button = true;}
 			last_button = true;
 			}
-		else if (buttonValue == RIGHT) { // check if escape was pushed
+		else if (buttonValue == ESCAPE) { // check if escape was pushed
 			if ((last_button == true) and (second_last_button == true))
 				{FanSpeed = FanSpeed + 5;}
 			else {FanSpeed = FanSpeed + 1;}
@@ -275,7 +295,7 @@ switch (roast_mode){
 				{second_last_button = true;}
 			last_button = true;
 		}	
-		else if (buttonValue == LEFT) {  //minus key was pushed
+		else if (buttonValue == SELECT) {  //minus key was pushed
 			if ((last_button == true) and (second_last_button == true))
 				{FanSpeed = FanSpeed - 5;}
 			else {FanSpeed = FanSpeed - 1;}
