@@ -11,7 +11,7 @@
 // Derived from aBourbon.pde by Jim Gallt and Bill Welch
 // Originally adapted from the a_logger.pde by Bill Welch.
 
-#define BANNER_CAT "Catuai 20101010" // version
+#define BANNER_CAT "Catuai 20101023" // version
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -47,7 +47,7 @@
 // or other roasters where BT might be jumpy, then a higher value of RISE_FILTER
 // will be needed.  Theoretical max. is 99%, but watch out for the lag when
 // you get above 85%.
-#define RISE_FILTER 70 // heavy filtering on non-displayed BT for RoR calculations
+#define RISE_FILTER 85 // heavy filtering on non-displayed BT for RoR calculations
 
 // future versions will read all calibration values from EEPROM
 #define CAL_GAIN 1.00 // substitute known gain adjustment from calibration
