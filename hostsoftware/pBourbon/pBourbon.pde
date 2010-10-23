@@ -15,11 +15,13 @@
 // added guide-profile 18 sept William Welch
 // version 20101008 by Rama Roberts
 // added a TC reading average to help with reported fluctuations
+// version 20101023 by Jim Gallt
+// added code to optionally turn off TC reading average (SAMPSIZE = 1)
 
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
 PrintWriter logfile;
-String appname = "Bourbon Roast Logger v1.02";
+String appname = "Bourbon Roast Logger v1.03";
 
 String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
 
@@ -83,6 +85,7 @@ void setup() {
   // read com port settings from config file
   // format is: value, comment/n
   String[] lines = loadStrings( cfgfilename );
+  SAMPLESIZE = 1; // default value in case sample size not given in config file
   if( lines.length >= 1 ) {
     String[] portstring = split( lines[0], "," );
     whichport = portstring[0];
@@ -98,7 +101,9 @@ void setup() {
 
   print( "COM Port: "); println( whichport );
   print( "Baudrate: "); println( baudrate );
-  print( "TC average sample size: "); println( SAMPLESIZE );
+  if( SAMPLESIZE > 1 ) {
+    print( "TC average sample size: "); println( SAMPLESIZE );
+  }
 
 
   // initialize the COM port (this can take a loooooong time on some computers)
@@ -131,6 +136,7 @@ void setup() {
 // --------------------------------------------------
 
 // returns the average value for a given float array
+// FIXME needs to have the array size passed as an argument in case SAMPSIZE not default value?
 float arrayAverage(float[] T) {
   int sum = 0;
   for (int i=0; i < T.length; i++) {
@@ -248,21 +254,23 @@ void monitor( int t1, int t2 ) {
 
     // T1 RoR Average
     // move this logic somewhere else, serialEvent() ?
-    if (avg_idx == SAMPLESIZE) avg_idx = 0; // put our pointer at the beginning
-    T1_avg[avg_idx] = T1[1][idx-1];
-    avg_idx++;
+    if( SAMPLESIZE > 1 ) {
+      if (avg_idx == SAMPLESIZE) avg_idx = 0; // put our pointer at the beginning
+      T1_avg[avg_idx] = T1[1][idx-1];
+      avg_idx++;
 
-    pos += incr;
-    fill( c1 );
-    strng = nfp( 0.1* arrayAverage(T1_avg),3,1 );
-    w = textWidth(strng);
-    textFont( labelFont, t1 );
-    text(strng,pos-w,16);
-    strng = SAMPLESIZE + "s avg";
-    textFont( labelFont, t2 );
-    w = textWidth( strng );
-    text(strng,pos-w,32 );
-
+      pos += incr;
+      fill( c1 );
+      strng = nfp( 0.1* arrayAverage(T1_avg),3,1 );
+      w = textWidth(strng);
+      textFont( labelFont, t1 );
+      text(strng,pos-w,16);
+      strng = SAMPLESIZE + "s avg";
+      textFont( labelFont, t2 );
+      w = textWidth( strng );
+      text(strng,pos-w,32 );
+    }
+    
     pos += incr;
     fill( c2 );
     strng = nf( T2[1][idx-1],3,1 );
