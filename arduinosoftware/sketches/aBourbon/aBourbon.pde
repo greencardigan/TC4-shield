@@ -26,7 +26,7 @@
 #include <cADC.h>
 #include <cLCD.h>
 
-#define BANNER_BRBN "Bourbon 20100928"
+#define BANNER_BRBN "Bourbon 20101028"
 
 // *************************************************************************************
 // NOTE TO USERS: the following parameters should be
@@ -48,7 +48,7 @@
 // or other roasters where BT might be jumpy, then a higher value of RISE_FILTER
 // will be needed.  Theoretical max. is 99%, but watch out for the lag when
 // you get above 85%.
-#define RISE_FILTER 70 // heavy filtering on non-displayed BT for RoR calculations
+#define RISE_FILTER 85 // heavy filtering on non-displayed BT for RoR calculations
 
 // needed for usesr without calibration values stored in EEPROM
 #define CAL_GAIN 1.00 // substitute known gain adjustment from calibration
