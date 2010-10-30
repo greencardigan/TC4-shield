@@ -10,8 +10,9 @@
 // Jim Gallt and Bill Welch
 // Derived from aBourbon.pde by Jim Gallt and Bill Welch
 // Originally adapted from the a_logger.pde by Bill Welch.
+//RC1 added support for 20 x 4 LCD and MCP23008 port expander
 
-#define BANNER_CAT "Catuai 20101023" // version
+#define BANNER_CAT "Catuai 20101030 RC1" // version
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -21,20 +22,44 @@
 #include <cADC.h>
 #include <PWM16.h>
 #include <cLCD.h>
-#include <cButton.h>
+#include "user.h"           //constants most likely to be changed by the user
+
 #include <mcEEPROM.h>
 
-// *************************************************************************************
-// NOTE TO USERS: the following parameters should be
-// be reviewed to suit your preferences and hardware setup.  
-// First, load and edit this sketch in the Arduino IDE.
-// Next compile the sketch and upload it to the Duemilanove.
+#ifdef I2C_LCD
+#include <cButton.h>
+void checkButtons();    //function in input.pde
+#endif
 
-// ------------------ optionally, use I2C port expander for LCD interface
-#define I2C_LCD //comment out to use the standard parallel LCD 4-bit interface
+#ifdef ANALOG_IN
+void readPot();       //function buttons.pde
+#endif
 
-// ------ connect a potentiomenter to ANLG1 for manual heater control using Ot1
-#define ANALOG_IN // comment this line out if you do not use this feature
+#ifdef c23008
+#include <c23008.h>
+int OldButton;
+c23008Expander expander; 
+String message[]= {
+  "Start", "Load Beans", "First Crack", "Second Crack","End Roast"};
+//char sent to graph by key press
+char key_event[] = {
+  'x','L','F','S','E'};
+int key_count = 0;   //Tracks location during roast 
+float lastEventTime = 0;
+void(* resetFunc) (void) = 0; //declare software reset function @ address 0
+void p_button();    //function in buttons.pde
+#endif
+
+#ifdef FANCONTROL
+int32_t fanSpeed;   //fan speed %
+int32_t power = 0; // power output % to heater
+PWM16 output;
+#endif
+
+#ifndef c23008
+int get_ubtton();   //function in buttons.pde
+#endif
+
 #define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1 (if used)
 
 #define BAUD 57600  // serial baud rate
@@ -55,16 +80,16 @@
 #define AMB_OFFSET 0 // substitute known value for amb temp offset (Celsius)
 
 // ambient sensor should be stable, so quick variations are probably noise -- filter heavily
-#define AMB_FILTER 70 // 70% filtering on ambient sensor readings
+#define AMB_FILTER 75 // 70% filtering on ambient sensor readings
 
 // *************************************************************************************
 
 
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
-#define NCHAN 2   // number of TC input channels
+#define NCHAN 2         // number of TC input channels
 #define TC_TYPE TypeK  // thermocouple type / library
-#define DP 1  // decimal places for output on serial port
+#define DP 1          // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 
 // --------------------------------------------------------------
@@ -100,17 +125,18 @@ uint8_t anlg = 0; // analog input pin
 int32_t power = 0; // power output to heater
 PWM16 output;
 #endif
-
+void roast_mode_select();  //routine in mode.pde
+void fly_changes();        //routine in mode.pde
+void display_roast();      //routine in display.pde
+void display_startup();    //routine in display.pde
 // LCD output strings
 char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
 
 // ---------------------------------- LCD interface definition
 #ifdef I2C_LCD
-
 #define BACKLIGHT lcd.backlight();
 cLCD lcd; // I2C LCD interface
 cButtonPE16 buttons; // button array on I2C port expander
-
 #else
 
 #define BACKLIGHT ;
@@ -126,7 +152,10 @@ LiquidCrystal lcd( RS, ENABLE, D4, D5, D6, D7 ); // standard 4-bit parallel inte
 
 // used in main loop
 float timestamp = 0;
+float timestamp2 = 0;
 uint32_t time0 = 0;  // ms value when we want to start recording
+uint32_t time1 = 0;  // ms value when we want to start tracking event time
+uint32_t timeReset = 0;  // ms value when we want to start tracking enter key time
 boolean first;
 uint32_t nextLoop;
 
@@ -159,7 +188,7 @@ void logger()
   Serial.print(",");
   t_amb = amb.getAmbF();
   Serial.print( t_amb, DP );
-   
+
   // print temperature, rate for each channel
   i = 0;
   if( NCHAN >= 1 ) {
@@ -170,7 +199,7 @@ void logger()
     Serial.print( RoR , DP );
     i++;
   };
-  
+
   if( NCHAN >= 2 ) {
     Serial.print(",");
     Serial.print( t2 = D_MULT * temps[i], DP );
@@ -179,7 +208,7 @@ void logger()
     Serial.print( rx , DP );
     i++;
   };
-  
+
   if( NCHAN >= 3 ) {
     Serial.print(",");
     Serial.print( D_MULT * temps[i], DP );
@@ -188,7 +217,7 @@ void logger()
     Serial.print( rx , DP );
     i++;
   };
-  
+
   if( NCHAN >= 4 ) {
     Serial.print(",");
     Serial.print( D_MULT * temps[i], DP );
@@ -198,13 +227,20 @@ void logger()
     i++;
   };
 
-// log the power level to the serial port
+  // log the power level to the serial port
   Serial.print(",");
 #ifdef ANALOG_IN
   Serial.print( power );
-#else
-  Serial.print( (int32_t)0 );
+//#else
+//  Serial.print( (int32_t)0 );
 #endif
+
+#ifdef FANCONTROL
+  Serial.print( power );
+  Serial.print(",");
+  Serial.print(fanSpeed);
+#endif 
+
   Serial.println();
 
   updateLCD( t1, t2, RoR );  
@@ -221,7 +257,28 @@ void updateLCD( float t1, float t2, float RoR ) {
   lcd.print( smin );
   lcd.print( ":" );
   lcd.print( ssec );
- 
+
+#ifdef LCD_20_4 
+  //Display phase counter
+  itod = round( timestamp2 );
+  if( itod > 3599 ) itod = 3599;
+  sprintf( smin, "%02u", itod / 60 );
+  sprintf( ssec, "%02u", itod % 60 );
+  lcd.setCursor(0,2);
+  lcd.print( smin );
+  lcd.print( ":" );
+  lcd.print( ssec );
+  //Display event time
+  itod = round( timestamp - lastEventTime );
+  if( itod > 3599 ) itod = 3599;
+  sprintf( smin, "%02u", itod / 60 );
+  sprintf( ssec, "%02u", itod % 60 );
+  lcd.setCursor(0,3);
+  lcd.print( smin );
+  lcd.print( ":" );
+  lcd.print( ssec );
+#endif
+
   // channel 2 temperature 
   int it02 = round( t2 );
   if( it02 > 999 ) it02 = 999;
@@ -230,13 +287,20 @@ void updateLCD( float t1, float t2, float RoR ) {
   lcd.setCursor( 11, 0 );
   lcd.print( "E " );
   lcd.print( st2 ); 
-
+#ifdef LCD_20_4 
+  //Now show Celsius
+  it02 = round(F_TO_C( t2));
+  if( it02 > 999 ) it02 = 999;
+  else if( it02 < -999 ) it02 = -999;
+  sprintf( st2, "%4d", it02 );
+  lcd.print( st2 );
+#endif
   // channel 1 RoR
   int iRoR = round( RoR );
   if( iRoR > 99 ) 
     iRoR = 99;
   else
-   if( iRoR < -99 ) iRoR = -99; 
+    if( iRoR < -99 ) iRoR = -99; 
   sprintf( sRoR1, "%0+3d", iRoR );
   lcd.setCursor(0,1);
   lcd.print( "RoR:");
@@ -252,62 +316,32 @@ void updateLCD( float t1, float t2, float RoR ) {
   lcd.setCursor( 11, 1 );
   lcd.print("B ");
   lcd.print(st1);
+#ifdef LCD_20_4   
+  //Now show Celsius
+  it01 = round(F_TO_C( t1));
+  if( it01 > 999 ) 
+    it01 = 999;
+  else
+    if( it01 < -999 ) it01 = -999;
+  sprintf( st1, "%4d", it01 );
+  lcd.print(st1);
+#endif  
 }
 
-#ifdef ANALOG_IN
-// ---------------------------------
-void readPot() { // read analog port 1, round to nearest 5% output value
-  char pstr[5];
-  int32_t mod, trial;
-  aval = analogRead( anlg );
-  trial = aval * 100;
-  trial /= 1023;
-  mod = trial % 5;
-  trial = ( trial / 5 ) * 5; // truncate to multiple of 5
-  if( mod >= 3 )
-    trial += 5;
-  if( trial <= 100 && trial != power ) { // did it change?
-    power = trial;
-    sprintf( pstr, "%3d", (int)power );
-    lcd.setCursor( 6, 0 );
-    lcd.print( pstr ); lcd.print("%");
-  }
-}
-#endif
-
-#ifdef I2C_LCD
-// ----------------------------------
-void checkButtons() { // take action if a button is pressed
-  if( buttons.readButtons() ) {
-    if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) {// left button = start the roast
-      resetTimer();
-      Serial.println( "# STRT (timer reset)");
-    }
-    else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // 2nd button marks first crack
-      resetTimer();
-      Serial.println( "# FC (timer reset)");
-    }
-    else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // 3rd button marks second crack
-      resetTimer();
-      Serial.println( "# SC (timer reset)");
-    }
-    else if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // 4th button marks eject
-      resetTimer();
-      Serial.println( "# EJCT (timer reset)");
-    }
-  }
-}
-#endif
 
 // ----------------------------------
 void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
+
 #ifdef ANALOG_IN
-    readPot();
-#endif
+    //  readPot();
+#endif  
 #ifdef I2C_LCD
     checkButtons();
+#endif
+#ifdef c23008
+    p_button();
 #endif
   }
 }
@@ -318,7 +352,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   int32_t v;
   TC_TYPE tc;
   float tempC;
-  
+
   for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
     adc.nextConversion( j ); // start ADC conversion on channel j
     amb.nextConversion(); // start ambient sensor conversion
@@ -332,10 +366,11 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
     ftemps[j] =fRise[j].doFilter( v ); // heavier filtering for RoR
   }
 };
-  
+
 // resets the timestamp origin
 void resetTimer() {
   time0 = millis();
+  time1 = millis();
   timestamp = 0.0;
   nextLoop = 1000;
 }
@@ -346,8 +381,14 @@ void resetTimer() {
 void setup()
 {
   delay(100);
-  Wire.begin(); 
+  Wire.begin();
+
+#ifdef LCD_20_4 
+  lcd.begin(20, 4);
+#else  
   lcd.begin(16, 2);
+#endif
+
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_CAT ); // display version banner
@@ -358,14 +399,16 @@ void setup()
 
   Serial.begin(BAUD);
 
-   // read calibration and identification data from eeprom
+  // read calibration and identification data from eeprom
   if( eeprom.read( 0, (uint8_t*) &caldata, sizeof( caldata) ) == sizeof( caldata ) ) {
     Serial.println("# EEPROM data read: ");
     Serial.print("# ");
-    Serial.print( caldata.PCB); Serial.print("  ");
+    Serial.print( caldata.PCB); 
+    Serial.print("  ");
     Serial.println( caldata.version );
     Serial.print("# ");
-    Serial.print( caldata.cal_gain, 4 ); Serial.print("  ");
+    Serial.print( caldata.cal_gain, 4 ); 
+    Serial.print("  ");
     Serial.println( caldata.K_offset, 2 );
     lcd.setCursor( 0, 1 ); // echo EEPROM data to LCD
     lcd.print( caldata.PCB );
@@ -386,8 +429,11 @@ void setup()
   if( NCHAN >= 3 ) Serial.print(",T2,rate2");
   if( NCHAN >= 4 ) Serial.print(",T3,rate3");
   Serial.print(",power");
+  #ifdef FANCONTROL
+   Serial.print(",fan");
+   #endif
   Serial.println();
- 
+
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
   for( int j = 0; j < NCHAN; j++ ) { // initialize digital filters for each channel
     if( j == 1 )
@@ -397,15 +443,40 @@ void setup()
     fRise[j].init( RISE_FILTER ); // digital filtering for RoR calculation
   }
 
-  #ifdef ANALOG_IN
+#ifdef ANALOG_IN
   output.Setup( TIME_BASE );
 #endif
-  
+
   first = true;
-  delay( 3000 ); // display banner for a while
+  delay( 2000 ); // display banner for a while
   lcd.clear();
   resetTimer();
+
+#ifdef c23008
+  expander.begin(0,0xff);  //init 23008 chip at address 0x20, set all ports to input with pullup and inverted
+  //  expander.setInputs(0xff);
+  //  expander.setPullups(0xFF);
+  //  expander.setInverse(0xFF);
+  power = 0;
+
+  lcd.setCursor( 8, 0 );
+  lcd.print( "0%" );
+  lcd.setCursor( 7, 2 );
+  lcd.print(STARTSPEED,DEC );
+  lcd.print("% " );
+  lcd.setCursor( 8, 3 );
+  lcd.print(message[key_count] );
+#endif
+#ifdef FANCONTROL
+  fanSpeed = STARTSPEED;
+  pinMode(FANPIN, OUTPUT); 
+  lcd.setCursor( 7, 2 );
+  lcd.print(STARTSPEED,DEC );
+  lcd.print("% " );
+#endif  
+
 }
+
 
 // -----------------------------------------------------------------
 void loop() {
@@ -414,30 +485,41 @@ void loop() {
   // update on even 1 second boundaries
   while ( ( millis() - time0 ) < nextLoop ) { // delay until time for next loop
     if( !first ) {
+
 #ifdef ANALOG_IN
-    readPot();
+      //  readPot();
 #endif
+
 #ifdef I2C_LCD
-    checkButtons();
+      checkButtons();
+#endif
+
+#ifdef c23008
+      p_button();
 #endif
     }
   }
-  
+
   nextLoop += 1000; // time mark for start of next update 
   timestamp = float( millis() - time0 ) * 0.001;
+  timestamp2 = float( millis() - time1 ) * 0.001;
   get_samples(); // retrieve values from MCP9800 and MCP3424
   if( first ) // use first samples for RoR base values only
     first = false;
   else {
     logger(); // output results to serial port
- #ifdef ANALOG_IN
+#ifdef ANALOG_IN
     output.Out( power, 0 ); // update the power output on the SSR drive Ot1
- #endif
+#endif    
+#ifdef FANCONTROL
+    output.Out( power, 0 ); // update the power output on the SSR drive Ot1
+    analogWrite(FANPIN, (int)(fanSpeed *2.55) );  //adjust fan speed  
+#endif
   }
 
   for( int j = 0; j < NCHAN; j++ ) {
-   flast[j] = ftemps[j]; // use previous values for calculating RoR
-   lasttimes[j] = ftimes[j];
+    flast[j] = ftemps[j]; // use previous values for calculating RoR
+    lasttimes[j] = ftimes[j];
   }
 
   idletime = float( millis() - time0 ) * 0.001;
@@ -447,6 +529,19 @@ void loop() {
     Serial.print("# idle: ");
     Serial.println(idletime);
   }
-
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
