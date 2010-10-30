@@ -17,11 +17,14 @@
 // added a TC reading average to help with reported fluctuations
 // version 20101023 by Jim Gallt
 // added code to optionally turn off TC reading average (SAMPSIZE = 1)
+// added code to support fan speed and messages on serial port  PF
+
+final boolean useAddon = true; //use addon.pde if desired added 10-15 PF
 
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
 PrintWriter logfile;
-String appname = "Bourbon Roast Logger v1.03";
+String appname = "Bourbon Roast Logger v1.04 RC1";
 
 String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
 
@@ -41,6 +44,7 @@ color cgrid_maj = color(120,120,120); // major grid lines
 color cgrid_min = color (90,90,90);
 int cbgnd = 0;  // background color black
 
+
 int NCHAN = 2;  // 2 input channels
 
 // default values for port and baud rate
@@ -51,9 +55,14 @@ boolean started;  // waits for a keypress to begin logging
 import processing.serial.*;
 Serial comport;
 
+int ADD_FIELDS=4;  //set to 3 if not using fan speed control otherwise 4
+
+
 int MAX_TEMP = 520;  // degrees (or 10 * degF per minute)
-int MAX_TIME = 1020; // seconds
-int MIN_TEMP = -20; // degrees
+//int MAX_TIME = 1020; // seconds
+int MAX_TIME = 19 * 60; // minutes*seconds per minute=total seconds
+//int MIN_TEMP = -20; // degrees 
+int MIN_TEMP = 20; // degrees
 int TEMP_INCR = 20;  // degrees
 int idx = 0;
 float timestamp = 0.0;
@@ -75,13 +84,13 @@ int avg_idx = 0; // index to our rolling window
 
 // ----------------------------------------
 void setup() {
-  
+
   // open the logfile early to avoid race condition in SerialEvent handler
   println(CSVfilename);
   logfile = createWriter(CSVfilename);
 
   started = false; // don't plot until started; keep timestamp == 0
-  
+
   // read com port settings from config file
   // format is: value, comment/n
   String[] lines = loadStrings( cfgfilename );
@@ -99,29 +108,32 @@ void setup() {
     SAMPLESIZE = int( sampsize[0] );
   };
 
-  print( "COM Port: "); println( whichport );
-  print( "Baudrate: "); println( baudrate );
+  print( "COM Port: "); 
+  println( whichport );
+  print( "Baudrate: "); 
+  println( baudrate );
   if( SAMPLESIZE > 1 ) {
-    print( "TC average sample size: "); println( SAMPLESIZE );
+    print( "TC average sample size: "); 
+    println( SAMPLESIZE );
   }
-
 
   // initialize the COM port (this can take a loooooong time on some computers)
   println("Initializing COM port.  Please stand by....");
   startSerial();
-  
+
   // create arrays
   T0 = new float[2][MAX_TIME];
   T1 = new float[2][MAX_TIME];
   if( NCHAN >= 2 )   T2 = new float[2][MAX_TIME];
   if( NCHAN >= 2 )   T3 = new float[2][MAX_TIME];
-  
+
   frame.setResizable(true);
+
   labelFont = createFont("Tahoma-Bold", 16 );
   fill( clabel );
-  
 
-  size(1200, 800);
+  //  size(1200, 800);
+  size(1200, 725);
   frameRate(1);
   smooth();
   background(cbgnd);
@@ -129,7 +141,6 @@ void setup() {
   if (enable_guideprofile) {
     profile_data = loadStrings(PROFILE);
   }
-
 } // setup
 
 
@@ -140,7 +151,7 @@ void setup() {
 float arrayAverage(float[] T) {
   int sum = 0;
   for (int i=0; i < T.length; i++) {
-     sum += T[i];
+    sum += T[i];
   }
   return (sum / T.length);
 }
@@ -148,18 +159,18 @@ float arrayAverage(float[] T) {
 
 // --------------------------------------------------
 
-void drawgrid(){
+void drawgrid() {
   textFont(labelFont);
   stroke(cgrid_maj);
   fill( clabel);
-  
+
   // draw horizontal grid lines
   for (int i=MIN_TEMP + TEMP_INCR; i<MAX_TEMP; i+=TEMP_INCR) {
     text(nf(i,3,0), 0, MAX_TEMP-i - 2);
     text(nf(i,3,0), MAX_TIME -40, MAX_TEMP-i - 2);  // right side vert. axis labels
     line(0, MAX_TEMP-i, MAX_TIME, MAX_TEMP-i);
   }
-  
+
   // draw vertical grid lines
   int m;
   for (int i= 30 ; i<MAX_TIME; i+= 30) {
@@ -168,8 +179,8 @@ void drawgrid(){
       text(str(m), i, MAX_TEMP - MIN_TEMP - 2 );
       stroke(cgrid_maj);  // major gridlines should be a little bolder
     }
-      else
-        stroke(cgrid_min);
+    else
+      stroke(cgrid_min);
     line(i, 0, i, MAX_TEMP - MIN_TEMP);
   }
 }
@@ -181,7 +192,7 @@ void drawchan(float [][] T, color c) {
     float y1 = T[1][i-1];
     float x2 = T[0][i];
     float y2 = T[1][i];
-    
+
     // bound the data to be plotted
     if (y1 > MAX_TEMP) y1 = MAX_TEMP;
     if (y2 > MAX_TEMP) y2 = MAX_TEMP;   
@@ -189,6 +200,8 @@ void drawchan(float [][] T, color c) {
     if (y2 < MIN_TEMP) y2 = MIN_TEMP;
     stroke(c);
     line(x1, MAX_TEMP-y1, x2, MAX_TEMP-y2);
+    //added line below to track postion
+    x_pos=x2;
   }
 }
 void drawprofile() {
@@ -211,17 +224,18 @@ void drawprofile() {
 // ------------------------- alphanumeric values at top of screen
 void monitor( int t1, int t2 ) {
   int minutes,seconds;
-  
+
   if( idx > 0 ) {
     String strng;
     float w;
     int iwidth = width;
     int incr = iwidth / 8;
     int pos = incr;
-  
+
     fill( cmin );
     seconds = int( T0[0][idx-1] ) % 60;
-    minutes = int ( T0[0][idx-1] ) / 60;;
+    minutes = int ( T0[0][idx-1] ) / 60;
+    ;
     strng = nf( minutes,2,0 ) + ":" + nf(seconds,2,0 );
     w = textWidth(strng);
     textFont( labelFont, t1 );
@@ -230,7 +244,7 @@ void monitor( int t1, int t2 ) {
     textFont( labelFont, t2 );
     w = textWidth( strng );
     text(strng,pos-w,32 );
-  
+
     pos += incr;
     fill( c0 );
     strng = nf( T0[1][idx-1],2,1 );
@@ -270,7 +284,7 @@ void monitor( int t1, int t2 ) {
       w = textWidth( strng );
       text(strng,pos-w,32 );
     }
-    
+
     pos += incr;
     fill( c2 );
     strng = nf( T2[1][idx-1],3,1 );
@@ -281,28 +295,30 @@ void monitor( int t1, int t2 ) {
     textFont( labelFont, t2 );
     text(strng,pos-w,32 );
 
-/*
+    /*
     pos += incr;
-    fill( cidx );
-    strng = nf( idx,4,0 );
-    w = textWidth(strng);
-    textFont( labelFont, t1 );
-    text(strng,pos-w,16);
-    strng = "INDEX";
-    textFont( labelFont, t2 );
-    text(strng,pos-w,32 );
-*/
-
+     fill( cidx );
+     strng = nf( idx,4,0 );
+     w = textWidth(strng);
+     textFont( labelFont, t1 );
+     text(strng,pos-w,16);
+     strng = "INDEX";
+     textFont( labelFont, t2 );
+     text(strng,pos-w,32 );
+     */
   }
 }
 
-void drawnote() {
-  if (kb_note.length() > 0) {
-    textFont(labelFont);
-    stroke(128,128,128);
-    text(kb_note, 100, 100);
-  }
-}
+/* useAddon  //used drawnote fron addon.pde 
+ void drawnote() {
+ if (kb_note.length() > 0) {
+ textFont(labelFont);
+ stroke(128,128,128);
+ text(kb_note, 100, 100);
+ }
+ }
+ #endif
+ */
 
 // ------------------------------------------------------
 void draw() {
@@ -318,104 +334,160 @@ void draw() {
     text( appname + "\nPress a key or click to begin logging ...\n",110, 110 );
   }
   else {
-   drawgrid();
-   drawprofile();
-   drawnote();
-   drawchan(T0, c0 );  
-   drawchan(T1, c1 ); 
-   if( NCHAN >= 2 )   drawchan(T2, c2 );
-   // if( NCHAN >= 2 )   drawchan(T3, c3 );   // don't draw RoR for 2nd channel
+    drawgrid();
+    drawprofile();
+    drawnote();
+    drawchan(T0, c0 );  
+    drawchan(T1, c1 ); 
+    if( NCHAN >= 2 )   drawchan(T2, c2 );
+    // if( NCHAN >= 2 )   drawchan(T3, c3 );   // don't draw RoR for 2nd channel
 
-   // put numeric monitor at top of screen
-   monitor( 18, 16 );
+    // put numeric monitor at top of screen
+    monitor( 18, 16 );
+    
+    if (useAddon == true) {
+      if (endTimer > 0) {
+        if (  timestamp >(endTimer + endTimerSeconds)) {  //Time to end?
+          endTimer = 0;
+          logfile.println();
+          logfile.println("End of roast timeout");
+          saveFrame(filename + "autoend" + ".jpg" ); //make graph of roast
+          //        comport.stop();
+          //        logfile.flush();
+          //        logfile.close();
+          //        println("Data was written to: " + CSVfilename);
+          //noLoop();
+          //        stop();
+          //super.stop();
+        }
+        else {
+          println ("Closing in " + ((endTimer + endTimerSeconds)- timestamp) + " seconds");
+        }
+      }
+    }
   }; // end else
 }
 
 // -------------------------------------------------------------
 void serialEvent(Serial comport) {
 
-    // grab a line of ascii text from the logger and sanity check it.
-    String msg = comport.readStringUntil('\n');
-    if (msg == null) return; // *****************
-    msg = trim(msg);
-    if (msg.length() == 0) return; // ****************
+  // grab a line of ascii text from the logger and sanity check it.
+  String msg = comport.readStringUntil('\n');
+  if (msg == null) return; // *****************
+  msg = trim(msg);
+  if (msg.length() == 0) return; // ****************
 
-    //always store in file - good for debugging, version-tracking, etc.
-    //logfile.println(msg);
+  //always store in file - good for debugging, version-tracking, etc.
+  //logfile.println(msg);
 
-    if (msg.charAt(0) == '#') {
-      logfile.println(msg);
+  if (msg.charAt(0) == '#') {
+    logfile.println(msg);
+    println(msg);
+    return; // ******************
+  }
+  if(useAddon == true) {
+    //added to process message from serial port
+    String[] m1 = match(msg, "%%%");
+    if( m1 != null) {
       println(msg);
-      return; // ******************
+      msgRecevided(msg.charAt(3));  //from addon.pde
+      return;
     }
-  
-    String[] rec = split(msg, ",");  // comma separated input list
-    if (rec.length != 2 * NCHAN + 3 ) {
-      println("Ignoring unknown msg from logger: " + msg);
-      return; // *******************
-    }
-  
-    timestamp = float(rec[0]);
-    if( !started ) tstart = timestamp;
-    timestamp -= tstart;
-    ambient = float(rec[1]);
+  } 
 
-    T0[0][idx] = timestamp;
-    T0[1][idx] = float(rec[2]); 
-    T1[0][idx] = timestamp;
-    T1[1][idx] = float(rec[3]) * 10.0;  // exaggerate the rate traces
+  String[] rec = split(msg, ",");  // comma separated input list
   
-    if( NCHAN >= 2 ) {
-      T2[0][idx] = timestamp;
-      T2[1][idx] = float(rec[4]);
-    }
-    if( NCHAN >= 2 ) {
-      T3[0][idx] = timestamp;
-      T3[1][idx] = float(rec[5]) * 10.0;  // exaggerate the rate traces
-    };
-  
-    for (int i=0; i<(2 * NCHAN + 3); i++) {
-      print(rec[i]);
-      logfile.print(rec[i]);
-      if (i < 2 * NCHAN +2 ) print(",");
-      if (i < 2 * NCHAN +2 ) logfile.print(",");
-    }
-  
-    logfile.println();
-    println();
-  
-    idx++;
-    idx = idx % MAX_TIME;
+  if (rec.length != 2 * NCHAN + ADD_FIELDS ) {
+    println("Ignoring unknown msg from logger: " + msg);
+    return; // *******************
+  }
 
-} // serialEvent
+  timestamp = float(rec[0]);
+  if( !started ) tstart = timestamp;
+  timestamp -= tstart;
+  ambient = float(rec[1]);
+
+  T0[0][idx] = timestamp;
+  T0[1][idx] = float(rec[2]); 
+  T1[0][idx] = timestamp;
+  T1[1][idx] = float(rec[3]) * 10.0;  // exaggerate the rate traces
+
+  if( NCHAN >= 2 ) {
+    T2[0][idx] = timestamp;
+    T2[1][idx] = float(rec[4]);
+  }
+  if( NCHAN >= 2 ) {
+    T3[0][idx] = timestamp;
+    T3[1][idx] = float(rec[5]) * 10.0;  // exaggerate the rate traces
+  };
+
+  for (int i=0; i<(2 * NCHAN + ADD_FIELDS); i++) {
+    print(rec[i]);
+    logfile.print(rec[i]);
+    if (i < 2 * NCHAN +( ADD_FIELDS -1) ) print(",");
+    if (i < 2 * NCHAN +( ADD_FIELDS -1)) logfile.print(",");
+  }
+
+  if (useAddon == true) {
+    if (msgflag > 0) {  //add to log if event key was pressed
+      logfile.print(",");
+      logfile.print(message[msgflag]);
+      print(",");
+      print(message[msgflag]);
+      msgflag = 0;
+    }
+  }
+
+  logfile.println();
+  println();
+
+  idx++;
+  idx = idx % MAX_TIME;
+
+}// serialEvent
+
 
 // ------------------------------- save a frame when mouse is clicked
 void mouseClicked() {
-  if( !started ) { started = true; }
+
+  if( !started ) { 
+    started = true;
+    frame.setLocation(500, 5);
+  }
+
   else {
-   saveFrame(filename + "-##" + ".jpg" );
+    frame.setLocation(500, 5); 
+    if (useAddon == false) {
+      saveFrame(filename + "-##" + ".jpg" );
+    }
   };
 }
 
 // ---------------------------------------------
-void keyPressed()
-{ 
-  if( !started )  { started = true; }
-  else {
 
-    // fixme -- add specific behavior for F (first crack), S (second crack), and E (eject) keys
-
-    if (( key == 13) || (key == 10) )  {
-      if (kb_note.length() > 0) {
-        println("# " + timestamp + " " + kb_note);
-        logfile.println("# " + timestamp + " " + kb_note);
-        kb_note = "";
-      }
-    } else if (key != CODED) {
-      kb_note = kb_note + key;
-    }
-  }
-}
+/* use keypressed from addon.pde
+ void keyPressed()
+ { 
+ if( !started ) { 
+ started = true;
+ }
+ else {
+ 
+ // fixme -- add specific behavior for F (first crack), S (second crack), and E (eject) keys
+ 
+ if (( key == 13) || (key == 10) ) {
+ if (kb_note.length() > 0) {
+ println("# " + timestamp + " " + kb_note);
+ logfile.println("# " + timestamp + " " + kb_note);
+ kb_note = "";
+ }
+ } 
+ else if (key != CODED) {
+ kb_note = kb_note + key;
+ }
+ }
+ }
+ */
 
 // ------------------------------------------
 void startSerial() {
@@ -432,6 +504,9 @@ void stop() {
   comport.stop();
   logfile.flush();
   logfile.close();
+  if (useAddon == true) { 
+    saveFrame(filename + ".jpg" ); //make graph of roast
+  } 
   println("Data was written to: " + CSVfilename);
 }
 
