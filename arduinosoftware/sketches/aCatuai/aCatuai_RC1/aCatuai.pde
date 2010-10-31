@@ -458,7 +458,7 @@ void setup()
   //  expander.setPullups(0xFF);
   //  expander.setInverse(0xFF);
   power = 0;
-
+  output.Setup( TIME_BASE );
   lcd.setCursor( 8, 0 );
   lcd.print( "0%" );
   lcd.setCursor( 7, 2 );
