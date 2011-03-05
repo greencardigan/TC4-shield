@@ -9,6 +9,8 @@ on Arduino/ATMEGA328P.  This library offers higher resolution
 and longer cycle periods than the standard Arduino pwm functions
 that use 8-bit timer0.
 
-This library uses 16-bit timer1.
+This library uses 16-bit timer1.  When using this library,
+both pins, DIO9 and DIO10 are dedicated for PWM use.
+
 
 See PWM16.h for details.
