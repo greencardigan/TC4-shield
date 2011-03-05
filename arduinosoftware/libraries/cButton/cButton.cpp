@@ -62,6 +62,10 @@ uint8_t cButtonBase::readButtons() {
   else return 0;  // if a new value was not read, than nothing can change
 }
 
+uint8_t cButtonBase::anyPressed() {
+  return !( stable == 0 );
+}
+
 // ------------------debounce code from www.ganssle.com/debouncing-pt2.htm
 // ------------------debounces 8 switches at once (leading edge only)
 // call this every PERIOD

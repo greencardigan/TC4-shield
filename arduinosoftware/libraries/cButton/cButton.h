@@ -53,6 +53,7 @@ public:
   uint8_t readButtons(); // returns bit = 1 if key has changed since last debounce
   boolean keyPressed( uint8_t key );
   boolean keyChanged( uint8_t key );
+  boolean anyPressed(); // true if any button is pressed
 
 protected:
   virtual uint8_t rawRead(){ return 0; } // should be pure virtual
