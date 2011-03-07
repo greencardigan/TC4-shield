@@ -3,9 +3,10 @@
 // shameless 'fork' of aCatuai by Jim Gallt
 
 // 2-channel Rise-o-Meter and manual roast controller
-// output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, power
-// output on LCD : timestamp, power(%), channel 2 temperature
-//                 RoR 1,               channel 1 temperature
+// output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, variac
+// output on LCD :
+//                  09:30 RoR+08 V120.7
+//                  BT 400F ET 460F
 
 // Support for pBourbon.pde and 16 x 2 LCD
 // MIT license: http://opensource.org/licenses/mit-license.php
@@ -13,7 +14,7 @@
 // Derived from aBourbon.pde by Jim Gallt and Bill Welch
 // Originally adapted from the a_logger.pde by Bill Welch.
 
-#define BANNER_G "aGesha 20110305" // version
+#define BANNER_G "aGesha 20110307" // version
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -21,10 +22,10 @@
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <TypeK.h>
 #include <cADC.h>
-#include <PWM16.h>
+//#include <PWM16.h>
 #include <cLCD.h>
 #include <cButton.h>
-#include <mcEEPROM.h>
+// #include <mcEEPROM.h>
 
 // *************************************************************************************
 // NOTE TO USERS: the following parameters should be
@@ -35,13 +36,10 @@
 // ------------------ optionally, use I2C port expander for LCD interface
 #define I2C_LCD //comment out to use the standard parallel LCD 4-bit interface
 
-// ------ connect a potentiomenter to ANLG1 for manual heater control using Ot1
-#define ANALOG_IN // comment this line out if you do not use this feature
-#define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1 (if used)
-
 #define BAUD 57600  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for displayed BT
 #define ET_FILTER 10 // filtering level (percent) for displayed ET
+#define VARIAC_FILTER 95 // filtering level (percent) for variac reading
 
 // use RISE_FILTER to adjust the sensitivity of the RoR calculation
 // higher values will give a smoother RoR trace, but will also create more
@@ -72,23 +70,12 @@
 // --------------------------------------------------------------
 // global variables
 
-// eeprom calibration data structure
-struct infoBlock {
-  char PCB[40]; // identifying information for the board
-  char version[16];
-  float cal_gain;  // calibration factor of ADC at 50000 uV
-  int16_t cal_offset; // uV, probably small in most cases
-  float T_offset; // temperature offset (Celsius) at 0.0C (type T)
-  float K_offset; // same for type K
-};
-mcEEPROM eeprom;
-infoBlock caldata;
-
 // class objects
 cADC adc( A_ADC ); // MCP3424
 ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NCHAN]; // filter for displayed/logged ET, BT
 filterRC fRise[NCHAN]; // heavily filtered for calculating RoR
+filterRC fVariac;
 
 int32_t temps[NCHAN]; //  stored temperatures are divided by D_MULT
 int32_t ftemps[NCHAN]; // heavily filtered temps
@@ -96,12 +83,9 @@ int32_t ftimes[NCHAN]; // filtered sample timestamps
 int32_t flast[NCHAN]; // for calculating derivative
 int32_t lasttimes[NCHAN]; // for calculating derivative
 
-#ifdef ANALOG_IN
-int32_t aval = 0; // analog input value for manual control
-uint8_t anlg = 0; // analog input pin
-int32_t power = 0; // power output to heater
-PWM16 output;
-#endif
+int32_t aval = 0; // analog input value -- variac
+uint8_t anlg = 1; // analog input pin
+float variac = 0.0;
 
 // LCD output strings
 char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
@@ -200,20 +184,29 @@ void logger()
     i++;
   };
 
-// log the power level to the serial port
+// log the variac level to the serial port
   Serial.print(",");
-#ifdef ANALOG_IN
-  Serial.print( power );
-#else
-  Serial.print( (int32_t)0 );
-#endif
+  Serial.print( (float)aval, DP );
+  Serial.print(",");
+  Serial.print( variac, DP );
   Serial.println();
 
-  updateLCD( t1, t2, RoR );  
+  updateLCD( t1, t2, RoR, variac );  
 };
 
 // --------------------------------------------
-void updateLCD( float t1, float t2, float RoR ) {
+//  Farmroast's preferred layout
+//  01234567890123456789
+//  09:30 RoR+08 V120.7
+//  BT 400F ET 460F
+//  01234567890123456789
+
+//  16x2 layout
+//  0123456789012345
+//  09:30 R+08 120.7
+//  BT 400F  ET 460F
+//  0123456789012345
+void updateLCD( float t1, float t2, float RoR, float variac ) {
   // form the timer output string in min:sec format
   int itod = round( timestamp );
   if( itod > 3599 ) itod = 3599;
@@ -223,59 +216,85 @@ void updateLCD( float t1, float t2, float RoR ) {
   lcd.print( smin );
   lcd.print( ":" );
   lcd.print( ssec );
- 
-  // channel 2 temperature 
+
+  // channel 2 "ET" temperature 
   int it02 = round( t2 );
   if( it02 > 999 ) it02 = 999;
   else if( it02 < -999 ) it02 = -999;
   sprintf( st2, "%3d", it02 );
-  lcd.setCursor( 11, 0 );
-  lcd.print( "E " );
+  lcd.setCursor( 9, 1 );
+  lcd.print( "ET " );
   lcd.print( st2 ); 
+  lcd.print( "F" );
 
-  // channel 1 RoR
+  // channel 1 "BT" RoR
   int iRoR = round( RoR );
   if( iRoR > 99 ) 
     iRoR = 99;
   else
    if( iRoR < -99 ) iRoR = -99; 
   sprintf( sRoR1, "%0+3d", iRoR );
-  lcd.setCursor(0,1);
-  lcd.print( "RoR:");
+  lcd.setCursor(6,0);
+  lcd.print( "R");
   lcd.print( sRoR1 );
 
-  // channel 1 temperature
+  // channel 1 "BT" temperature
   int it01 = round( t1 );
   if( it01 > 999 ) 
     it01 = 999;
   else
     if( it01 < -999 ) it01 = -999;
   sprintf( st1, "%3d", it01 );
-  lcd.setCursor( 11, 1 );
-  lcd.print("B ");
+  lcd.setCursor( 0, 1 );
+  lcd.print("BT ");
   lcd.print(st1);
+  lcd.print("F");
+
+// variac
+  lcd.setCursor(11,0);
+  lcd.print( variac, DP );
+
+// diagnostic
+#if 0
+  lcd.setCursor(0,1);
+  sprintf( st1, "%3d", aval );
+  lcd.print(st1);
+  lcd.setCursor( 11, 1 );
+  lcd.print( variac, DP );
+#endif
 }
 
-#ifdef ANALOG_IN
 // ---------------------------------
-void readPot() { // read analog port 1, round to nearest 5% output value
-  char pstr[5];
-  int32_t mod, trial;
+
+struct vlookup {
+  int32_t aval;
+  float m;
+  float b;
+};
+
+static struct vlookup vtbl[5] = {
+{414,0.178571,16.0714},
+{470,0.144928,31.8841},
+{539,0.181818,12},
+{594,0.169492,19.322},
+{653,0.175439,15.4386}
+};
+
+void readVariac() { // read analog port 'anlg'
   aval = analogRead( anlg );
-  trial = aval * 100;
-  trial /= 1023;
-  mod = trial % 5;
-  trial = ( trial / 5 ) * 5; // truncate to multiple of 5
-  if( mod >= 3 )
-    trial += 5;
-  if( trial <= 100 && trial != power ) { // did it change?
-    power = trial;
-    sprintf( pstr, "%3d", (int)power );
-    lcd.setCursor( 6, 0 );
-    lcd.print( pstr ); lcd.print("%");
+  aval = fVariac.doFilter( aval );
+  if (aval >= vtbl[4].aval) {
+    variac = (float)aval * vtbl[4].m + vtbl[4].b;
+  } else if (aval >= vtbl[3].aval) {
+    variac = (float)aval * vtbl[3].m + vtbl[3].b;
+  } else if (aval >= vtbl[2].aval) {
+    variac = (float)aval * vtbl[2].m + vtbl[2].b;
+  } else if (aval >= vtbl[1].aval) {
+    variac = (float)aval * vtbl[1].m + vtbl[1].b;
+  } else {
+    variac = (float)aval * vtbl[0].m + vtbl[0].b;
   }
 }
-#endif
 
 #ifdef I2C_LCD
 // ----------------------------------
@@ -305,9 +324,7 @@ void checkButtons() { // take action if a button is pressed
 void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
-#ifdef ANALOG_IN
-    readPot();
-#endif
+    readVariac();
 #ifdef I2C_LCD
     checkButtons();
 #endif
@@ -360,34 +377,15 @@ void setup()
 
   Serial.begin(BAUD);
 
-   // read calibration and identification data from eeprom
-  if( eeprom.read( 0, (uint8_t*) &caldata, sizeof( caldata) ) == sizeof( caldata ) ) {
-    Serial.println("# EEPROM data read: ");
-    Serial.print("# ");
-    Serial.print( caldata.PCB); Serial.print("  ");
-    Serial.println( caldata.version );
-    Serial.print("# ");
-    Serial.print( caldata.cal_gain, 4 ); Serial.print("  ");
-    Serial.println( caldata.K_offset, 2 );
-    lcd.setCursor( 0, 1 ); // echo EEPROM data to LCD
-    lcd.print( caldata.PCB );
-    adc.setCal( caldata.cal_gain, caldata.cal_offset );
-    amb.setOffset( caldata.K_offset );
-  }
-  else { // if there was a problem with EEPROM read, then use default values
-    Serial.println("# Failed to read EEPROM.  Using default calibration data. ");
-    lcd.setCursor( 0, 1 ); // echo EEPROM data to LCD
-    lcd.print( "No EEPROM - OK" );
-    adc.setCal( CAL_GAIN, UV_OFFSET );
-    amb.setOffset( AMB_OFFSET );
-  }   
+  adc.setCal( CAL_GAIN, UV_OFFSET );
+  amb.setOffset( AMB_OFFSET );
 
   // write header to serial port
   Serial.print("# time,ambient,T0,rate0");
   if( NCHAN >= 2 ) Serial.print(",T1,rate1");
   if( NCHAN >= 3 ) Serial.print(",T2,rate2");
   if( NCHAN >= 4 ) Serial.print(",T3,rate3");
-  Serial.print(",power");
+  Serial.print(",variac");
   Serial.println();
  
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
@@ -399,10 +397,8 @@ void setup()
     fRise[j].init( RISE_FILTER ); // digital filtering for RoR calculation
   }
 
-  #ifdef ANALOG_IN
-  output.Setup( TIME_BASE );
-#endif
-  
+  fVariac.init(VARIAC_FILTER);
+
   first = true;
   delay( 3000 ); // display banner for a while
   lcd.clear();
@@ -416,11 +412,9 @@ void loop() {
   // update on even 1 second boundaries
   while ( ( millis() - time0 ) < nextLoop ) { // delay until time for next loop
     if( !first ) {
-#ifdef ANALOG_IN
-    readPot();
-#endif
+      readVariac();
 #ifdef I2C_LCD
-    checkButtons();
+      checkButtons();
 #endif
     }
   }
@@ -432,9 +426,6 @@ void loop() {
     first = false;
   else {
     logger(); // output results to serial port
- #ifdef ANALOG_IN
-    output.Out( power, 0 ); // update the power output on the SSR drive Ot1
- #endif
   }
 
   for( int j = 0; j < NCHAN; j++ ) {
