@@ -5,8 +5,10 @@
 // 2-channel Rise-o-Meter and manual roast controller
 // output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, variac
 // output on LCD :
-//                  09:30 RoR+08 V120.7
-//                  BT 400F ET 460F
+//                  0123456789012345
+//                  09:30 R+08 120.7
+//                  BT 400F  ET 460F
+//                  0123456789012345
 
 // Support for pBourbon.pde and 16 x 2 LCD
 // MIT license: http://opensource.org/licenses/mit-license.php
@@ -196,11 +198,6 @@ void logger()
 
 // --------------------------------------------
 //  Farmroast's preferred layout
-//  01234567890123456789
-//  09:30 RoR+08 V120.7
-//  BT 400F ET 460F
-//  01234567890123456789
-
 //  16x2 layout
 //  0123456789012345
 //  09:30 R+08 120.7
@@ -217,6 +214,7 @@ void updateLCD( float t1, float t2, float RoR, float variac ) {
   lcd.print( ":" );
   lcd.print( ssec );
 
+#if 1
   // channel 2 "ET" temperature 
   int it02 = round( t2 );
   if( it02 > 999 ) it02 = 999;
@@ -254,8 +252,8 @@ void updateLCD( float t1, float t2, float RoR, float variac ) {
   lcd.setCursor(11,0);
   lcd.print( variac, DP );
 
+#else
 // diagnostic
-#if 0
   lcd.setCursor(0,1);
   sprintf( st1, "%3d", aval );
   lcd.print(st1);
@@ -272,20 +270,17 @@ struct vlookup {
   float b;
 };
 
-static struct vlookup vtbl[5] = {
-{414,0.178571,16.0714},
-{470,0.144928,31.8841},
-{539,0.181818,12},
-{594,0.169492,19.322},
-{653,0.175439,15.4386}
+static struct vlookup vtbl[4] = {
+{384,0.204082,11.6327},
+{433,0.181818,21.2727},
+{488,0.169492,27.2881},
+{547,0.188679,16.7925}
 };
 
 void readVariac() { // read analog port 'anlg'
   aval = analogRead( anlg );
   aval = fVariac.doFilter( aval );
-  if (aval >= vtbl[4].aval) {
-    variac = (float)aval * vtbl[4].m + vtbl[4].b;
-  } else if (aval >= vtbl[3].aval) {
+  if (aval >= vtbl[3].aval) {
     variac = (float)aval * vtbl[3].m + vtbl[3].b;
   } else if (aval >= vtbl[2].aval) {
     variac = (float)aval * vtbl[2].m + vtbl[2].b;
