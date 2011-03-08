@@ -233,7 +233,7 @@ void updateLCD( float t1, float t2, float RoR, float variac ) {
 void readVariac() {
   aval = analogRead( variac_pin );
   aval = fVariac.doFilter( aval );
-  variac = (( float(aval) * 5./1024. * 4.) + VARIAC_LOSS) * 10. / 1.414.
+  variac = (( float(aval) * 5./1024. * 4.) + VARIAC_LOSS) * 10. / 1.414;
 }
 
 #ifdef I2C_LCD
@@ -321,7 +321,8 @@ void setup()
   amb.setOffset( AMB_OFFSET );
 
   // write header to serial port
-  Serial.println("# %s", BANNER_G);
+  Serial.print("# ");
+  Serial.println(BANNER_G);
   Serial.println("# time, BT, ET, RoR, Variac");
  
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
