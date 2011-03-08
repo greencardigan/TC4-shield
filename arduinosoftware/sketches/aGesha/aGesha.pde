@@ -1,9 +1,9 @@
 // aGesha.pde
 //
-// shameless 'fork' of aCatuai by Jim Gallt
+// 'fork' of aCatuai by Jim Gallt
 
 // 2-channel Rise-o-Meter and manual roast controller
-// output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, variac
+// output on serial port:  timestamp, BT, ET, RoR, variac
 // output on LCD :
 //                  0123456789012345
 //                  09:30 R+08 120.7
@@ -13,10 +13,11 @@
 // Support for pBourbon.pde and 16 x 2 LCD
 // MIT license: http://opensource.org/licenses/mit-license.php
 // Jim Gallt and Bill Welch
+// Derived from aCatuai.pde by Jim Gallt
 // Derived from aBourbon.pde by Jim Gallt and Bill Welch
 // Originally adapted from the a_logger.pde by Bill Welch.
 
-#define BANNER_G "aGesha 20110307" // version
+#define BANNER_G "aGesha 20110308" // version
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -59,6 +60,8 @@
 // ambient sensor should be stable, so quick variations are probably noise -- filter heavily
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings
 
+#define VARIAC_LOSS 2.81 // lump constant for losses -- full-wave bridge, I-squared-R, etc.
+
 // *************************************************************************************
 
 
@@ -86,7 +89,7 @@ int32_t flast[NCHAN]; // for calculating derivative
 int32_t lasttimes[NCHAN]; // for calculating derivative
 
 int32_t aval = 0; // analog input value -- variac
-uint8_t anlg = 1; // analog input pin
+uint8_t variac_pin = 1; // analog input pin
 float variac = 0.0;
 
 // LCD output strings
@@ -136,60 +139,24 @@ float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ) {
 // ------------------------------------------------------------------
 void logger()
 {
-  int i;
-  float RoR,t1,t2,t_amb;
-  float rx;
+  float RoR,t1,t2;
 
   // print timestamp from when samples were taken
   Serial.print( timestamp, DP );
+  Serial.print(",");
 
-  // print ambient
+  // BT
+  Serial.print( t1 = D_MULT*temps[0], DP );
   Serial.print(",");
-  t_amb = amb.getAmbF();
-  Serial.print( t_amb, DP );
-   
-  // print temperature, rate for each channel
-  i = 0;
-  if( NCHAN >= 1 ) {
-    Serial.print(",");
-    Serial.print( t1 = D_MULT*temps[i], DP );
-    Serial.print(",");
-    RoR = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
-    Serial.print( RoR , DP );
-    i++;
-  };
   
-  if( NCHAN >= 2 ) {
-    Serial.print(",");
-    Serial.print( t2 = D_MULT * temps[i], DP );
-    Serial.print(",");
-    rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
-    Serial.print( rx , DP );
-    i++;
-  };
-  
-  if( NCHAN >= 3 ) {
-    Serial.print(",");
-    Serial.print( D_MULT * temps[i], DP );
-    Serial.print(",");
-    rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
-    Serial.print( rx , DP );
-    i++;
-  };
-  
-  if( NCHAN >= 4 ) {
-    Serial.print(",");
-    Serial.print( D_MULT * temps[i], DP );
-    Serial.print(",");
-    rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
-    Serial.print( rx , DP );
-    i++;
-  };
+  // ET
+  Serial.print( t2 = D_MULT * temps[1], DP );
+  Serial.print(",");
 
-// log the variac level to the serial port
+  RoR = calcRise( flast[0], ftemps[0], lasttimes[0], ftimes[0] );
+  Serial.print( RoR , DP );
   Serial.print(",");
-  Serial.print( (float)aval, DP );
-  Serial.print(",");
+  
   Serial.print( variac, DP );
   Serial.println();
 
@@ -263,32 +230,10 @@ void updateLCD( float t1, float t2, float RoR, float variac ) {
 }
 
 // ---------------------------------
-
-struct vlookup {
-  int32_t aval;
-  float m;
-  float b;
-};
-
-static struct vlookup vtbl[4] = {
-{384,0.204082,11.6327},
-{433,0.181818,21.2727},
-{488,0.169492,27.2881},
-{547,0.188679,16.7925}
-};
-
-void readVariac() { // read analog port 'anlg'
-  aval = analogRead( anlg );
+void readVariac() {
+  aval = analogRead( variac_pin );
   aval = fVariac.doFilter( aval );
-  if (aval >= vtbl[3].aval) {
-    variac = (float)aval * vtbl[3].m + vtbl[3].b;
-  } else if (aval >= vtbl[2].aval) {
-    variac = (float)aval * vtbl[2].m + vtbl[2].b;
-  } else if (aval >= vtbl[1].aval) {
-    variac = (float)aval * vtbl[1].m + vtbl[1].b;
-  } else {
-    variac = (float)aval * vtbl[0].m + vtbl[0].b;
-  }
+  variac = (( float(aval) * 5./1024. * 4.) + VARIAC_LOSS) * 10. / 1.414.
 }
 
 #ifdef I2C_LCD
@@ -376,12 +321,8 @@ void setup()
   amb.setOffset( AMB_OFFSET );
 
   // write header to serial port
-  Serial.print("# time,ambient,T0,rate0");
-  if( NCHAN >= 2 ) Serial.print(",T1,rate1");
-  if( NCHAN >= 3 ) Serial.print(",T2,rate2");
-  if( NCHAN >= 4 ) Serial.print(",T3,rate3");
-  Serial.print(",variac");
-  Serial.println();
+  Serial.println("# %s", BANNER_G);
+  Serial.println("# time, BT, ET, RoR, Variac");
  
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
   for( int j = 0; j < NCHAN; j++ ) { // initialize digital filters for each channel

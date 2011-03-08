@@ -1,5 +1,5 @@
 
-This program is shameless fork of Jim Gallt's aBourbon.pde.
+This program is a fork of Jim Gallt's aBourbon.pde
 
 Initially the main modification is the addition of a new field in the log --
 a Variac reading. The reading is taken by one of the TC4's analog input pins.
