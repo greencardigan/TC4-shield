@@ -17,7 +17,7 @@
 // Derived from aBourbon.pde by Jim Gallt and Bill Welch
 // Originally adapted from the a_logger.pde by Bill Welch.
 
-#define BANNER_G "aGesha 20110308" // version
+#define BANNER_G "aGesha 20110315" // version
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -50,7 +50,7 @@
 // or other roasters where BT might be jumpy, then a higher value of RISE_FILTER
 // will be needed.  Theoretical max. is 99%, but watch out for the lag when
 // you get above 85%.
-#define RISE_FILTER 85 // heavy filtering on non-displayed BT for RoR calculations
+#define RISE_FILTER 90 // heavy filtering on non-displayed BT for RoR calculations
 
 // future versions will read all calibration values from EEPROM
 #define CAL_GAIN 1.00 // substitute known gain adjustment from calibration
@@ -58,7 +58,7 @@
 #define AMB_OFFSET 0 // substitute known value for amb temp offset (Celsius)
 
 // ambient sensor should be stable, so quick variations are probably noise -- filter heavily
-#define AMB_FILTER 70 // 70% filtering on ambient sensor readings
+#define AMB_FILTER 85 // filtering on ambient sensor readings
 
 #define VARIAC_LOSS 2.81 // lump constant for losses -- full-wave bridge, I-squared-R, etc.
 
