@@ -63,6 +63,11 @@ float [][] T0;
 float [][] T1;
 float [][] T2;
 float [][] T3;
+LinkedList tabularlist;
+int TABLE_LEN = 24;
+int TABLE_X_ORG = 720;
+int TABLE_Y_ORG = 120;
+color table_color = color (0,200,200);
 
 PFont labelFont;
 
@@ -113,6 +118,7 @@ void setup() {
   T1 = new float[2][MAX_TIME];
   T2 = new float[2][MAX_TIME];
   T3 = new float[2][MAX_TIME];
+  tabularlist = new LinkedList();
   
   frame.setResizable(true);
   labelFont = createFont("Tahoma-Bold", 16 );
@@ -324,6 +330,9 @@ void draw() {
 
    // put numeric monitor at top of screen
    monitor( 18, 16 );
+   
+   drawtable();
+   
   }; // end else
 }
 
@@ -384,6 +393,8 @@ void serialEvent(Serial comport) {
     idx++;
     idx = idx % MAX_TIME;
 
+    table_add(timestamp, float(rec[1]), float(rec[2]), float(rec[3]), float(rec[4]));
+
 } // serialEvent
 
 // ------------------------------- save a frame when mouse is clicked
@@ -430,5 +441,41 @@ void stop() {
   logfile.flush();
   logfile.close();
   println("Data was written to: " + CSVfilename);
+}
+
+// --------------------------
+void table_add(float timestamp, float bt, float et, float ror, float juice)
+{
+  if (tabularlist.size() > TABLE_LEN) {
+    tabularlist.removeFirst();
+  }
+  int seconds = int(timestamp) % 60;
+  int minutes = int(timestamp) / 60;
+  String ts = nf(minutes,2,0) + ":" + nf(seconds,2,0);
+  String bts = nf(bt,2,1);
+  String ets = nf(et,2,1);
+  String rors = nfp(ror,3,1);
+  String js = nf(juice,2,1);
+  String strng = ts + " " + bts + " " + ets + " " + rors + " " + js;
+  tabularlist.add(strng);
+}
+
+// inspired by a posting by "JR" on processing.org, 11-Dec-09
+void drawtable() {
+  int x = TABLE_X_ORG;
+  int y = TABLE_Y_ORG;
+  int incr = 16;
+  fill( table_color);
+  if (tabularlist.size() > 0) {
+    textFont(labelFont);
+    stroke(128,128,128);
+    int start = max(0, tabularlist.size() - TABLE_LEN);
+    int n = min(TABLE_LEN, tabularlist.size());
+    for (int i=start; i<start+n; i++) {
+      String line = (String)tabularlist.get(i%tabularlist.size());
+      text(line, x, y);
+      y = y + incr;
+    }
+  }
 }
 
