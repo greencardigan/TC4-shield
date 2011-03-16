@@ -64,10 +64,11 @@ float [][] T1;
 float [][] T2;
 float [][] T3;
 LinkedList tabularlist;
-int TABLE_LEN = 24;
+int TABLE_LEN = 30;
 int TABLE_X_ORG = 720;
-int TABLE_Y_ORG = 120;
+int TABLE_Y_ORG = 110;
 color table_color = color (0,200,200);
+PFont table_font;
 
 PFont labelFont;
 
@@ -119,6 +120,7 @@ void setup() {
   T2 = new float[2][MAX_TIME];
   T3 = new float[2][MAX_TIME];
   tabularlist = new LinkedList();
+  table_font = createFont("Courier", 14 );
   
   frame.setResizable(true);
   labelFont = createFont("Tahoma-Bold", 16 );
@@ -246,6 +248,16 @@ void monitor( int t1, int t2 ) {
     text(strng,pos-w,32 );
 
     pos += incr;
+    fill( c2 );
+    strng = nf( T2[1][idx-1],3,1 );
+    w = textWidth(strng);
+    textFont( labelFont, t1 );
+    text(strng,pos-w,16);
+    strng = "ENV";
+    textFont( labelFont, t2 );
+    text(strng,pos-w,32 );
+ 
+    pos += incr;
     fill( c1 );
     strng = nfp( 0.1* T1[1][idx-1],3,1 );
     w = textWidth(strng);
@@ -274,16 +286,6 @@ void monitor( int t1, int t2 ) {
       w = textWidth( strng );
       text(strng,pos-w,32 );
     }
-    
-    pos += incr;
-    fill( c2 );
-    strng = nf( T2[1][idx-1],3,1 );
-    w = textWidth(strng);
-    textFont( labelFont, t1 );
-    text(strng,pos-w,16);
-    strng = "ENV";
-    textFont( labelFont, t2 );
-    text(strng,pos-w,32 );
     
     pos += incr;
     fill( c3 );
@@ -464,10 +466,10 @@ void table_add(float timestamp, float bt, float et, float ror, float juice)
 void drawtable() {
   int x = TABLE_X_ORG;
   int y = TABLE_Y_ORG;
-  int incr = 16;
+  int incr = 14;
   fill( table_color);
   if (tabularlist.size() > 0) {
-    textFont(labelFont);
+    textFont(table_font);
     stroke(128,128,128);
     int start = max(0, tabularlist.size() - TABLE_LEN);
     int n = min(TABLE_LEN, tabularlist.size());
