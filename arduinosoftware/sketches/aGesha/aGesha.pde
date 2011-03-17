@@ -3,7 +3,7 @@
 // 'fork' of aCatuai by Jim Gallt
 
 // 2-channel Rise-o-Meter and manual roast controller
-// output on serial port:  timestamp, BT, ET, RoR, variac
+// output on serial port:  timestamp, BT, ET, RoR, juice
 // output on LCD :
 //                  0123456789012345
 //                  09:30 R+08 120.7
@@ -42,7 +42,7 @@
 #define BAUD 57600  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for displayed BT
 #define ET_FILTER 10 // filtering level (percent) for displayed ET
-#define VARIAC_FILTER 95 // filtering level (percent) for variac reading
+#define JUICE_FILTER 95 // filtering level (percent) for juice reading
 
 // use RISE_FILTER to adjust the sensitivity of the RoR calculation
 // higher values will give a smoother RoR trace, but will also create more
@@ -61,7 +61,7 @@
 // ambient sensor should be stable, so quick variations are probably noise -- filter heavily
 #define AMB_FILTER 85 // filtering on ambient sensor readings
 
-#define VARIAC_LOSS 2.81 // lump constant for losses -- full-wave bridge, I-squared-R, etc.
+#define JUICE_LOSS 2.81 // lump constant for losses -- full-wave bridge, I-squared-R, etc.
 
 // *************************************************************************************
 
@@ -81,7 +81,7 @@ cADC adc( A_ADC ); // MCP3424
 ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NCHAN]; // filter for displayed/logged ET, BT
 filterRC fRise[NCHAN]; // heavily filtered for calculating RoR
-filterRC fVariac;
+filterRC fjuice;
 filterRC fRoR;
 
 int32_t temps[NCHAN]; //  stored temperatures are divided by D_MULT
@@ -90,9 +90,9 @@ int32_t ftimes[NCHAN]; // filtered sample timestamps
 int32_t flast[NCHAN]; // for calculating derivative
 int32_t lasttimes[NCHAN]; // for calculating derivative
 
-int32_t aval = 0; // analog input value -- variac
-uint8_t variac_pin = 1; // analog input pin
-float variac = 0.0;
+int32_t aval = 0; // analog input value -- juice
+uint8_t juice_pin = 1; // analog input pin
+float juice = 0.0;
 
 // LCD output strings
 char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
@@ -159,10 +159,10 @@ void logger()
   Serial.print( RoR , DP );
   Serial.print(",");
   
-  Serial.print( variac, DP );
+  Serial.print( juice, DP );
   Serial.println();
 
-  updateLCD( t1, t2, RoR, variac );  
+  updateLCD( t1, t2, RoR, juice );  
 };
 
 // --------------------------------------------
@@ -172,7 +172,7 @@ void logger()
 //  09:30 R+08 120.7
 //  BT 400F  ET 460F
 //  0123456789012345
-void updateLCD( float t1, float t2, float RoR, float variac ) {
+void updateLCD( float t1, float t2, float RoR, float juice ) {
   // form the timer output string in min:sec format
   int itod = round( timestamp );
   if( itod > 3599 ) itod = 3599;
@@ -217,9 +217,9 @@ void updateLCD( float t1, float t2, float RoR, float variac ) {
   lcd.print(st1);
   lcd.print("F");
 
-// variac
+// juice
   lcd.setCursor(11,0);
-  lcd.print( variac, DP );
+  lcd.print( juice, DP );
 
 #else
 // diagnostic
@@ -227,15 +227,15 @@ void updateLCD( float t1, float t2, float RoR, float variac ) {
   sprintf( st1, "%3d", aval );
   lcd.print(st1);
   lcd.setCursor( 11, 1 );
-  lcd.print( variac, DP );
+  lcd.print( juice, DP );
 #endif
 }
 
 // ---------------------------------
-void readVariac() {
-  aval = analogRead( variac_pin );
-  aval = fVariac.doFilter( aval );
-  variac = (( float(aval) * 5./1024. * 4.) + VARIAC_LOSS) * 10. / 1.414;
+void readjuice() {
+  aval = analogRead( juice_pin );
+  aval = fjuice.doFilter( aval );
+  juice = (( float(aval) * 5./1024. * 4.) + JUICE_LOSS) * 10. / 1.414;
 }
 
 #ifdef I2C_LCD
@@ -266,7 +266,7 @@ void checkButtons() { // take action if a button is pressed
 void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
-    readVariac();
+    readjuice();
 #ifdef I2C_LCD
     checkButtons();
 #endif
@@ -325,7 +325,7 @@ void setup()
   // write header to serial port
   Serial.print("# ");
   Serial.println(BANNER_G);
-  Serial.println("# time, BT, ET, RoR, Variac");
+  Serial.println("# time, BT, ET, RoR, juice");
  
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
   for( int j = 0; j < NCHAN; j++ ) { // initialize digital filters for each channel
@@ -336,7 +336,7 @@ void setup()
     fRise[j].init( RISE_FILTER ); // digital filtering for RoR calculation
   }
 
-  fVariac.init(VARIAC_FILTER);
+  fjuice.init(JUICE_FILTER);
   fRoR.init(ROR_FILTER);
 
   first = true;
@@ -352,7 +352,7 @@ void loop() {
   // update on even 1 second boundaries
   while ( ( millis() - time0 ) < nextLoop ) { // delay until time for next loop
     if( !first ) {
-      readVariac();
+      readjuice();
 #ifdef I2C_LCD
       checkButtons();
 #endif
