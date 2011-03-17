@@ -135,7 +135,7 @@ float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ) {
   if( dt == 0 ) return 0.0;  // fixme -- throw an exception here?
   float dT = (T2 - T1) * D_MULT;
   float dS = dt * 0.001;
-  return fRoR.doFilter( dT / dS ) * 60.0; // rise per minute
+  return fRoR.doFilter( dT / dS * 1000.) * .060; // rise per minute (doFilter is integer)
 }
 
 // ------------------------------------------------------------------
