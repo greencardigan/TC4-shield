@@ -17,7 +17,7 @@
 // Derived from aBourbon.pde by Jim Gallt and Bill Welch
 // Originally adapted from the a_logger.pde by Bill Welch.
 
-#define BANNER_G "aGesha 20110315" // version
+#define BANNER_G "aGesha 20110317" // version
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -51,6 +51,7 @@
 // will be needed.  Theoretical max. is 99%, but watch out for the lag when
 // you get above 85%.
 #define RISE_FILTER 90 // heavy filtering on non-displayed BT for RoR calculations
+#define ROR_FILTER 90 // post-filter
 
 // future versions will read all calibration values from EEPROM
 #define CAL_GAIN 1.00 // substitute known gain adjustment from calibration
@@ -81,6 +82,7 @@ ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NCHAN]; // filter for displayed/logged ET, BT
 filterRC fRise[NCHAN]; // heavily filtered for calculating RoR
 filterRC fVariac;
+filterRC fRoR;
 
 int32_t temps[NCHAN]; //  stored temperatures are divided by D_MULT
 int32_t ftemps[NCHAN]; // heavily filtered temps
@@ -133,7 +135,7 @@ float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ) {
   if( dt == 0 ) return 0.0;  // fixme -- throw an exception here?
   float dT = (T2 - T1) * D_MULT;
   float dS = dt * 0.001;
-  return ( dT / dS ) * 60.0; // rise per minute
+  return fRoR.doFilter( dT / dS ) * 60.0; // rise per minute
 }
 
 // ------------------------------------------------------------------
@@ -335,6 +337,7 @@ void setup()
   }
 
   fVariac.init(VARIAC_FILTER);
+  fRoR.init(ROR_FILTER);
 
   first = true;
   delay( 3000 ); // display banner for a while
