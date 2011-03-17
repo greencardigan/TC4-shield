@@ -67,12 +67,13 @@ LinkedList tabularlist;
 int TABLE_LEN = 30;
 int TABLE_X_ORG = 720;
 int TABLE_Y_ORG = 110;
+int TABLE_SCROLL_RATE = 5;
 color table_color = color (0,200,200);
 PFont table_font;
 
 PFont labelFont;
 
-int SAMPLESIZE = 20; // how many seconds we want to look back for the average
+int SAMPLESIZE = 5; // how many seconds we want to look back for the average
 float [] T1_avg = new float[SAMPLESIZE]; // the previous T1 values
 int avg_idx = 0; // index to our rolling window
 
@@ -89,7 +90,6 @@ void setup() {
   // read com port settings from config file
   // format is: value, comment/n
   String[] lines = loadStrings( cfgfilename );
-  SAMPLESIZE = 1; // default value in case sample size not given in config file
   if( lines.length >= 1 ) {
     String[] portstring = split( lines[0], "," );
     whichport = portstring[0];
@@ -395,7 +395,15 @@ void serialEvent(Serial comport) {
     idx++;
     idx = idx % MAX_TIME;
 
-    table_add(timestamp, float(rec[1]), float(rec[2]), float(rec[3]), float(rec[4]));
+
+    int seconds = int(timestamp) % 60;
+    if ( (seconds % TABLE_SCROLL_RATE) == 0) {
+      if (SAMPLESIZE > 1) {
+        table_add(timestamp, float(rec[1]), float(rec[2]), 0.1 * arrayAverage(T1_avg), float(rec[4]));
+      } else {
+        table_add(timestamp, float(rec[1]), float(rec[2]), float(rec[3]), float(rec[4]));
+      }
+    }
 
 } // serialEvent
 
