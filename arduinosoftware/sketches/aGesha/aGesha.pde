@@ -17,7 +17,7 @@
 // Derived from aBourbon.pde by Jim Gallt and Bill Welch
 // Originally adapted from the a_logger.pde by Bill Welch.
 
-#define BANNER_G "aGesha 20110317" // version
+#define BANNER_G "aGesha 20110323" // version
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -281,7 +281,12 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   float tempC;
   
   for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
-    adc.nextConversion( j ); // start ADC conversion on channel j
+    // workaround for bad chan0
+    if (j == 0) {
+      adc.nextConversion( 2 ); // start ADC conversion on channel 2
+    } else {
+      adc.nextConversion( j ); // start ADC conversion on channel j
+    }
     amb.nextConversion(); // start ambient sensor conversion
     checkStatus( MIN_DELAY ); // give the chips time to perform the conversions
     ftimes[j] = millis(); // record timestamp for RoR calculations
