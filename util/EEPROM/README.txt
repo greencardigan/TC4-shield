@@ -1,6 +1,6 @@
 README.txt for /svn/applications/util/EEPROM
 
-Sketches in this folder can be used to intialize, read, or test
+Sketches in this folder can be used to initialize, read, or test
 the 64K EEPROM on the TC4 shield.
 
 Many applications for the TC4 expect to find calibration information
