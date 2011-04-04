@@ -18,6 +18,7 @@
 // version 20101023 by Jim Gallt
 // added code to optionally turn off TC reading average (SAMPSIZE = 1)
 
+
 // added code for Celsius mode // *** added by Brad
 // added 'First Crack' and 'Second Crack' markers. 'F' and 'S' // *** added by Brad
 // added code to scale temp axis in celsius mode if c_MAX_TEMP is changed // *** added by Brad
