@@ -11,7 +11,7 @@
 // Derived from aBourbon.pde by Jim Gallt and Bill Welch
 // Originally adapted from the a_logger.pde by Bill Welch.
 
-#define BANNER_CAT "Catuai 20101023" // version
+#define BANNER_CAT "Catuai 20110307" // version
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -239,7 +239,7 @@ void updateLCD( float t1, float t2, float RoR ) {
    if( iRoR < -99 ) iRoR = -99; 
   sprintf( sRoR1, "%0+3d", iRoR );
   lcd.setCursor(0,1);
-  lcd.print( "RoR:");
+  lcd.print( "RT:");
   lcd.print( sRoR1 );
 
   // channel 1 temperature
@@ -397,8 +397,9 @@ void setup()
     fRise[j].init( RISE_FILTER ); // digital filtering for RoR calculation
   }
 
-  #ifdef ANALOG_IN
+#ifdef ANALOG_IN
   output.Setup( TIME_BASE );
+  power = -50;  // initialize to force display of initial power setting
 #endif
   
   first = true;
