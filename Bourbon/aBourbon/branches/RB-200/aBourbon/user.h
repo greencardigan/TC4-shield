@@ -17,10 +17,10 @@
 
 // use RISE_FILTER to adjust the sensitivity of the RoR calculation
 // higher values will give a smoother RoR trace, but will also create more
-// lag in the RoR value.  A good starting point is 70%, but for air poppers
+// lag in the RoR value.  A good starting point is 80%, but for air poppers
 // or other roasters where BT might be jumpy, then a higher value of RISE_FILTER
 // will be needed.  Theoretical max. is 99%, but watch out for the lag when
-// you get above 85%.
+// you get above 95%.
 #define RISE_FILTER 85 // heavy filtering on non-displayed BT for RoR calculations
 
 // default values for systems without calibration values stored in EEPROM

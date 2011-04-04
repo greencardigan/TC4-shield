@@ -39,11 +39,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_BRBN "Bourbon 20110403"
+#define BANNER_BRBN "Bourbon V2.00"
 // Revision history:
 //   20100922: Added support for I2C LCD interface (optional). 
 //             This program now requires use of cLCD library.
-//             This program supports TC4 hardware versions V1.06 and V3.00
 //   20100927: converted aBourbon to be a roast monitor only
 //   20100928: added EEPROM support (optional)
 //   20110403: moved user configurable compile flags to user.h
