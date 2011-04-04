@@ -6,14 +6,47 @@
 //                 RoR 1,     channel 1 temperature
 
 // Support for pBourbon.pde and 16 x 2 LCD
-// Jim Gallt and Bill Welch
 
-// Version: 20100927
+// *** BSD License ***
+// ------------------------------------------------------------------------------------------
+// Copyright (c) 2011, MLG Properties, LLC
+// All rights reserved.
+//
+// Contributor:  Jim Gallt
+//
+// Redistribution and use in source and binary forms, with or without modification, are 
+// permitted provided that the following conditions are met:
+//
+//   Redistributions of source code must retain the above copyright notice, this list of 
+//   conditions and the following disclaimer.
+//
+//   Redistributions in binary form must reproduce the above copyright notice, this list 
+//   of conditions and the following disclaimer in the documentation and/or other materials 
+//   provided with the distribution.
+//
+//   Neither the name of the MLG Properties, LLC nor the names of its contributors may be 
+//   used to endorse or promote products derived from this software without specific prior 
+//   written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS 
+// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// ------------------------------------------------------------------------------------------
+
+#define BANNER_BRBN "Bourbon 20110403"
+// Revision history:
 //   20100922: Added support for I2C LCD interface (optional). 
 //             This program now requires use of cLCD library.
 //             This program supports TC4 hardware versions V1.06 and V3.00
 //   20100927: converted aBourbon to be a roast monitor only
 //   20100928: added EEPROM support (optional)
+//   20110403: moved user configurable compile flags to user.h
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -26,39 +59,9 @@
 #include <cADC.h>
 #include <cLCD.h>
 
-#define BANNER_BRBN "Bourbon 20101028"
-
-// *************************************************************************************
-// NOTE TO USERS: the following parameters should be
-// be reviewed to suit your preferences and hardware setup.  
-// First, load and edit this sketch in the Arduino IDE.
-// Next compile the sketch and upload it to the Duemilanove.
-
-// ------------------ optionally, use I2C port expander for LCD interface
-//#define I2C_LCD //comment out to use the standard parallel LCD 4-bit interface
-//#define EEPROM_BRBN // comment out if no calibration information stored in 64K EEPROM
-
-#define BAUD 57600  // serial baud rate
-#define BT_FILTER 10 // filtering level (percent) for displayed BT
-#define ET_FILTER 10 // filtering level (percent) for displayed ET
-
-// use RISE_FILTER to adjust the sensitivity of the RoR calculation
-// higher values will give a smoother RoR trace, but will also create more
-// lag in the RoR value.  A good starting point is 70%, but for air poppers
-// or other roasters where BT might be jumpy, then a higher value of RISE_FILTER
-// will be needed.  Theoretical max. is 99%, but watch out for the lag when
-// you get above 85%.
-#define RISE_FILTER 85 // heavy filtering on non-displayed BT for RoR calculations
-
-// needed for usesr without calibration values stored in EEPROM
-#define CAL_GAIN 1.00 // substitute known gain adjustment from calibration
-#define UV_OFFSET 0 // subsitute known value for uV offset in ADC
-#define AMB_OFFSET 0.0 // substitute known value for amb temp offset (Celsius)
-
-// ambient sensor should be stable, so quick variations are probably noise -- filter heavily
-#define AMB_FILTER 70 // 70% filtering on ambient sensor readings
-
-// *************************************************************************************
+// The user.h file contains user-definable compiler options
+// It must be located in the same folder as aBourbon.pde
+#include "user.h"
 
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
@@ -102,17 +105,17 @@ char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
 
 // ---------------------------------- LCD interface definition
 #ifdef I2C_LCD
-#define BACKLIGHT lcd.backlight();
-cLCD lcd; // I2C LCD interface
+  #define BACKLIGHT lcd.backlight();
+  cLCD lcd; // I2C LCD interface
 #else // equivalent to standard LiquidCrystal interface
-#define BACKLIGHT ;
-#define RS 2
-#define ENABLE 4
-#define D4 7
-#define D5 8
-#define D6 12
-#define D7 13
-LiquidCrystal lcd( RS, ENABLE, D4, D5, D6, D7 ); // standard 4-bit parallel interface
+  #define BACKLIGHT ;
+  #define RS 2
+  #define ENABLE 4
+  #define D4 7
+  #define D5 8
+  #define D6 12
+  #define D7 13
+  LiquidCrystal lcd( RS, ENABLE, D4, D5, D6, D7 ); // standard 4-bit parallel interface
 #endif
 
 // used in main loop
