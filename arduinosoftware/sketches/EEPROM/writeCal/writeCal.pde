@@ -1,6 +1,14 @@
 // This sketch writes calibration block information to EEPROM
 // WARNING:  it will overwrite existing calibration block information
 
+// Author:  Jim Gallt
+
+// Use this sketch to initialize the EEPROM on a TC4 shield to default values, or
+// to values determined by calibration.
+
+// Open a serial monitor (57600 baud) screen in the Arduino IDE to confirm that the values were
+// correctly written and can be read back from the EEPROM.
+
 #include <mcEEPROM.h>
 #include <Wire.h>
 
@@ -15,8 +23,8 @@ struct infoBlock {
 
 infoBlock infotx = {
   "TC4_SHIELD",
-  "3.00",
-  1.00, // gain
+  "4.00",
+  1.000, // gain
   0, // uV offset
   0.0, // type T offset temp
   0.0 // type K offset temp
