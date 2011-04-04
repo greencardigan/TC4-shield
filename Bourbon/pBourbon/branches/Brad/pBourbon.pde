@@ -18,6 +18,14 @@
 // version 20101023 by Jim Gallt
 // added code to optionally turn off TC reading average (SAMPSIZE = 1)
 
+// added code for Celsius mode // *** added by Brad
+// added 'First Crack' and 'Second Crack' markers. 'F' and 'S' // *** added by Brad
+// added code to scale temp axis in celsius mode if c_MAX_TEMP is changed // *** added by Brad
+// added code to scale temp axis in fahrenheit mode if MAX_TEMP is changed // *** added by Brad
+// added code to scale time axis if MAX_TIME is changed // *** added by Brad
+// added 'Beans added' and 'End of roast' markers. 'B' and 'E' // *** added by Brad
+
+
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
 PrintWriter logfile;
@@ -34,6 +42,7 @@ color c0 = color(255,0,0); // channel 0
 color c1 = color(0,255,0);
 color c2 = color(255,255,0);
 color c3 = color(255,204,0);
+color c4 = color(255,0,255); // *** added by Brad
 color cmin = color( 0,255,255 );
 color cidx = color( 0,255,255 );
 color clabel = color( 255,255,160 );
@@ -52,9 +61,13 @@ import processing.serial.*;
 Serial comport;
 
 int MAX_TEMP = 520;  // degrees (or 10 * degF per minute)
-int MAX_TIME = 1020; // seconds
+int c_MAX_TEMP = 290; // *** added by Brad
+int MAX_TIME = 60 * 20; // 60 seconds * minutes // *** MODIFIED by Brad
 int MIN_TEMP = -20; // degrees
+int c_MIN_TEMP = -10;  // *** added by Brad
+
 int TEMP_INCR = 20;  // degrees
+int c_TEMP_INCR = 10;  // *** added by Brad
 int idx = 0;
 float timestamp = 0.0;
 float tstart = 0.0;
@@ -71,6 +84,31 @@ PFont labelFont;
 int SAMPLESIZE = 20; // how many seconds we want to look back for the average
 float [] T1_avg = new float[SAMPLESIZE]; // the previous T1 values
 int avg_idx = 0; // index to our rolling window
+
+
+PFont c_labelFont; // *** added by Brad
+PFont startFont; // *** added by Brad
+PFont monitorFont; // *** added by Brad
+PFont markerFont; // *** added by Brad
+int templabelypos = 2; // text vertical position adjustment. Modified in celsius mode // *** added by Brad
+int templabelxpos = 40; // text horizontal position adjustment. Modified in celsius mode // *** added by Brad
+String corf = "Fahrenheit"; // C of F mode // *** added by Brad
+float fc_x; // x position for first crack marker // *** added by Brad
+float fc_y; // y position for first crack marker // *** added by Brad
+float sc_x; // x position for second crack marker // *** added by Brad
+float sc_y; // y position for second crack marker // *** added by Brad
+float er_x; // x position for end of roast marker // *** added by Brad
+float er_y; // y position for end of roast marker // *** added by Brad
+float ba_x; // x position for beans added marker // *** added by Brad
+float ba_y; // y position for beans added marker // *** added by Brad
+
+String fcm = "FC"; // first crack marker // *** added by Brad
+String scm = "SC"; // second crack marker // *** added by Brad
+String erm = "E"; // first crack marker // *** added by Brad
+String bam = "B"; // second crack marker // *** added by Brad
+
+float temp_scale = 1.0; // 1 for fahrenheit mode // *** added by Brad
+float time_scale = 1.0; // time axis scale factor if adjusting MAX_TIME // *** added by Brad
 
 
 // ----------------------------------------
@@ -98,13 +136,18 @@ void setup() {
     String[] sampsize = split( lines[2], "," );
     SAMPLESIZE = int( sampsize[0] );
   };
+  if( lines.length >= 4 ) { // *** added by Brad
+    String[] corfstring = split( lines[3], "," );
+    if( corfstring[0].equals("C")) corf = "Celsius";
+  };
 
   print( "COM Port: "); println( whichport );
   print( "Baudrate: "); println( baudrate );
   if( SAMPLESIZE > 1 ) {
     print( "TC average sample size: "); println( SAMPLESIZE );
   }
-
+  print( "Fahrenheit or Celsius: "); println( corf ); println(); // *** added by Brad
+ 
 
   // initialize the COM port (this can take a loooooong time on some computers)
   println("Initializing COM port.  Please stand by....");
@@ -118,17 +161,38 @@ void setup() {
   
   frame.setResizable(true);
   labelFont = createFont("Tahoma-Bold", 16 );
-  fill( clabel );
-  
+  c_labelFont = createFont("Tahoma-Bold", 12 ); // *** added by Brad
+  startFont = createFont("Tahoma-Bold", 16 ); // *** added by Brad
+  monitorFont = createFont("Tahoma-Bold", 16 ); // *** added by Brad
+  markerFont = createFont("Tahoma-Bold", 16 ); // *** added by Brad
 
+
+ fill( clabel );
+  
+  if ( corf.charAt(0) == 'C') { // *** added by Brad
+    labelFont = c_labelFont; // *** added by Brad
+    templabelypos = 1; // *** added by Brad
+    templabelxpos = 25; // *** added by Brad
+    temp_scale = float (520 - MIN_TEMP) / (c_MAX_TEMP - c_MIN_TEMP); // *** added by Brad
+    MAX_TEMP = c_MAX_TEMP; // *** added by Brad
+    MIN_TEMP = c_MIN_TEMP; // degrees // *** added by Brad
+    TEMP_INCR = c_TEMP_INCR;  // degrees // *** added by Brad
+  } else {
+      temp_scale = float (520 - MIN_TEMP) / (MAX_TEMP - MIN_TEMP); // *** added by Brad
+  }
+  
+  time_scale = 1020 / float (MAX_TIME); // calcs new time scale if MAX_TIME <> 1020 = 17 minutes // *** added by Brad
+    
   size(1200, 800);
-  frameRate(1);
+  frameRate(5);  // *** MODIFIED by Brad
   smooth();
   background(cbgnd);
 
   if (enable_guideprofile) {
     profile_data = loadStrings(PROFILE);
   }
+
+
 
 } // setup
 
@@ -155,9 +219,9 @@ void drawgrid(){
   
   // draw horizontal grid lines
   for (int i=MIN_TEMP + TEMP_INCR; i<MAX_TEMP; i+=TEMP_INCR) {
-    text(nf(i,3,0), 0, MAX_TEMP-i - 2);
-    text(nf(i,3,0), MAX_TIME -40, MAX_TEMP-i - 2);  // right side vert. axis labels
-    line(0, MAX_TEMP-i, MAX_TIME, MAX_TEMP-i);
+    text(nf(i,3,0), 0, (MAX_TEMP-i) * temp_scale - templabelypos); // *** MODIFIED by Brad
+    text(nf(i,3,0), MAX_TIME  * time_scale - templabelxpos, (MAX_TEMP-i) * temp_scale  - templabelypos);  // right side vert. axis labels // *** MODIFIED by Brad
+    line(0, (MAX_TEMP-i) * temp_scale, MAX_TIME * time_scale, (MAX_TEMP-i) * temp_scale); // *** MODIFIED by Brad
   }
   
   // draw vertical grid lines
@@ -165,12 +229,12 @@ void drawgrid(){
   for (int i= 30 ; i<MAX_TIME; i+= 30) {
     if( i % 60 == 0 ) {
       m = i / 60;
-      text(str(m), i, MAX_TEMP - MIN_TEMP - 2 );
+      text(str(m), i * time_scale, MAX_TEMP * temp_scale - MIN_TEMP * temp_scale - 2 ); // *** MODIFIED by Brad
       stroke(cgrid_maj);  // major gridlines should be a little bolder
     }
       else
         stroke(cgrid_min);
-    line(i, 0, i, MAX_TEMP - MIN_TEMP);
+    line(i * time_scale, 0, i * time_scale, MAX_TEMP * temp_scale - MIN_TEMP * temp_scale); // *** MODIFIED by Brad
   }
 }
 
@@ -188,7 +252,7 @@ void drawchan(float [][] T, color c) {
     if (y1 < MIN_TEMP) y1 = MIN_TEMP;
     if (y2 < MIN_TEMP) y2 = MIN_TEMP;
     stroke(c);
-    line(x1, MAX_TEMP-y1, x2, MAX_TEMP-y2);
+    line(x1 * time_scale, (MAX_TEMP-y1) * temp_scale, x2 * time_scale, (MAX_TEMP-y2) * temp_scale); // *** MODIFIED by Brad
   }
 }
 void drawprofile() {
@@ -202,7 +266,7 @@ void drawprofile() {
     x2 = int(rec[0]);
     y2 = int(rec[1]);
     // println("x1,y1,x2,y2 " + x1 + " " + y1 + " " + x2 + " " + y2 );
-    line(x1, MAX_TEMP-y1, x2, MAX_TEMP-y2);
+    line(x1 * time_scale, (MAX_TEMP-y1) * temp_scale, x2 * time_scale, (MAX_TEMP-y2) * temp_scale); // *** MODIFIED by Brad
     x1 = x2;
     y1 = y2;
   }
@@ -224,10 +288,10 @@ void monitor( int t1, int t2 ) {
     minutes = int ( T0[0][idx-1] ) / 60;;
     strng = nf( minutes,2,0 ) + ":" + nf(seconds,2,0 );
     w = textWidth(strng);
-    textFont( labelFont, t1 );
+    textFont( monitorFont, t1 ); // *** MODIFIED by Brad
     text(strng,pos-w,16);
     strng = "TIME";
-    textFont( labelFont, t2 );
+    textFont( monitorFont, t2 ); // *** MODIFIED by Brad
     w = textWidth( strng );
     text(strng,pos-w,32 );
   
@@ -235,20 +299,20 @@ void monitor( int t1, int t2 ) {
     fill( c0 );
     strng = nf( T0[1][idx-1],2,1 );
     w = textWidth(strng);
-    textFont( labelFont, t1 );
+    textFont( monitorFont, t1 ); // *** MODIFIED by Brad
     text(strng,pos-w,16);
     strng = "BEAN";
-    textFont( labelFont, t2 );
+    textFont( monitorFont, t2 ); // *** MODIFIED by Brad
     text(strng,pos-w,32 );
 
     pos += incr;
     fill( c1 );
     strng = nfp( 0.1* T1[1][idx-1],3,1 );
     w = textWidth(strng);
-    textFont( labelFont, t1 );
+    textFont( monitorFont, t1 ); // *** MODIFIED by Brad
     text(strng,pos-w,16);
     strng = "  RoR";
-    textFont( labelFont, t2 );
+    textFont( monitorFont, t2 ); // *** MODIFIED by Brad
     w = textWidth( strng );
     text(strng,pos-w,32 );
 
@@ -263,10 +327,10 @@ void monitor( int t1, int t2 ) {
       fill( c1 );
       strng = nfp( 0.1* arrayAverage(T1_avg),3,1 );
       w = textWidth(strng);
-      textFont( labelFont, t1 );
+      textFont( monitorFont, t1 ); // *** MODIFIED by Brad
       text(strng,pos-w,16);
       strng = SAMPLESIZE + "s avg";
-      textFont( labelFont, t2 );
+      textFont( monitorFont, t2 );  // *** MODIFIED by Brad
       w = textWidth( strng );
       text(strng,pos-w,32 );
     }
@@ -275,10 +339,10 @@ void monitor( int t1, int t2 ) {
     fill( c2 );
     strng = nf( T2[1][idx-1],3,1 );
     w = textWidth(strng);
-    textFont( labelFont, t1 );
+    textFont( monitorFont, t1 ); // *** MODIFIED by Brad
     text(strng,pos-w,16);
     strng = "ENV";
-    textFont( labelFont, t2 );
+    textFont( monitorFont, t2 ); // *** MODIFIED by Brad
     text(strng,pos-w,32 );
 
 /*
@@ -286,10 +350,10 @@ void monitor( int t1, int t2 ) {
     fill( cidx );
     strng = nf( idx,4,0 );
     w = textWidth(strng);
-    textFont( labelFont, t1 );
+    textFont( monitorFont, t1 ); // *** MODIFIED by Brad
     text(strng,pos-w,16);
     strng = "INDEX";
-    textFont( labelFont, t2 );
+    textFont( monitorFont, t2 ); // *** MODIFIED by Brad
     text(strng,pos-w,32 );
 */
 
@@ -304,25 +368,64 @@ void drawnote() {
   }
 }
 
+void drawmarkers() {  // *** Added by Brad
+  if (fc_x != 0) {
+    textFont(markerFont);
+    fill(c4);
+    stroke(c4);
+    float tw = textWidth(fcm);
+    text(fcm, fc_x * time_scale - (tw/2) , fc_y * temp_scale -5);
+    ellipse(fc_x * time_scale,fc_y * temp_scale,5,5/temp_scale);
+  }
+  if (sc_x != 0) {
+    textFont(markerFont);
+    fill(c4);
+    stroke(c4);
+    float tw = textWidth(scm);
+    text(scm, sc_x * time_scale - (tw/2) , sc_y * temp_scale -5);
+    ellipse(sc_x * time_scale,sc_y * temp_scale,5,5/temp_scale);
+  }
+  if (er_x != 0) {
+    textFont(markerFont);
+    fill(c4);
+    stroke(c4);
+    float tw = textWidth(erm);
+    text(erm, er_x * time_scale - (tw/2) , er_y * temp_scale -5);
+    ellipse(er_x * time_scale,er_y * temp_scale,5,5/temp_scale);
+  }
+  if (ba_x != 0) {
+    textFont(markerFont);
+    fill(c4);
+    stroke(c4);
+    float tw = textWidth(bam);
+    text(bam, ba_x * time_scale - (tw/2) , ba_y * temp_scale -5);
+    ellipse(ba_x * time_scale,ba_y * temp_scale,5,5/temp_scale);
+  }
+}
+
+
 // ------------------------------------------------------
 void draw() {
+  
   float sx = 1.;
   float sy = 1.;
-  sx = float(width) / MAX_TIME;
-  sy = float(height) / ( MAX_TEMP - MIN_TEMP );
+  sx = float(width) / MAX_TIME / time_scale;
+  sy = float(height) / (( MAX_TEMP - MIN_TEMP ) * temp_scale); // *** MODIFIED by Brad
   scale(sx, sy);
   background( cbgnd );
 
   if( !started ) {
-    textFont( labelFont );
-    text( appname + "\nPress a key or click to begin logging ...\n",110, 110 );
+    textFont( startFont );
+    text( appname + "\n" + corf + " Mode\nPress a key or click to begin logging ...\n",110, 110 ); // *** MODIFIED by Brad
   }
   else {
    drawgrid();
    drawprofile();
    drawnote();
    drawchan(T0, c0 );  
-   drawchan(T1, c1 ); 
+   drawchan(T1, c1 );
+   drawmarkers(); // *** added by Brad
+   
    if( NCHAN >= 2 )   drawchan(T2, c2 );
    // if( NCHAN >= 2 )   drawchan(T3, c3 );   // don't draw RoR for 2nd channel
 
@@ -406,11 +509,48 @@ void keyPressed()
     // fixme -- add specific behavior for F (first crack), S (second crack), and E (eject) keys
 
     if (( key == 13) || (key == 10) )  {
-      if (kb_note.length() > 0) {
+      if (kb_note.length() > 1) { // *** MODIFIED by Brad
         println("# " + timestamp + " " + kb_note);
         logfile.println("# " + timestamp + " " + kb_note);
-        kb_note = "";
+        
+      } else if (kb_note.length() == 1) { // *** added by Brad
+        switch (kb_note.charAt(0)) {
+          case 'F':
+          case 'f': 
+            println(fc_x);
+            fc_x = T0[0][idx-1];
+            fc_y = MAX_TEMP - T0[1][idx-1];
+            println("# " + timestamp + " First Crack");
+            logfile.println("# " + timestamp + " First Crack");
+            break;
+          case 'S':
+          case 's':
+            sc_x = T0[0][idx-1];
+            sc_y = MAX_TEMP - T0[1][idx-1];
+            println("# " + timestamp + " Second Crack");
+            logfile.println("# " + timestamp + " Second Crack");
+            break;
+          case 'E':
+          case 'e':
+            er_x = T0[0][idx-1];
+            er_y = MAX_TEMP - T0[1][idx-1];
+            println("# " + timestamp + " End of roast");
+            logfile.println("# " + timestamp + " End of roast");
+            break;
+          case 'B':
+          case 'b':
+            ba_x = T0[0][idx-1];
+            ba_y = MAX_TEMP - T0[1][idx-1];
+            println("# " + timestamp + " Beans added");
+            logfile.println("# " + timestamp + " Beans added");
+            break;
+          default:
+            println("Invalid Character");
+            break;
+          }
       }
+    kb_note = ""; // *** MODIFIED by Brad
+  
     } else if (key != CODED) {
       kb_note = kb_note + key;
     }
