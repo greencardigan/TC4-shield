@@ -46,6 +46,7 @@
 //   20100927: converted aBourbon to be a roast monitor only
 //   20100928: added EEPROM support (optional)
 //   20110403: moved user configurable compile flags to user.h
+//   20110404: Added support for Celsius operation
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -148,7 +149,11 @@ void logger()
 
   // print ambient
   Serial.print(",");
+#ifdef CELSIUS
+  t_amb = amb.getAmbC();
+#else
   t_amb = amb.getAmbF();
+#endif
   Serial.print( t_amb, DP );
    
   // print temperature, rate for each channel
@@ -254,7 +259,11 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
     amb.readSensor(); // retrieve value from ambient temp register
     v = adc.readuV(); // retrieve microvolt sample from MCP3424
     tempC = tc.Temp_C( 0.001 * v, amb.getAmbC() ); // convert to Celsius
+#ifdef CELSIUS
+    v = round( tempC / D_MULT ); // store results as integers
+#else
     v = round( C_TO_F( tempC ) / D_MULT ); // store results as integers
+#endif
     temps[j] = fT[j].doFilter( v ); // apply digital filtering for display/logging
     ftemps[j] =fRise[j].doFilter( v ); // heavier filtering for RoR
   }
@@ -271,6 +280,11 @@ void setup()
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_BRBN ); // display version banner
+#ifdef CELSIUS  // display a C or F after the version to indicate temperature scale
+  lcd.print( "C" );
+#else
+  lcd.print( "F" );
+#endif
   Serial.begin(BAUD);
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
