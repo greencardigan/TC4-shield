@@ -10,6 +10,7 @@
 // ------------------ optionally, use I2C port expander for LCD interface
 #define I2C_LCD // comment this line out to use the standard parallel LCD 4-bit interface
 #define EEPROM_BRBN // comment this line out if no calibration information stored in 64K EEPROM
+#define CELSIUS // if defined, output is in Celsius units; otherwise Fahrenheit
 
 #define BAUD 57600  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for displayed BT
@@ -17,10 +18,10 @@
 
 // use RISE_FILTER to adjust the sensitivity of the RoR calculation
 // higher values will give a smoother RoR trace, but will also create more
-// lag in the RoR value.  A good starting point is 70%, but for air poppers
+// lag in the RoR value.  A good starting point is 80%, but for air poppers
 // or other roasters where BT might be jumpy, then a higher value of RISE_FILTER
 // will be needed.  Theoretical max. is 99%, but watch out for the lag when
-// you get above 85%.
+// you get above 95%.
 #define RISE_FILTER 85 // heavy filtering on non-displayed BT for RoR calculations
 
 // default values for systems without calibration values stored in EEPROM
