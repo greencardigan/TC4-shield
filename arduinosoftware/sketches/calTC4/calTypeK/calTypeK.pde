@@ -16,10 +16,10 @@ long i = 0;
 void setup() {
   Serial.begin(57600);
   Wire.begin();
-  adc.setCal (1.00311, -1 );
+  adc.setCal (1.00245, 0 );
   f.init( 70 );
   amb.init( 70 );
-  amb.setOffset( -0.3 );
+  amb.setOffset( 0.0 );
 }
 
 void loop() {
