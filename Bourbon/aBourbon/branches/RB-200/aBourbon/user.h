@@ -23,6 +23,7 @@
 // will be needed.  Theoretical max. is 99%, but watch out for the lag when
 // you get above 95%.
 #define RISE_FILTER 85 // heavy filtering on non-displayed BT for RoR calculations
+#define ROR_FILTER 80 // post-filtering for the computed RoR values
 
 // default values for systems without calibration values stored in EEPROM
 #define CAL_GAIN 1.00 // you may substitute a known gain adjustment from calibration
