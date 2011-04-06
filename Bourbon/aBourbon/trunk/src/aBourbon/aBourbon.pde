@@ -47,9 +47,14 @@
 //   20100928: added EEPROM support (optional)
 //   20110403: moved user configurable compile flags to user.h
 //   20110404: Added support for Celsius operation
+//   20110405: Added support for button pushes
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
+
+// The user.h file contains user-definable compiler options
+// It must be located in the same folder as aBourbon.pde
+#include "user.h"
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -59,9 +64,9 @@
 #include <cADC.h>
 #include <cLCD.h>
 
-// The user.h file contains user-definable compiler options
-// It must be located in the same folder as aBourbon.pde
-#include "user.h"
+#ifdef LCDAPTER  // implement buttons only if the LCDAPTER option is selected in user.h
+#include <cButton.h>
+#endif
 
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
@@ -104,9 +109,10 @@ int32_t lasttimes[NCHAN]; // for calculating derivative
 char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
 
 // ---------------------------------- LCD interface definition
-#ifdef I2C_LCD
+#ifdef LCDAPTER
   #define BACKLIGHT lcd.backlight();
   cLCD lcd; // I2C LCD interface
+  cButtonPE16 buttons; // class object to manage button presses
 #else // equivalent to standard LiquidCrystal interface
   #define BACKLIGHT ;
   #define RS 2
@@ -244,6 +250,45 @@ void updateLCD( float t1, float t2, float RoR ) {
   lcd.print(st1);
 }
 
+#ifdef LCDAPTER
+// ----------------------------------
+void checkButtons() { // take action if a button is pressed
+  if( buttons.readButtons() ) {
+    if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) {// left button = start the roast
+      Serial.print( "# STRT,");
+      Serial.println( timestamp, DP );
+      buttons.ledOn ( 2 ); // turn on leftmost LED when start button is pushed
+    }
+    else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // 2nd button marks first crack
+      Serial.print( "# FC,");
+      Serial.println( timestamp, DP );
+      buttons.ledOn ( 1 ); // turn on middle LED at first crack
+    }
+    else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // 3rd button marks second crack
+      Serial.print( "# SC,");
+      Serial.println( timestamp, DP );
+      buttons.ledOn ( 0 ); // turn on rightmost LED at second crack
+    }
+    else if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // 4th button marks eject
+      Serial.print( "# EJCT,");
+      Serial.println( timestamp, DP );
+      buttons.ledAllOff(); // turn off all LED's when beans are ejected
+    }
+  }
+}
+#endif // LCDAPTER
+
+// ----------------------------------
+void checkStatus( uint32_t ms ) { // this is an active delay loop
+  uint32_t tod = millis();
+  while( millis() < tod + ms ) {
+#ifdef LCDAPTER
+    checkButtons();
+#endif
+  }
+}
+
+
 // --------------------------------------------------------------------------
 void get_samples() // this function talks to the amb sensor and ADC via I2C
 {
@@ -254,7 +299,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
     adc.nextConversion( j ); // start ADC conversion on channel j
     amb.nextConversion(); // start ambient sensor conversion
-    delay( MIN_DELAY ); // give the chips time to perform the conversions
+    checkStatus( MIN_DELAY ); // give the chips time to perform the conversions
     ftimes[j] = millis(); // record timestamp for RoR calculations
     amb.readSensor(); // retrieve value from ambient temp register
     v = adc.readuV(); // retrieve microvolt sample from MCP3424
@@ -280,11 +325,19 @@ void setup()
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_BRBN ); // display version banner
+
+#ifdef LCDAPTER
+  buttons.begin( 4 );
+  buttons.readButtons();
+  buttons.ledAllOff();
+#endif
+
 #ifdef CELSIUS  // display a C or F after the version to indicate temperature scale
   lcd.print( "C" );
 #else
   lcd.print( "F" );
 #endif
+  
   Serial.begin(BAUD);
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
@@ -338,6 +391,11 @@ void loop()
 
   // update on even 1 second boundaries
   while ( millis() < nextLoop ) { // delay until time for next loop
+    if( !first ) { // do not want to check the buttons on the first time through
+#ifdef LCDAPTER
+      checkButtons();
+#endif
+    } // if not first
   }
   
   nextLoop += 1000; // time mark for start of next update 

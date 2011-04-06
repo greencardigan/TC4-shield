@@ -8,7 +8,7 @@
 // Next compile the sketch and upload it to the Arduino.
 
 // ------------------ optionally, use I2C port expander for LCD interface
-#define I2C_LCD // comment this line out to use the standard parallel LCD 4-bit interface
+#define LCDAPTER // comment this line out to use the standard parallel LCD 4-bit interface
 #define EEPROM_BRBN // comment this line out if no calibration information stored in 64K EEPROM
 #define CELSIUS // if defined, output is in Celsius units; otherwise Fahrenheit
 
