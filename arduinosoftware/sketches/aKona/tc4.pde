@@ -16,13 +16,15 @@
 //tc4.pde
 /*
 routines required to read temp data from tc4 card
+ This program is based on 
+ pBourbon.pde and 16 x 2 LCD
+ by Jim Gallt and Bill Welch
 
 
 */
 
 void init_TC4 () {
   
-Wire.begin(); 
 adc.setCal( CAL_GAIN, CAL_OFFSET );
 amb.init( AMB_FILTER );  // initialize ambient temp filtering
 amb.setOffset( AMB_OFFSET );
@@ -102,5 +104,4 @@ for( int j = 0; j < NCHAN; j++ ) {
 	flast[j] = ftemps[j]; // use previous values for calculating RoR
 	lasttimes[j] = ftimes[j];
         }
-
 };

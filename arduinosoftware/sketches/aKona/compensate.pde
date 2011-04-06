@@ -30,7 +30,7 @@ Called from PID
 
 //input is setpoint
 //output is PID_setpoint
-
+/*
 void compensate (float sp)
 {
 if (enable_comp == true) {
@@ -54,3 +54,4 @@ else {
 	PID_setpoint = sp;
 	}
 }
+*/
