@@ -24,6 +24,8 @@
 // added code to scale temp axis in fahrenheit mode if MAX_TEMP is changed // *** added by Brad
 // added code to scale time axis if MAX_TIME is changed // *** added by Brad
 // added 'Beans added' and 'End of roast' markers. 'B' and 'E' // *** added by Brad
+// modified keyboard input code to accept 1 button markers  Requires 'Space' to enter other text
+// added code to receive marker commands from aBourbon V2.00 and plot on graph
 
 
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
@@ -34,7 +36,7 @@ String appname = "Bourbon Roast Logger v1.03";
 String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
 
 boolean enable_guideprofile = false; // set true to enable
-String PROFILE = "myprofile.csv";
+String PROFILE = "myprofile_c.csv";
 String profile_data[];
 String kb_note = "";
 
@@ -62,7 +64,7 @@ Serial comport;
 
 int MAX_TEMP = 520;  // degrees (or 10 * degF per minute)
 int c_MAX_TEMP = 290; // *** added by Brad
-int MAX_TIME = 60 * 20; // 60 seconds * minutes // *** MODIFIED by Brad
+int MAX_TIME = 60 * 5; // 60 seconds * minutes // *** MODIFIED by Brad
 int MIN_TEMP = -20; // degrees
 int c_MIN_TEMP = -10;  // *** added by Brad
 
@@ -369,37 +371,31 @@ void drawnote() {
 }
 
 void drawmarkers() {  // *** Added by Brad
+
+  textFont(markerFont,16);
+  fill(c4);
+  stroke(c4);
+  float tw;
+  
   if (fc_x != 0) {
-    textFont(markerFont);
-    fill(c4);
-    stroke(c4);
-    float tw = textWidth(fcm);
+    tw = textWidth(fcm);
     text(fcm, fc_x * time_scale - (tw/2) , fc_y * temp_scale -5);
-    ellipse(fc_x * time_scale,fc_y * temp_scale,5,5/temp_scale);
+    ellipse(fc_x * time_scale,fc_y * temp_scale,6,5);
   }
   if (sc_x != 0) {
-    textFont(markerFont);
-    fill(c4);
-    stroke(c4);
-    float tw = textWidth(scm);
+    tw = textWidth(scm);
     text(scm, sc_x * time_scale - (tw/2) , sc_y * temp_scale -5);
-    ellipse(sc_x * time_scale,sc_y * temp_scale,5,5/temp_scale);
+    ellipse(sc_x * time_scale,sc_y * temp_scale,6,5);
   }
   if (er_x != 0) {
-    textFont(markerFont);
-    fill(c4);
-    stroke(c4);
-    float tw = textWidth(erm);
+    tw = textWidth(erm);
     text(erm, er_x * time_scale - (tw/2) , er_y * temp_scale -5);
-    ellipse(er_x * time_scale,er_y * temp_scale,5,5/temp_scale);
+    ellipse(er_x * time_scale,er_y * temp_scale,6,5);
   }
   if (ba_x != 0) {
-    textFont(markerFont);
-    fill(c4);
-    stroke(c4);
-    float tw = textWidth(bam);
+    tw = textWidth(bam);
     text(bam, ba_x * time_scale - (tw/2) , ba_y * temp_scale -5);
-    ellipse(ba_x * time_scale,ba_y * temp_scale,5,5/temp_scale);
+    ellipse(ba_x * time_scale,ba_y * temp_scale,6,5);
   }
 }
 
@@ -449,6 +445,23 @@ void serialEvent(Serial comport) {
     if (msg.charAt(0) == '#') {
       logfile.println(msg);
       println(msg);
+      
+      String[] rec = split(msg, ",");  // comma separated input list
+      msg = rec[0];
+      
+      if (rec[0].equals("# STRT")) {
+        ba_x = T0[0][idx-1];
+        ba_y = MAX_TEMP - T0[1][idx-1];
+      } else if (rec[0].equals("# FC")) {
+        fc_x = T0[0][idx-1];
+        fc_y = MAX_TEMP - T0[1][idx-1];
+      } else if (rec[0].equals("# SC")) {
+        sc_x = T0[0][idx-1];
+        sc_y = MAX_TEMP - T0[1][idx-1];
+      } else if (rec[0].equals("# EJCT")) {
+        er_x = T0[0][idx-1];
+        er_y = MAX_TEMP - T0[1][idx-1];
+      }
       return; // ******************
     }
   
@@ -497,63 +510,61 @@ void mouseClicked() {
   if( !started ) { started = true; }
   else {
    saveFrame(filename + "-##" + ".jpg" );
-  };
+  }
 }
 
 // ---------------------------------------------
-void keyPressed()
-{ 
+void keyPressed() {  // *** MODIFIED by Brad
+  
   if( !started )  { started = true; }
   else {
-
-    // fixme -- add specific behavior for F (first crack), S (second crack), and E (eject) keys
-
-    if (( key == 13) || (key == 10) )  {
-      if (kb_note.length() > 1) { // *** MODIFIED by Brad
-        println("# " + timestamp + " " + kb_note);
-        logfile.println("# " + timestamp + " " + kb_note);
-        
-      } else if (kb_note.length() == 1) { // *** added by Brad
-        switch (kb_note.charAt(0)) {
-          case 'F':
-          case 'f': 
-            println(fc_x);
-            fc_x = T0[0][idx-1];
-            fc_y = MAX_TEMP - T0[1][idx-1];
-            println("# " + timestamp + " First Crack");
-            logfile.println("# " + timestamp + " First Crack");
-            break;
-          case 'S':
-          case 's':
-            sc_x = T0[0][idx-1];
-            sc_y = MAX_TEMP - T0[1][idx-1];
-            println("# " + timestamp + " Second Crack");
-            logfile.println("# " + timestamp + " Second Crack");
-            break;
-          case 'E':
-          case 'e':
-            er_x = T0[0][idx-1];
-            er_y = MAX_TEMP - T0[1][idx-1];
-            println("# " + timestamp + " End of roast");
-            logfile.println("# " + timestamp + " End of roast");
-            break;
-          case 'B':
-          case 'b':
-            ba_x = T0[0][idx-1];
-            ba_y = MAX_TEMP - T0[1][idx-1];
-            println("# " + timestamp + " Beans added");
-            logfile.println("# " + timestamp + " Beans added");
-            break;
-          default:
-            println("Invalid Character");
-            break;
-          }
+    if (kb_note.length() == 0) {
+      switch (key) {
+        case 'F':
+        case 'f': 
+          fc_x = T0[0][idx-1];
+          fc_y = MAX_TEMP - T0[1][idx-1];
+          println("# FC," + timestamp);
+          logfile.println("# FC," + timestamp);
+          break;
+        case 'S':
+        case 's':
+          sc_x = T0[0][idx-1];
+          sc_y = MAX_TEMP - T0[1][idx-1];
+          println("# SC," + timestamp);
+          logfile.println("# SC," + timestamp);
+          break;
+        case 'E':
+        case 'e':
+          er_x = T0[0][idx-1];
+          er_y = MAX_TEMP - T0[1][idx-1];
+          println("# EJCT," + timestamp);
+          logfile.println("# EJCT," + timestamp);
+          break;
+        case 'B':
+        case 'b':
+          ba_x = T0[0][idx-1];
+          ba_y = MAX_TEMP - T0[1][idx-1];
+          println("# STRT," + timestamp);
+          logfile.println("# STRT," + timestamp);
+          break;
+        case ' ':
+          kb_note = "# ";
+          break;
+        default:
+          println("Invalid Character");
+          break;                  
       }
-    kb_note = ""; // *** MODIFIED by Brad
-  
-    } else if (key != CODED) {
-      kb_note = kb_note + key;
-    }
+    } else
+        if (( key == 13) || (key == 10) )  {
+          if (kb_note.length() > 0) {
+            println(kb_note + "," + timestamp); // *** MODIFIED by Brad
+            logfile.println(kb_note + "," + timestamp); // *** MODIFIED by Brad
+            kb_note = "";
+          };
+        } else if (key != CODED) {
+            kb_note = kb_note + key;
+        }
   }
 }
 
