@@ -48,6 +48,7 @@
 //   20110403: moved user configurable compile flags to user.h
 //   20110404: Added support for Celsius operation
 //   20110405: Added support for button pushes
+//   20110406: Added post-filtering for RoR values
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
