@@ -49,6 +49,7 @@
 //   20110404: Added support for Celsius operation
 //   20110405: Added support for button pushes
 //   20110406: Added post-filtering for RoR values
+//   20110408: Added code to read codes from serial port
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -75,6 +76,9 @@
 #define TC_TYPE TypeK  // thermocouple type / library
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
+#define RESET "RESET" // text string command for resetting the timer
+#define MAX_COMMAND 80 // max length of a command string
+#define LOOPTIME 1000 // cycle time, in ms
 
 // --------------------------------------------------------------
 // global variables
@@ -130,6 +134,10 @@ char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
 float timestamp = 0;
 boolean first;
 uint32_t nextLoop;
+float reftime; // reference for measuring elapsed time
+
+char command[MAX_COMMAND+1]; // input from the serial port
+
 
 // declarations needed to maintain compatibility with Eclipse/WinAVR/gcc
 void updateLCD( float t1, float t2, float RoR );
@@ -153,7 +161,7 @@ void logger()
   float rx;
 
   // print timestamp from when samples were taken
-  Serial.print( timestamp, DP );
+  Serial.print( timestamp - reftime, DP );
 
   // print ambient
   Serial.print(",");
@@ -215,7 +223,7 @@ void logger()
 // --------------------------------------------
 void updateLCD( float t1, float t2, float RoR ) {
   // form the timer output string in min:sec format
-  int itod = round( timestamp );
+  int itod = round( timestamp - reftime );
   if( itod > 3599 ) itod = 3599;
   sprintf( smin, "%02u", itod / 60 );
   sprintf( ssec, "%02u", itod % 60 );
@@ -262,7 +270,7 @@ void checkButtons() { // take action if a button is pressed
   if( buttons.readButtons() ) {
     if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) {// left button = start the roast
       Serial.print( "# STRT,");
-      Serial.println( timestamp, DP );
+      Serial.println( timestamp - reftime, DP );
       buttons.ledOn ( 2 ); // turn on leftmost LED when start button is pushed
     }
     else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // 2nd button marks first crack
@@ -284,6 +292,37 @@ void checkButtons() { // take action if a button is pressed
 }
 #endif // LCDAPTER
 
+// -------------------------------------
+void append( char* str, char c ) { // reinventing the wheel
+  int len = strlen( str );
+  str[len] = c;
+  str[len+1] = '\0';
+}
+
+// -------------------------------------
+void processCommand() {  // a null character has been received, so process the command
+  if( ! strcmp( command, RESET ) ) { // RESET command received, so reset the timer
+    nextLoop = 100 + millis(); // wait 100 ms and force a sample/log cycle
+    reftime = 0.001 * nextLoop; // reset the reference point for elapsed time
+    return;
+  }
+}
+
+// -------------------------------------
+void checkSerial() {  // buffer the input from the serial port
+  char c;
+  while( Serial.available() > 0 ) {
+    c = Serial.read();
+    if( ( c == '\n' ) || ( strlen( command ) == MAX_COMMAND ) ) {
+      processCommand();
+      strcpy( command, "" );
+    } // end if
+    else {
+      append( command, c );
+    } // end else
+  } // end while
+}
+
 // ----------------------------------
 void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
@@ -291,6 +330,7 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
 #ifdef LCDAPTER
     checkButtons();
 #endif
+    checkSerial(); // Has a command been received?
   }
 }
 
@@ -396,18 +436,20 @@ void setup()
 void loop()
 {
   float idletime;
+  uint32_t thisLoop;
 
-  // update on even 1 second boundaries
+  // delay loop to force update on even LOOPTIME boundaries
   while ( millis() < nextLoop ) { // delay until time for next loop
     if( !first ) { // do not want to check the buttons on the first time through
 #ifdef LCDAPTER
       checkButtons();
 #endif
+      checkSerial(); // Has a command been received?
     } // if not first
   }
   
-  nextLoop += 1000; // time mark for start of next update 
-  timestamp = float( millis() ) * 0.001;
+  thisLoop = millis(); // actual time marker for this loop
+  timestamp = float( thisLoop ) * 0.001; // system time, seconds, for this set of samples
   get_samples(); // retrieve values from MCP9800 and MCP3424
   if( first ) // use first samples for RoR base values only
     first = false;
@@ -420,13 +462,13 @@ void loop()
    lasttimes[j] = ftimes[j];
   }
 
-  idletime = float( millis() ) * 0.001;
-  idletime = 1.0 - (idletime - timestamp);
+  idletime = LOOPTIME - ( millis() - thisLoop );
   // arbitrary: complain if we don't have at least 10mS left
-  if (idletime < 0.010) {
+  if (idletime < 10 ) {
     Serial.print("# idle: ");
     Serial.println(idletime);
   }
 
+  nextLoop += LOOPTIME; // time mark for start of next update 
 }
 
