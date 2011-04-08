@@ -48,6 +48,7 @@
 //   20110403: moved user configurable compile flags to user.h
 //   20110404: Added support for Celsius operation
 //   20110405: Added support for button pushes
+//   20110406: Added post-filtering for RoR values
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -98,6 +99,7 @@ cADC adc( A_ADC ); // MCP3424
 ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NCHAN]; // filter for displayed/logged ET, BT
 filterRC fRise[NCHAN]; // heavily filtered for calculating RoR
+filterRC fRoR[NCHAN]; // post-filtering on RoR values
 
 int32_t temps[NCHAN]; //  stored temperatures are divided by D_MULT
 int32_t ftemps[NCHAN]; // heavily filtered temps
@@ -139,7 +141,7 @@ float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ) {
   int32_t dt = t2 - t1;
   if( dt == 0 ) return 0.0;  // fixme -- throw an exception here?
   float dT = (T2 - T1) * D_MULT;
-  float dS = dt * 0.001;
+  float dS = dt * 0.001; // convert from milli-seconds to seconds
   return ( dT / dS ) * 60.0; // rise per minute
 }
 
@@ -169,6 +171,7 @@ void logger()
     Serial.print( t1 = D_MULT*temps[i], DP );
     Serial.print(",");
     RoR = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
+    RoR = fRoR[i].doFilter( RoR /  D_MULT ) * D_MULT; // perform post-filtering on RoR values
     Serial.print( RoR , DP );
     i++;
   };
@@ -178,6 +181,7 @@ void logger()
     Serial.print( t2 = D_MULT * temps[i], DP );
     Serial.print(",");
     rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
+    rx = fRoR[i].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
     Serial.print( rx , DP );
     i++;
   };
@@ -187,6 +191,7 @@ void logger()
     Serial.print( D_MULT * temps[i], DP );
     Serial.print(",");
     rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
+    rx = fRoR[i].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
     Serial.print( rx , DP );
     i++;
   };
@@ -196,6 +201,7 @@ void logger()
     Serial.print( D_MULT * temps[i], DP );
     Serial.print(",");
     rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
+    rx = fRoR[i].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
     Serial.print( rx , DP );
     i++;
   };
@@ -377,6 +383,8 @@ void setup()
   fT[1].init( ET_FILTER ); // digital filtering on ET
   fRise[0].init( RISE_FILTER ); // digital filtering for RoR calculation
   fRise[1].init( RISE_FILTER ); // digital filtering for RoR calculation
+  fRoR[0].init( ROR_FILTER ); // post-filtering on RoR values
+  fRoR[1].init( ROR_FILTER ); // post-filtering on RoR values
 
   delay( 1800 );
   nextLoop = 2000;
