@@ -275,17 +275,17 @@ void checkButtons() { // take action if a button is pressed
     }
     else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // 2nd button marks first crack
       Serial.print( "# FC,");
-      Serial.println( timestamp, DP );
+      Serial.println( timestamp - reftime, DP );
       buttons.ledOn ( 1 ); // turn on middle LED at first crack
     }
     else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // 3rd button marks second crack
       Serial.print( "# SC,");
-      Serial.println( timestamp, DP );
+      Serial.println( timestamp - reftime, DP );
       buttons.ledOn ( 0 ); // turn on rightmost LED at second crack
     }
     else if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // 4th button marks eject
       Serial.print( "# EJCT,");
-      Serial.println( timestamp, DP );
+      Serial.println( timestamp - reftime, DP );
       buttons.ledAllOff(); // turn off all LED's when beans are ejected
     }
   }
