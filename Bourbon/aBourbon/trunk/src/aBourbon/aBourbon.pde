@@ -49,7 +49,7 @@
 //   20110404: Added support for Celsius operation
 //   20110405: Added support for button pushes
 //   20110406: Added post-filtering for RoR values
-//   20110408: Added code to read codes from serial port
+//   20110408: Added code to read RESET code from serial port
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -105,6 +105,7 @@ filterRC fT[NCHAN]; // filter for displayed/logged ET, BT
 filterRC fRise[NCHAN]; // heavily filtered for calculating RoR
 filterRC fRoR[NCHAN]; // post-filtering on RoR values
 
+// arrays to store temperatures, times for each channel
 int32_t temps[NCHAN]; //  stored temperatures are divided by D_MULT
 int32_t ftemps[NCHAN]; // heavily filtered temps
 int32_t ftimes[NCHAN]; // filtered sample timestamps
@@ -119,7 +120,7 @@ char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
   #define BACKLIGHT lcd.backlight();
   cLCD lcd; // I2C LCD interface
   cButtonPE16 buttons; // class object to manage button presses
-#else // equivalent to standard LiquidCrystal interface
+#else // parallel interface, standard LiquidCrystal
   #define BACKLIGHT ;
   #define RS 2
   #define ENABLE 4
@@ -136,15 +137,14 @@ boolean first;
 uint32_t nextLoop;
 float reftime; // reference for measuring elapsed time
 
-char command[MAX_COMMAND+1]; // input from the serial port
+char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
 
-
-// declarations needed to maintain compatibility with Eclipse/WinAVR/gcc
+// declaration needed to maintain compatibility with Eclipse/WinAVR/gcc
 void updateLCD( float t1, float t2, float RoR );
 
-// ---------------------------------------------------
 // T1, T2 = temperatures x 1000
 // t1, t2 = time marks, milliseconds
+// ---------------------------------------------------
 float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ) {
   int32_t dt = t2 - t1;
   if( dt == 0 ) return 0.0;  // fixme -- throw an exception here?
@@ -161,7 +161,7 @@ void logger()
   float rx;
 
   // print timestamp from when samples were taken
-  Serial.print( timestamp - reftime, DP );
+  Serial.print( timestamp, DP );
 
   // print ambient
   Serial.print(",");
@@ -214,7 +214,7 @@ void logger()
     i++;
   };
 
-// log the placeholder to serial port
+// log the dummy placeholder value to serial port
   Serial.println(",0");
   
   updateLCD( t1, t2, RoR );  
@@ -223,7 +223,7 @@ void logger()
 // --------------------------------------------
 void updateLCD( float t1, float t2, float RoR ) {
   // form the timer output string in min:sec format
-  int itod = round( timestamp - reftime );
+  int itod = round( timestamp );
   if( itod > 3599 ) itod = 3599;
   sprintf( smin, "%02u", itod / 60 );
   sprintf( ssec, "%02u", itod % 60 );
@@ -270,22 +270,22 @@ void checkButtons() { // take action if a button is pressed
   if( buttons.readButtons() ) {
     if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) {// left button = start the roast
       Serial.print( "# STRT,");
-      Serial.println( timestamp - reftime, DP );
+      Serial.println( timestamp, DP );
       buttons.ledOn ( 2 ); // turn on leftmost LED when start button is pushed
     }
     else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // 2nd button marks first crack
       Serial.print( "# FC,");
-      Serial.println( timestamp - reftime, DP );
+      Serial.println( timestamp, DP );
       buttons.ledOn ( 1 ); // turn on middle LED at first crack
     }
     else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // 3rd button marks second crack
       Serial.print( "# SC,");
-      Serial.println( timestamp - reftime, DP );
+      Serial.println( timestamp, DP );
       buttons.ledOn ( 0 ); // turn on rightmost LED at second crack
     }
     else if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // 4th button marks eject
       Serial.print( "# EJCT,");
-      Serial.println( timestamp - reftime, DP );
+      Serial.println( timestamp, DP );
       buttons.ledAllOff(); // turn off all LED's when beans are ejected
     }
   }
@@ -300,10 +300,11 @@ void append( char* str, char c ) { // reinventing the wheel
 }
 
 // -------------------------------------
-void processCommand() {  // a null character has been received, so process the command
+void processCommand() {  // a newline character has been received, so process the command
   if( ! strcmp( command, RESET ) ) { // RESET command received, so reset the timer
-    nextLoop = 100 + millis(); // wait 100 ms and force a sample/log cycle
-    reftime = 0.001 * nextLoop; // reset the reference point for elapsed time
+    Serial.print( "# Reset, " ); Serial.println( timestamp ); // write message to log
+    nextLoop = 10 + millis(); // wait 10 ms and force a sample/log cycle
+    reftime = 0.001 * nextLoop; // reset the reference point for timestamp
     return;
   }
 }
@@ -313,9 +314,9 @@ void checkSerial() {  // buffer the input from the serial port
   char c;
   while( Serial.available() > 0 ) {
     c = Serial.read();
-    if( ( c == '\n' ) || ( strlen( command ) == MAX_COMMAND ) ) {
+    if( ( c == '\n' ) || ( strlen( command ) == MAX_COMMAND ) ) { // check for newline, or buffer overflow
       processCommand();
-      strcpy( command, "" );
+      strcpy( command, "" ); // empty the buffer
     } // end if
     else {
       append( command, c );
@@ -330,7 +331,6 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
 #ifdef LCDAPTER
     checkButtons();
 #endif
-    checkSerial(); // Has a command been received?
   }
 }
 
@@ -371,19 +371,18 @@ void setup()
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_BRBN ); // display version banner
-
-#ifdef LCDAPTER
-  buttons.begin( 4 );
-  buttons.readButtons();
-  buttons.ledAllOff();
-#endif
-
 #ifdef CELSIUS  // display a C or F after the version to indicate temperature scale
   lcd.print( "C" );
 #else
   lcd.print( "F" );
 #endif
   
+#ifdef LCDAPTER
+  buttons.begin( 4 );
+  buttons.readButtons();
+  buttons.ledAllOff();
+#endif
+
   Serial.begin(BAUD);
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
@@ -397,7 +396,7 @@ void setup()
     Serial.print("# ");
     Serial.print( caldata.cal_gain, 4 ); Serial.print("  ");
     Serial.println( caldata.K_offset, 2 );
-    lcd.setCursor( 0, 1 ); // echo EEPROM data to LCD
+    lcd.setCursor( 0, 1 ); // echo EEPROM PCB (board) data to LCD
     lcd.print( caldata.PCB );
     adc.setCal( caldata.cal_gain, caldata.cal_offset );
     amb.setOffset( caldata.K_offset );
@@ -428,6 +427,7 @@ void setup()
 
   delay( 1800 );
   nextLoop = 2000;
+  reftime = 0.001 * nextLoop; // initialize reftime to the time of first sample
   first = true;
   lcd.clear();
 }
@@ -449,7 +449,7 @@ void loop()
   }
   
   thisLoop = millis(); // actual time marker for this loop
-  timestamp = float( thisLoop ) * 0.001; // system time, seconds, for this set of samples
+  timestamp = 0.001 * float( thisLoop ) - reftime; // system time, seconds, for this set of samples
   get_samples(); // retrieve values from MCP9800 and MCP3424
   if( first ) // use first samples for RoR base values only
     first = false;
@@ -463,8 +463,8 @@ void loop()
   }
 
   idletime = LOOPTIME - ( millis() - thisLoop );
-  // arbitrary: complain if we don't have at least 10mS left
-  if (idletime < 10 ) {
+  // arbitrary: complain if we don't have at least 50mS left
+  if (idletime < 50 ) {
     Serial.print("# idle: ");
     Serial.println(idletime);
   }
