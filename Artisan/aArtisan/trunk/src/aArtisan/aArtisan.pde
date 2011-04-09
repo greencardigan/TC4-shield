@@ -160,44 +160,16 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
 // ------------------------------------------------------------------
 void logger()
 {
-  int i;
-  float t1,t2,t_amb;
-
 // print ambient
-#ifdef CELSIUS
-  t_amb = amb.getAmbC();
-#else
-  t_amb = amb.getAmbF();
-#endif
-  Serial.print( t_amb, DP );
-   
-// print temperature for each channel
-  i = 0;
-  if( NCHAN >= 1 ) {
-    Serial.print(",");
-    Serial.print( t1 = D_MULT*temps[i], DP );
-    i++;
-  };
-  
-  if( NCHAN >= 2 ) {
-    Serial.print(",");
-    Serial.print( t2 = D_MULT * temps[i], DP );
-    i++;
-  };
-  
-  if( NCHAN >= 3 ) {
-    Serial.print(",");
-    Serial.print( D_MULT * temps[i], DP );
-    i++;
-  };
-  
-  if( NCHAN >= 4 ) {
-    Serial.print(",");
-    Serial.print( D_MULT * temps[i], DP );
-    i++;
-  };
+  Serial.print( AT, DP );
+  Serial.print( "," );
 
-  Serial.println();
+// print ET
+  Serial.print( ET, DP );
+  Serial.print( "," );
+  
+// print BT
+  Serial.println( BT, DP );
 };
 
 // --------------------------------------------------------------------------
@@ -223,8 +195,8 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
 #endif
     temps[j] = fT[j].doFilter( v ); // apply digital filtering for display/logging
   }
-  BT = 0.001 * temps[0];
-  ET = 0.001 * temps[1];
+  BT = D_MULT * temps[0];
+  ET = D_MULT * temps[1];
 };
 
 #ifdef LCD
