@@ -11,12 +11,14 @@
 // Inspired by Tom Igoe's Grapher Pro: http://www.tigoe.net/pcomp/code/category/Processing/122
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
+// acknowledgement for enhancements/corrections added by Brad (greencardigan)
+
 // version 20100806 by Jim Gallt
 // added guide-profile 18 sept William Welch
 // version 20101008 by Rama Roberts
 // added a TC reading average to help with reported fluctuations
 // version 20101023 by Jim Gallt
-// added code to optionally turn off TC reading average (SAMPSIZE = 1)
+// added code to optionally turn off TC reading average (SAMPLESIZE = 1)
 
 // added code for Celsius mode
 // added 'First Crack' and 'Second Crack' markers. 'F' and 'S'
@@ -27,7 +29,17 @@
 // modified keyboard input code to accept 1 button markers  Requires 'Space' to enter other text
 // added code to receive marker commands from aBourbon V2.00 and plot on graph
 // added code to extend time axis by 2 minutes after time reaches MAX_TIME - 1 minute
-// added RESET command to synchronize with TC4
+// added RESET command to synchronize with TC4 (by Jim)
+
+// ******************************************************************************************
+// ----------------------------------- User preferences -----------------------------------
+//boolean enable_guideprofile = false; // set true to enable
+boolean enable_guideprofile = true; // set true to enable
+//String PROFILE = "myprofile_c.csv";
+String PROFILE = "myprofile.csv";
+int MINUTES = 19; // time limit for graph (change to suit)
+// ----------------------------------------------------------------------------------------
+// *****************************************************************************************
 
 
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
@@ -37,10 +49,6 @@ String appname = "Bourbon Roast Logger v2.00";
 
 String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
 
-//boolean enable_guideprofile = false; // set true to enable
-boolean enable_guideprofile = true; // set true to enable
-String PROFILE = "myprofile_c.csv";
-//String PROFILE = "myprofile.csv";
 String profile_data[];
 String kb_note = "";
 
@@ -68,7 +76,7 @@ Serial comport;
 
 int MAX_TEMP = 520;  // degrees (or 10 * degF per minute)
 int c_MAX_TEMP = 290;
-int MAX_TIME = 60 * 19; // 60 seconds * minutes
+int MAX_TIME = 60 * MINUTES; // 60 seconds * minutes
 int MIN_TEMP = -20; // degrees
 int c_MIN_TEMP = -10; 
 
@@ -416,7 +424,6 @@ void draw() {
   if( !started ) {
     textFont( startFont );
     text( appname + "\n" + corf + " Mode\nPress a key or click to begin logging ...\n",110, 110 );
-    comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
   }
   else {
    drawgrid();
@@ -450,82 +457,86 @@ void draw() {
 }
 
 // -------------------------------------------------------------
-void serialEvent(Serial comport) {
+void serialEvent(Serial comport) { // this is executed each time a line of data is received from the TC4
 
-    // grab a line of ascii text from the logger and sanity check it.
+    // grab a line of ascii text from the logger
     String msg = comport.readStringUntil('\n');
+
+    // exit right away if blank line
     if (msg == null) return; // *****************
     msg = trim(msg);
     if (msg.length() == 0) return; // ****************
 
-    //always store in file - good for debugging, version-tracking, etc.
-    //logfile.println(msg);
+    // otherwise, check first to see if it is a comment --------------------------------------------
+    if (msg.charAt(0) == '#') { // this line is a comment
+      logfile.println(msg); // write it to the log no matter what
+      println(msg); // write it to the terminal no matter what     
+      String[] rec = split(msg, ",");  // comma separated input list      
+      if( started ) { // skip these roast markers if logging hasn't been started by the user
+        if (rec[0].equals("# STRT")) { 
+          ba_x = T0[0][idx-1];
+          ba_y = MAX_TEMP - T0[1][idx-1];
+        } else if (rec[0].equals("# FC")) {
+          fc_x = T0[0][idx-1];
+          fc_y = MAX_TEMP - T0[1][idx-1];
+        } else if (rec[0].equals("# SC")) {
+          sc_x = T0[0][idx-1];
+          sc_y = MAX_TEMP - T0[1][idx-1];
+        } else if (rec[0].equals("# EJCT")) {
+          er_x = T0[0][idx-1];
+          er_y = MAX_TEMP - T0[1][idx-1];
+          saveFrame(filename + "-##" + ".jpg" );  // save an image for posterity at eject time
+        }
+      } // end if started (for roast markers)
+    } // end if this line is a comment
 
-    if (msg.charAt(0) == '#') {
-      logfile.println(msg);
-      println(msg);
-      
+    // not a comment, so process the line as data, but only if logging has been started by the user --------
+    else if( started ) {
       String[] rec = split(msg, ",");  // comma separated input list
-      
-      if (rec[0].equals("# STRT")) {
-        ba_x = T0[0][idx-1];
-        ba_y = MAX_TEMP - T0[1][idx-1];
-      } else if (rec[0].equals("# FC")) {
-        fc_x = T0[0][idx-1];
-        fc_y = MAX_TEMP - T0[1][idx-1];
-      } else if (rec[0].equals("# SC")) {
-        sc_x = T0[0][idx-1];
-        sc_y = MAX_TEMP - T0[1][idx-1];
-      } else if (rec[0].equals("# EJCT")) {
-        er_x = T0[0][idx-1];
-        er_y = MAX_TEMP - T0[1][idx-1];
+      if (rec.length != 2 * NCHAN + 3 ) {
+        println("Ignoring unknown msg from logger: " + msg);
+        return; // *******************
+      } // end if
+  
+      timestamp = float(rec[0]);
+      ambient = float(rec[1]);
+
+      T0[0][idx] = timestamp;
+      T0[1][idx] = float(rec[2]); 
+      T1[0][idx] = timestamp;
+      T1[1][idx] = float(rec[3]) * 10.0;  // exaggerate the rate traces
+  
+      if( NCHAN >= 2 ) {
+        T2[0][idx] = timestamp;
+        T2[1][idx] = float(rec[4]);
+      } // end if
+      if( NCHAN >= 2 ) {
+        T3[0][idx] = timestamp;
+        T3[1][idx] = float(rec[5]) * 10.0;  // exaggerate the rate traces
       }
-      return; // ******************
-    }
   
-    String[] rec = split(msg, ",");  // comma separated input list
-    if (rec.length != 2 * NCHAN + 3 ) {
-      println("Ignoring unknown msg from logger: " + msg);
-      return; // *******************
-    }
+      for (int i=0; i<(2 * NCHAN + 3); i++) {
+        print(rec[i]);
+        logfile.print(rec[i]);
+        if (i < 2 * NCHAN +2 ) print(",");
+        if (i < 2 * NCHAN +2 ) logfile.print(",");
+      } // end for
   
-    timestamp = float(rec[0]);
-    if( !started ) tstart = timestamp;
-    timestamp -= tstart;
-    ambient = float(rec[1]);
-
-    T0[0][idx] = timestamp;
-    T0[1][idx] = float(rec[2]); 
-    T1[0][idx] = timestamp;
-    T1[1][idx] = float(rec[3]) * 10.0;  // exaggerate the rate traces
+      logfile.println();
+      println();
   
-    if( NCHAN >= 2 ) {
-      T2[0][idx] = timestamp;
-      T2[1][idx] = float(rec[4]);
-    }
-    if( NCHAN >= 2 ) {
-      T3[0][idx] = timestamp;
-      T3[1][idx] = float(rec[5]) * 10.0;  // exaggerate the rate traces
-    };
+      idx++; // increment the data array counter
+      idx = idx % MAX_TIME; // wrap the counter ?? FIXME:  test this
+    } // end else if started
   
-    for (int i=0; i<(2 * NCHAN + 3); i++) {
-      print(rec[i]);
-      logfile.print(rec[i]);
-      if (i < 2 * NCHAN +2 ) print(",");
-      if (i < 2 * NCHAN +2 ) logfile.print(",");
-    }
-  
-    logfile.println();
-    println();
-  
-    idx++;
-    idx = idx % MAX_TIME;
-
 } // serialEvent
 
 // ------------------------------- save a frame when mouse is clicked
 void mouseClicked() {
-  if( !started ) { started = true; }
+  if( !started ) {  // waiting for user to begin logging
+    started = true; 
+    comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
+  }
   else {
    saveFrame(filename + "-##" + ".jpg" );
   }
@@ -534,7 +545,10 @@ void mouseClicked() {
 // ---------------------------------------------
 void keyPressed() { 
   
-  if( !started )  { started = true; }
+  if( !started ) { // waiting for user to begin logging
+    started = true; 
+    comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
+  }
   else {
     if (kb_note.length() == 0) {
       switch (key) {
