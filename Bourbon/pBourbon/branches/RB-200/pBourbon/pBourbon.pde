@@ -27,17 +27,20 @@
 // modified keyboard input code to accept 1 button markers  Requires 'Space' to enter other text
 // added code to receive marker commands from aBourbon V2.00 and plot on graph
 // added code to extend time axis by 2 minutes after time reaches MAX_TIME - 1 minute
+// added RESET command to synchronize with TC4
 
 
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
 PrintWriter logfile;
-String appname = "Bourbon Roast Logger v1.03";
+String appname = "Bourbon Roast Logger v2.00";
 
 String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
 
-boolean enable_guideprofile = false; // set true to enable
+//boolean enable_guideprofile = false; // set true to enable
+boolean enable_guideprofile = true; // set true to enable
 String PROFILE = "myprofile_c.csv";
+//String PROFILE = "myprofile.csv";
 String profile_data[];
 String kb_note = "";
 
@@ -65,7 +68,7 @@ Serial comport;
 
 int MAX_TEMP = 520;  // degrees (or 10 * degF per minute)
 int c_MAX_TEMP = 290;
-int MAX_TIME = 60 * 11; // 60 seconds * minutes
+int MAX_TIME = 60 * 19; // 60 seconds * minutes
 int MIN_TEMP = -20; // degrees
 int c_MIN_TEMP = -10; 
 
@@ -202,13 +205,13 @@ void setup() {
 // --------------------------------------------------
 
 // returns the average value for a given float array
-// FIXME needs to have the array size passed as an argument in case SAMPSIZE not default value?
+// FIXME need to test change in loop limit (used to default to the array size, not to SAMPSIZE)
 float arrayAverage(float[] T) {
   int sum = 0;
-  for (int i=0; i < T.length; i++) {
+  for (int i=0; i < SAMPLESIZE; i++) {
      sum += T[i];
   }
-  return (sum / T.length);
+  return (sum / SAMPLESIZE);
 }
 
 
@@ -299,7 +302,7 @@ void monitor( int t1, int t2 ) {
   
     pos += incr;
     fill( c0 );
-    strng = nf( T0[1][idx-1],2,1 );
+    strng = nf( T0[1][idx-1],3,1 );
     w = textWidth(strng);
     textFont( monitorFont, t1 );
     text(strng,pos-w,16);
@@ -413,6 +416,7 @@ void draw() {
   if( !started ) {
     textFont( startFont );
     text( appname + "\n" + corf + " Mode\nPress a key or click to begin logging ...\n",110, 110 );
+    comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
   }
   else {
    drawgrid();
