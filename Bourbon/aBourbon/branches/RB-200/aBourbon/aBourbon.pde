@@ -49,6 +49,7 @@
 //   20110404: Added support for Celsius operation
 //   20110405: Added support for button pushes
 //   20110406: Added post-filtering for RoR values
+//   20110408: Added code to read RESET code from serial port
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -75,6 +76,9 @@
 #define TC_TYPE TypeK  // thermocouple type / library
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
+#define RESET "RESET" // text string command for resetting the timer
+#define MAX_COMMAND 80 // max length of a command string
+#define LOOPTIME 1000 // cycle time, in ms
 
 // --------------------------------------------------------------
 // global variables
@@ -101,6 +105,7 @@ filterRC fT[NCHAN]; // filter for displayed/logged ET, BT
 filterRC fRise[NCHAN]; // heavily filtered for calculating RoR
 filterRC fRoR[NCHAN]; // post-filtering on RoR values
 
+// arrays to store temperatures, times for each channel
 int32_t temps[NCHAN]; //  stored temperatures are divided by D_MULT
 int32_t ftemps[NCHAN]; // heavily filtered temps
 int32_t ftimes[NCHAN]; // filtered sample timestamps
@@ -115,7 +120,7 @@ char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
   #define BACKLIGHT lcd.backlight();
   cLCD lcd; // I2C LCD interface
   cButtonPE16 buttons; // class object to manage button presses
-#else // equivalent to standard LiquidCrystal interface
+#else // parallel interface, standard LiquidCrystal
   #define BACKLIGHT ;
   #define RS 2
   #define ENABLE 4
@@ -130,13 +135,16 @@ char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
 float timestamp = 0;
 boolean first;
 uint32_t nextLoop;
+float reftime; // reference for measuring elapsed time
 
-// declarations needed to maintain compatibility with Eclipse/WinAVR/gcc
+char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
+
+// declaration needed to maintain compatibility with Eclipse/WinAVR/gcc
 void updateLCD( float t1, float t2, float RoR );
 
-// ---------------------------------------------------
 // T1, T2 = temperatures x 1000
 // t1, t2 = time marks, milliseconds
+// ---------------------------------------------------
 float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ) {
   int32_t dt = t2 - t1;
   if( dt == 0 ) return 0.0;  // fixme -- throw an exception here?
@@ -206,7 +214,7 @@ void logger()
     i++;
   };
 
-// log the placeholder to serial port
+// log the dummy placeholder value to serial port
   Serial.println(",0");
   
   updateLCD( t1, t2, RoR );  
@@ -284,6 +292,38 @@ void checkButtons() { // take action if a button is pressed
 }
 #endif // LCDAPTER
 
+// -------------------------------------
+void append( char* str, char c ) { // reinventing the wheel
+  int len = strlen( str );
+  str[len] = c;
+  str[len+1] = '\0';
+}
+
+// -------------------------------------
+void processCommand() {  // a newline character has been received, so process the command
+  if( ! strcmp( command, RESET ) ) { // RESET command received, so reset the timer
+    Serial.print( "# Reset, " ); Serial.println( timestamp ); // write message to log
+    nextLoop = 10 + millis(); // wait 10 ms and force a sample/log cycle
+    reftime = 0.001 * nextLoop; // reset the reference point for timestamp
+    return;
+  }
+}
+
+// -------------------------------------
+void checkSerial() {  // buffer the input from the serial port
+  char c;
+  while( Serial.available() > 0 ) {
+    c = Serial.read();
+    if( ( c == '\n' ) || ( strlen( command ) == MAX_COMMAND ) ) { // check for newline, or buffer overflow
+      processCommand();
+      strcpy( command, "" ); // empty the buffer
+    } // end if
+    else {
+      append( command, c );
+    } // end else
+  } // end while
+}
+
 // ----------------------------------
 void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
@@ -331,19 +371,18 @@ void setup()
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_BRBN ); // display version banner
-
-#ifdef LCDAPTER
-  buttons.begin( 4 );
-  buttons.readButtons();
-  buttons.ledAllOff();
-#endif
-
 #ifdef CELSIUS  // display a C or F after the version to indicate temperature scale
   lcd.print( "C" );
 #else
   lcd.print( "F" );
 #endif
   
+#ifdef LCDAPTER
+  buttons.begin( 4 );
+  buttons.readButtons();
+  buttons.ledAllOff();
+#endif
+
   Serial.begin(BAUD);
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
@@ -357,7 +396,7 @@ void setup()
     Serial.print("# ");
     Serial.print( caldata.cal_gain, 4 ); Serial.print("  ");
     Serial.println( caldata.K_offset, 2 );
-    lcd.setCursor( 0, 1 ); // echo EEPROM data to LCD
+    lcd.setCursor( 0, 1 ); // echo EEPROM PCB (board) data to LCD
     lcd.print( caldata.PCB );
     adc.setCal( caldata.cal_gain, caldata.cal_offset );
     amb.setOffset( caldata.K_offset );
@@ -388,6 +427,7 @@ void setup()
 
   delay( 1800 );
   nextLoop = 2000;
+  reftime = 0.001 * nextLoop; // initialize reftime to the time of first sample
   first = true;
   lcd.clear();
 }
@@ -396,18 +436,20 @@ void setup()
 void loop()
 {
   float idletime;
+  uint32_t thisLoop;
 
-  // update on even 1 second boundaries
+  // delay loop to force update on even LOOPTIME boundaries
   while ( millis() < nextLoop ) { // delay until time for next loop
     if( !first ) { // do not want to check the buttons on the first time through
 #ifdef LCDAPTER
       checkButtons();
 #endif
+      checkSerial(); // Has a command been received?
     } // if not first
   }
   
-  nextLoop += 1000; // time mark for start of next update 
-  timestamp = float( millis() ) * 0.001;
+  thisLoop = millis(); // actual time marker for this loop
+  timestamp = 0.001 * float( thisLoop ) - reftime; // system time, seconds, for this set of samples
   get_samples(); // retrieve values from MCP9800 and MCP3424
   if( first ) // use first samples for RoR base values only
     first = false;
@@ -420,13 +462,13 @@ void loop()
    lasttimes[j] = ftimes[j];
   }
 
-  idletime = float( millis() ) * 0.001;
-  idletime = 1.0 - (idletime - timestamp);
-  // arbitrary: complain if we don't have at least 10mS left
-  if (idletime < 0.010) {
+  idletime = LOOPTIME - ( millis() - thisLoop );
+  // arbitrary: complain if we don't have at least 50mS left
+  if (idletime < 50 ) {
     Serial.print("# idle: ");
     Serial.println(idletime);
   }
 
+  nextLoop += LOOPTIME; // time mark for start of next update 
 }
 
