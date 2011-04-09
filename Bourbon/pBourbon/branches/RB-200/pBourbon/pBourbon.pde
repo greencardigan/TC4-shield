@@ -33,11 +33,11 @@
 
 // ******************************************************************************************
 // ----------------------------------- User preferences -----------------------------------
-//boolean enable_guideprofile = false; // set true to enable
-boolean enable_guideprofile = true; // set true to enable
+boolean enable_guideprofile = false; // set true to enable
+//boolean enable_guideprofile = true; // set true to enable
 //String PROFILE = "myprofile_c.csv";
 String PROFILE = "myprofile.csv";
-int MINUTES = 19; // time limit for graph (change to suit)
+int MINUTES = 16; // time limit for graph (change to suit)
 // ----------------------------------------------------------------------------------------
 // *****************************************************************************************
 
