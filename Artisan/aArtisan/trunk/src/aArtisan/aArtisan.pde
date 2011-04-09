@@ -195,8 +195,8 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
 #endif
     temps[j] = fT[j].doFilter( v ); // apply digital filtering for display/logging
   }
-  BT = D_MULT * temps[0];
-  ET = D_MULT * temps[1];
+  BT = 0.001 * temps[0];
+  ET = 0.001 * temps[1];
 };
 
 #ifdef LCD
