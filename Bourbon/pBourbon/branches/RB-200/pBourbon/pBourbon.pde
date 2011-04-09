@@ -11,7 +11,7 @@
 // Inspired by Tom Igoe's Grapher Pro: http://www.tigoe.net/pcomp/code/category/Processing/122
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
-// acknowledgement for enhancements/corrections added by Brad (greencardigan)
+// acknowledgement for enhancements/corrections added by Brad Collins (greencardigan)
 
 // version 20100806 by Jim Gallt
 // added guide-profile 18 sept William Welch
