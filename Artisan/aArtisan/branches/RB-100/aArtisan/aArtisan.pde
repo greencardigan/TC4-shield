@@ -38,10 +38,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisan V1.00"
+#define BANNER_ARTISAN "aArtisan V1.01"
 
 // Revision history:
 // 20110408 Created.
+// 20110409 Reversed the BT and ET values in the output stream.
+//          Shortened the banner display time to avoid timing issues with Artisan
+//          Echo all commands to the LCD
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -124,11 +127,11 @@ void append( char* str, char c ) { // reinventing the wheel
 
 // -------------------------------------
 void processCommand() {  // a newline character has been received, so process the command
-  if( ! strcmp( command, READ ) ) { // READ command received, read and output a sample
 #ifdef LCD
-    lcd.setCursor( 0, 1 );
-    lcd.print( "READ" );
+    lcd.setCursor( 0, 1 ); // echo all commands to the LCD
+    lcd.print( command );
 #endif
+  if( ! strcmp( command, READ ) ) { // READ command received, read and output a sample
     logger();
     return;
   }
@@ -164,12 +167,12 @@ void logger()
   Serial.print( AT, DP );
   Serial.print( "," );
 
-// print ET
-  Serial.print( ET, DP );
+// print BT
+  Serial.print( BT, DP );
   Serial.print( "," );
   
-// print BT
-  Serial.println( BT, DP );
+// print ET
+  Serial.println( ET, DP );
 };
 
 // --------------------------------------------------------------------------
@@ -235,7 +238,7 @@ void updateLCD() {
   lcd.print( st2 ); 
   
   lcd.setCursor( 0, 1 );
-  lcd.print( "     ");
+  lcd.print( "         ");
 }
 #endif
 
@@ -281,7 +284,7 @@ void setup()
   fT[1].init( ET_FILTER ); // digital filtering on ET
 
 #ifdef LCD
-  delay( 1800 );
+  delay( 500 );
   lcd.clear();
 #endif
 

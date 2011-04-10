@@ -13,7 +13,7 @@
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
 
-#define BAUD 57600  // serial baud rate
+#define BAUD 19200  // serial baud rate
 #define BT_FILTER 50 // filtering level (percent) for BT
 #define ET_FILTER 50 // filtering level (percent) for ET
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings
