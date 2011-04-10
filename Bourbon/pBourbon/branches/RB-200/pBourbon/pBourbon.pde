@@ -11,7 +11,7 @@
 // Inspired by Tom Igoe's Grapher Pro: http://www.tigoe.net/pcomp/code/category/Processing/122
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
-// acknowledgement for enhancements/corrections added by Brad Collins (greencardigan)
+// acknowledgement for enhancements/corrections added by Brad (greencardigan)
 
 // version 20100806 by Jim Gallt
 // added guide-profile 18 sept William Welch
@@ -30,6 +30,7 @@
 // added code to receive marker commands from aBourbon V2.00 and plot on graph
 // added code to extend time axis by 2 minutes after time reaches MAX_TIME - 1 minute
 // added RESET command to synchronize with TC4 (by Jim)
+// added code to load and plot old logfiles in background
 
 // ******************************************************************************************
 // ----------------------------------- User preferences -----------------------------------
@@ -37,7 +38,11 @@ boolean enable_guideprofile = false; // set true to enable
 //boolean enable_guideprofile = true; // set true to enable
 //String PROFILE = "myprofile_c.csv";
 String PROFILE = "myprofile.csv";
-int MINUTES = 16; // time limit for graph (change to suit)
+
+boolean enable_loadlogfile = false; // set true to enable
+String LOGFILE = "logfile.csv";
+
+int MINUTES = 19; // time limit for graph (change to suit)
 // ----------------------------------------------------------------------------------------
 // *****************************************************************************************
 
@@ -50,6 +55,7 @@ String appname = "Bourbon Roast Logger v2.00";
 String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
 
 String profile_data[];
+String logfile_data[];
 String kb_note = "";
 
 color c0 = color(255,0,0); // channel 0
@@ -63,6 +69,10 @@ color clabel = color( 255,255,160 );
 color cgrid_maj = color(120,120,120); // major grid lines
 color cgrid_min = color (90,90,90);
 int cbgnd = 0;  // background color black
+color cloadlogfile_BT = color(100,0,0);
+color cloadlogfile_BTROR = color(0,50,0);
+color cloadlogfile_ET = color(100,100,0);
+
 
 int NCHAN = 2;  // 2 input channels
 
@@ -204,8 +214,9 @@ void setup() {
   if (enable_guideprofile) {
     profile_data = loadStrings(PROFILE);
   }
-
-
+  if (enable_loadlogfile) {
+    logfile_data = loadStrings(LOGFILE);
+  }
 
 } // setup
 
@@ -282,6 +293,58 @@ void drawprofile() {
     line(x1 * time_scale, (MAX_TEMP-y1) * temp_scale, x2 * time_scale, (MAX_TEMP-y2) * temp_scale);
     x1 = x2;
     y1 = y2;
+  }
+}
+
+void drawlogfile() {
+
+  if (logfile_data == null) return;
+  int BT_x1, BT_y1, BT_x2, BT_y2;
+  int BTROR_x1, BTROR_y1, BTROR_x2, BTROR_y2;
+  int ET_x1, ET_y1, ET_x2, ET_y2;
+
+  BT_x1 = 0;
+  BT_y1 = 0;
+  BTROR_x1 = 0;
+  BTROR_y1 = 0;
+  ET_x1 = 0;
+  ET_y1 = 0;
+  
+  for (int i=0; i<logfile_data.length; i++) {
+    String[] rec = split(logfile_data[i], ',');
+    if (rec[0].charAt(0) == '#') {
+      stroke(127,0,127);
+      fill(127,0,127);
+      if (rec[0].equals("# STRT")) {
+        ellipse(int(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
+      } else if (rec[0].equals("# FC")) {
+        ellipse(int(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
+      } else if (rec[0].equals("# SC")) {
+        ellipse(int(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
+      } else if (rec[0].equals("# EJCT")) {
+        ellipse(int(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
+      }
+    }  
+    else {
+      BT_x2 = int(rec[0]);
+      BT_y2 = int(rec[2]);
+      BTROR_x2 = int(rec[0]);
+      BTROR_y2 = int(rec[3]);
+      ET_x2 = int(rec[0]);
+      ET_y2 = int(rec[4]);
+      stroke(cloadlogfile_BT);
+      line(BT_x1 * time_scale, (MAX_TEMP-BT_y1) * temp_scale, BT_x2 * time_scale, (MAX_TEMP-BT_y2) * temp_scale);
+      stroke(cloadlogfile_BTROR);
+      line(BTROR_x1 * time_scale, (MAX_TEMP-BTROR_y1) * temp_scale, BTROR_x2 * time_scale, (MAX_TEMP-BTROR_y2) * temp_scale);
+      stroke(cloadlogfile_ET);
+      line(ET_x1 * time_scale, (MAX_TEMP-ET_y1) * temp_scale, ET_x2 * time_scale, (MAX_TEMP-ET_y2) * temp_scale);
+      BT_x1 = BT_x2;
+      BT_y1 = BT_y2;
+      BTROR_x1 = BTROR_x2;
+      BTROR_y1 = BTROR_y2;
+      ET_x1 = ET_x2;
+      ET_y1 = ET_y2;
+    }
   }
 }
 
@@ -376,6 +439,7 @@ void monitor( int t1, int t2 ) {
 void drawnote() {
   if (kb_note.length() > 0) {
     textFont(labelFont);
+    fill(clabel);
     stroke(128,128,128);
     text(kb_note, 100, 100);
   }
@@ -426,34 +490,34 @@ void draw() {
     text( appname + "\n" + corf + " Mode\nPress a key or click to begin logging ...\n",110, 110 );
   }
   else {
-   drawgrid();
-   drawprofile();
-   drawnote();
-   drawchan(T0, c0 );  
-   drawchan(T1, c1 );
-   if( NCHAN >= 2 )   drawchan(T2, c2 );
-   // if( NCHAN >= 2 )   drawchan(T3, c3 );   // don't draw RoR for 2nd channel
-
-   drawmarkers();
-
-   if (timestamp > MAX_TIME - 60) {
-     MAX_TIME = MAX_TIME + 120;
-     time_scale = 1020 / float (MAX_TIME); // calcs new time scale if MAX_TIME <> 1020 = 17 minutes
+    drawgrid();
+    drawprofile();
+    drawlogfile();
+    drawnote();
+    drawchan(T0, c0 );  
+    drawchan(T1, c1 );
+    if( NCHAN >= 2 )   drawchan(T2, c2 );
+    // if( NCHAN >= 2 )   drawchan(T3, c3 );   // don't draw RoR for 2nd channel
+    drawmarkers();
+   
+    // put numeric monitor at top of screen
+    monitor( 18, 16 );
+   
+    if (timestamp > MAX_TIME - 60) {
+      MAX_TIME = MAX_TIME + 120;
+      time_scale = 1020 / float (MAX_TIME); // calcs new time scale if MAX_TIME <> 1020 = 17 minutes
      
-     // extend arrays
-     T0[0] = (float[]) expand(T0[0], T0[0].length + 120);
-     T0[1] = (float[]) expand(T0[1], T0[1].length + 120);
-     T1[0] = (float[]) expand(T1[0], T1[0].length + 120);
-     T1[1] = (float[]) expand(T1[1], T1[1].length + 120);
-     if( NCHAN >= 2 )   T2[0] = (float[]) expand(T2[0], T2[0].length + 120);
-     if( NCHAN >= 2 )   T2[1] = (float[]) expand(T2[1], T2[1].length + 120);
-     if( NCHAN >= 2 )   T3[0] = (float[]) expand(T3[0], T3[0].length + 120);
-     if( NCHAN >= 2 )   T3[1] = (float[]) expand(T3[1], T3[1].length + 120);
-   }
-
-   // put numeric monitor at top of screen
-   monitor( 18, 16 );
-  }; // end else
+      // extend arrays
+      T0[0] = (float[]) expand(T0[0], T0[0].length + 120);
+      T0[1] = (float[]) expand(T0[1], T0[1].length + 120);
+      T1[0] = (float[]) expand(T1[0], T1[0].length + 120);
+      T1[1] = (float[]) expand(T1[1], T1[1].length + 120);
+      if( NCHAN >= 2 )   T2[0] = (float[]) expand(T2[0], T2[0].length + 120);
+      if( NCHAN >= 2 )   T2[1] = (float[]) expand(T2[1], T2[1].length + 120);
+      if( NCHAN >= 2 )   T3[0] = (float[]) expand(T3[0], T3[0].length + 120);
+      if( NCHAN >= 2 )   T3[1] = (float[]) expand(T3[1], T3[1].length + 120);
+    }
+  } // end else
 }
 
 // -------------------------------------------------------------
@@ -526,7 +590,7 @@ void serialEvent(Serial comport) { // this is executed each time a line of data 
       println();
   
       idx++; // increment the data array counter
-      idx = idx % MAX_TIME; // wrap the counter ?? FIXME:  test this
+      //idx = idx % MAX_TIME; // wrap the counter ?? FIXME:  test this
     } // end else if started
   
 } // serialEvent
@@ -534,11 +598,12 @@ void serialEvent(Serial comport) { // this is executed each time a line of data 
 // ------------------------------- save a frame when mouse is clicked
 void mouseClicked() {
   if( !started ) {  // waiting for user to begin logging
-    started = true; 
+    started = true;
+    println("\nSynchronising aBourbon Time");
     comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
   }
   else {
-   saveFrame(filename + "-##" + ".jpg" );
+    saveFrame(filename + "-##" + ".jpg" );
   }
 }
 
@@ -547,6 +612,7 @@ void keyPressed() {
   
   if( !started ) { // waiting for user to begin logging
     started = true; 
+    println("\nSynchronising aBourbon Time");
     comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
   }
   else {
@@ -572,6 +638,7 @@ void keyPressed() {
           er_y = MAX_TEMP - T0[1][idx-1];
           println("# EJCT," + timestamp);
           logfile.println("# EJCT," + timestamp);
+          saveFrame(filename + "-##" + ".jpg" );  // save an image for posterity at eject time
           break;
         case 'B':
         case 'b':
@@ -612,6 +679,7 @@ void startSerial() {
 
 // ---------------------------------------------------
 void stop() {
+  if( started ) saveFrame(filename + "-##" + ".jpg" );  // save an image for posterity at exit
   comport.stop();
   logfile.flush();
   logfile.close();
