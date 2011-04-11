@@ -11,7 +11,7 @@
 // Inspired by Tom Igoe's Grapher Pro: http://www.tigoe.net/pcomp/code/category/Processing/122
 // and Tim Hirzel's BCCC Plotter: http://www.arduino.cc/playground/Main/BBCCPlotter
 
-// acknowledgement for enhancements/corrections added by Brad (greencardigan)
+// acknowledgement for enhancements/corrections added by Brad Collins (greencardigan)
 
 // version 20100806 by Jim Gallt
 // added guide-profile 18 sept William Welch
@@ -299,9 +299,9 @@ void drawprofile() {
 void drawlogfile() {
 
   if (logfile_data == null) return;
-  int BT_x1, BT_y1, BT_x2, BT_y2;
-  int BTROR_x1, BTROR_y1, BTROR_x2, BTROR_y2;
-  int ET_x1, ET_y1, ET_x2, ET_y2;
+  float BT_x1, BT_y1, BT_x2, BT_y2;
+  float BTROR_x1, BTROR_y1, BTROR_x2, BTROR_y2;
+  float ET_x1, ET_y1, ET_x2, ET_y2;
 
   BT_x1 = 0;
   BT_y1 = 0;
@@ -316,26 +316,26 @@ void drawlogfile() {
       stroke(127,0,127);
       fill(127,0,127);
       if (rec[0].equals("# STRT")) {
-        ellipse(int(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
+        ellipse(float(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
       } else if (rec[0].equals("# FC")) {
-        ellipse(int(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
+        ellipse(float(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
       } else if (rec[0].equals("# SC")) {
-        ellipse(int(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
+        ellipse(float(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
       } else if (rec[0].equals("# EJCT")) {
-        ellipse(int(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
+        ellipse(float(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
       }
     }  
     else {
-      BT_x2 = int(rec[0]);
-      BT_y2 = int(rec[2]);
-      BTROR_x2 = int(rec[0]);
-      BTROR_y2 = int(rec[3]);
-      ET_x2 = int(rec[0]);
-      ET_y2 = int(rec[4]);
+      BT_x2 = float(rec[0]);
+      BT_y2 = float(rec[2]);
+      BTROR_x2 = float(rec[0]);
+      BTROR_y2 = float(rec[3]);
+      ET_x2 = float(rec[0]);
+      ET_y2 = float(rec[4]);
       stroke(cloadlogfile_BT);
       line(BT_x1 * time_scale, (MAX_TEMP-BT_y1) * temp_scale, BT_x2 * time_scale, (MAX_TEMP-BT_y2) * temp_scale);
       stroke(cloadlogfile_BTROR);
-      line(BTROR_x1 * time_scale, (MAX_TEMP-BTROR_y1) * temp_scale, BTROR_x2 * time_scale, (MAX_TEMP-BTROR_y2) * temp_scale);
+      line(BTROR_x1 * time_scale, (MAX_TEMP-(BTROR_y1 * 10)) * temp_scale, BTROR_x2 * time_scale, (MAX_TEMP-(BTROR_y2 * 10)) * temp_scale);
       stroke(cloadlogfile_ET);
       line(ET_x1 * time_scale, (MAX_TEMP-ET_y1) * temp_scale, ET_x2 * time_scale, (MAX_TEMP-ET_y2) * temp_scale);
       BT_x1 = BT_x2;
