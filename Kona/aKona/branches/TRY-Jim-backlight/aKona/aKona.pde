@@ -1,6 +1,6 @@
  // Kona.pde
 // Kona project
-#define VERSION 4.00
+#define VERSION 4.01 // edited 4/13/2011 by Jim Gallt for backlight support on LCDapter
 
 /*
 // *** BSD License ***
