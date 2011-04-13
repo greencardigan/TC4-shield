@@ -21,8 +21,8 @@ void buttonAction( uint8_t key ) {
   switch( key ) {
     case 3: ++val[0]; break;
     case 2: --val[0]; break;
-    case 1: ++val[1]; break;
-    case 0: --val[1]; break;
+    case 1: ++val[1]; lcd.backlight(); break;
+    case 0: --val[1]; lcd.noBacklight(); break;
   }
 }
 
