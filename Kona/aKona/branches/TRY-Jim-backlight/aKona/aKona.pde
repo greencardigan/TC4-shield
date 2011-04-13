@@ -119,8 +119,8 @@ void profile_act();        //routine in profile.pde
 #define CT_FILTER 10 // filtering level (percent) for T2
 #define BAUD 57600  // serial baud rate
 
-// fixme This value should be user selectable
-#define NSAMPLES 10 // samples used for moving average calc for temperature
+// fixme This value should be user selectable -- NO LONGER USED (Jim)
+//#define NSAMPLES 10 // samples used for moving average calc for temperature
 
 // use RISE_FILTER to adjust the sensitivity of the RoR calculation
 // higher values will give a smoother RoR trace, but will also create more
@@ -139,6 +139,8 @@ void profile_act();        //routine in profile.pde
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings
 //#define ANALOG_IN // comment this line out if you do not connect a pot to anlg1 port
 
+#define BACKLIGHT lcd.backlight();  // use this version if using the LCDapter
+//#define BACKLIGHT ; // use this version if I2C LCD adapter automatically enables the backlight
 
 //****************************************************************************************************
 //                  Global Variables
@@ -266,6 +268,7 @@ my_out.begin_A();
 #endif
 
 lcd.begin(COLS, ROWS);  //intialize LCD, COLS and ROWS are defined in user.h
+BACKLIGHT // explicitly turn on backlight (Jim)
 
 Serial.begin(BAUD);    //start serial port
 
