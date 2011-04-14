@@ -16,8 +16,8 @@
 //#define ARTISAN03x
 
 #define BAUD 19200  // serial baud rate
-#define BT_FILTER 50 // filtering level (percent) for BT
-#define ET_FILTER 50 // filtering level (percent) for ET
+#define BT_FILTER 10 // filtering level (percent) for BT
+#define ET_FILTER 10 // filtering level (percent) for ET
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings
 
 // default values for systems without calibration values stored in EEPROM

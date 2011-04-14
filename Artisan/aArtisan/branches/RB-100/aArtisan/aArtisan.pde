@@ -39,14 +39,16 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V1.02"
+#define BANNER_ARTISAN "aARTISAN V1.03"
 
 // Revision history:
 // 20110408 Created.
 // 20110409 Reversed the BT and ET values in the output stream.
 //          Shortened the banner display time to avoid timing issues with Artisan
 //          Echo all commands to the LCD
-// 20110413 Added support for Artisan 04.1
+// 20110413 Added support for Artisan 0.4.1
+// 20110414 Reduced filtering levels on BT, ET
+//          Improved robustness of checkSerial() for stops/starts by Artisan
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -122,10 +124,13 @@ char st1[6],st2[6];
 
 // array to store temperatures for each channel
 int32_t temps[NCHAN]; //  stored temperatures are divided by D_MULT
+
+// global values
 float AT, BT, ET; // ambient, bean, environmental temps
 
 char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
 
+#ifdef ARTISAN03x
 // -------------------------------------
 void append( char* str, char c ) { // reinventing the wheel
   int len = strlen( str );
@@ -133,7 +138,6 @@ void append( char* str, char c ) { // reinventing the wheel
   str[len+1] = '\0';
 }
 
-#ifdef ARTISAN03x
 // -------------------------------------
 void processCommand() {  // a newline character has been received, so process the command
 #ifdef LCD
@@ -183,21 +187,28 @@ void processCommand() {  // a newline character has been received, so process th
 }
 
 void checkSerial() { // read the input from the serial port
-  if( Serial.available() == 6 ) {
-    for( int i = 0; i < 6; i++ )
-      command[i] = Serial.read();
-    command[6] = '\0';
-    processCommand();
+  char c;
+  if( Serial.available() >= 6 ) {
+    c = Serial.read();
+    if( c == 'R' ) { // wait for an R character
+      command[0] = c;
+      if( Serial.available() >= 5 ) {
+        for( int i = 1; i < 6; i++ )
+          command[i] = Serial.read();
+        command[6] = '\0';
+        processCommand();
+      }     
+    }
   }
 }
 #endif
-
 
 // ----------------------------------
 void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
     checkSerial();
+    // add future code here to detect LCDapter button presses, etc.
   }
 }
 
@@ -216,7 +227,6 @@ void logger()
 // print BT
   Serial.print( convertUnits( BT ), DP );
   Serial.print( "," );
-
 // print ET
   Serial.println( convertUnits( ET ), DP );
 }
@@ -241,7 +251,6 @@ void get_samples( int nchan ) // this function talks to the amb sensor and ADC v
   }
   BT = 0.001 * temps[0];
   ET = 0.001 * temps[1];
-
 };
 
 #ifdef LCD
@@ -254,7 +263,7 @@ void updateLCD() {
     it01 = 999;
   else
     if( it01 < -999 ) it01 = -999;
-  sprintf( st1, "%3d", it01 );
+  sprintf( st1, "%4d", it01 );
   lcd.setCursor( 0, 0 );
   lcd.print("AMB:");
   lcd.print(st1);
@@ -265,7 +274,7 @@ void updateLCD() {
     it01 = 999;
   else
     if( it01 < -999 ) it01 = -999;
-  sprintf( st1, "%3d", it01 );
+  sprintf( st1, "%4d", it01 );
   lcd.setCursor( 9, 0 );
   lcd.print("BT:");
   lcd.print(st1);
@@ -274,7 +283,7 @@ void updateLCD() {
   int it02 = round( convertUnits( ET ) );
   if( it02 > 999 ) it02 = 999;
   else if( it02 < -999 ) it02 = -999;
-  sprintf( st2, "%3d", it02 );
+  sprintf( st2, "%4d", it02 );
   lcd.setCursor( 9, 1 );
   lcd.print( "ET:" );
   lcd.print( st2 ); 
@@ -333,7 +342,7 @@ void setup()
   fT[1].init( ET_FILTER ); // digital filtering on ET
 
 #ifdef LCD
-  delay( 500 );
+  delay( 1000 );
   lcd.clear();
 #endif
 
