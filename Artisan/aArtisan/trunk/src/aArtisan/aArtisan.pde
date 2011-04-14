@@ -1,7 +1,8 @@
 // aArtisan.pde
 // ------------
 
-// This sketch responds to a "READ\n" command on the serial line
+// This sketch responds to a "READ\n" command on the serial line (ARTISAN03x)
+// or "RF2000" or "RC2000" on the serial line (ARTISAN04x)
 // and outputs ambient temperature, bean temperature, environmental temperature
 //
 // Written to support the Artisan roasting scope //http://code.google.com/p/artisan/
@@ -38,13 +39,14 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisan V1.01"
+#define BANNER_ARTISAN "aARTISAN V1.02"
 
 // Revision history:
 // 20110408 Created.
 // 20110409 Reversed the BT and ET values in the output stream.
 //          Shortened the banner display time to avoid timing issues with Artisan
 //          Echo all commands to the LCD
+// 20110413 Added support for Artisan 04.1
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -67,7 +69,7 @@
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 
-#define READ "READ" // text string command recognized by aArtisan
+#define READ "READ" // text string command from Artisan 03x
 #define MAX_COMMAND 80 // max length of a command string
 
 
@@ -84,6 +86,12 @@ struct infoBlock {
 };
 mcEEPROM eeprom;
 infoBlock caldata;
+#endif
+
+#ifdef CELSIUS
+boolean Cscale = true;
+#else
+boolean Cscale = false;
 #endif
 
 // class objects
@@ -125,6 +133,7 @@ void append( char* str, char c ) { // reinventing the wheel
   str[len+1] = '\0';
 }
 
+#ifdef ARTISAN03x
 // -------------------------------------
 void processCommand() {  // a newline character has been received, so process the command
 #ifdef LCD
@@ -142,7 +151,8 @@ void checkSerial() {  // buffer the input from the serial port
   char c;
   while( Serial.available() > 0 ) {
     c = Serial.read();
-    if( ( c == '\n' ) || ( strlen( command ) == MAX_COMMAND ) ) { // check for newline, or buffer overflow
+    // check for newline, buffer overflow, or character count
+    if( ( c == '\n' ) || ( strlen( command ) == MAX_COMMAND ) ) { 
       processCommand();
       strcpy( command, "" ); // empty the buffer
     } // end if
@@ -151,6 +161,37 @@ void checkSerial() {  // buffer the input from the serial port
     } // end else
   } // end while
 }
+#endif
+
+#ifdef ARTISAN04x
+// -------------------------------------
+void processCommand() {  // a newline character has been received, so process the command
+#ifdef LCD
+    lcd.setCursor( 0, 1 ); // echo all commands to the LCD
+    lcd.print( command );
+#endif
+  if( ! strcmp( command, "RF2000" ) ) { // command received, read and output a sample
+    Cscale = false;
+    logger();
+    return;
+  }
+  if( ! strcmp( command, "RC2000" ) ) { // command received, read and output a sample
+    Cscale = true;
+    logger();
+    return;
+  }
+}
+
+void checkSerial() { // read the input from the serial port
+  if( Serial.available() == 6 ) {
+    for( int i = 0; i < 6; i++ )
+      command[i] = Serial.read();
+    command[6] = '\0';
+    processCommand();
+  }
+}
+#endif
+
 
 // ----------------------------------
 void checkStatus( uint32_t ms ) { // this is an active delay loop
@@ -160,54 +201,55 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
   }
 }
 
+// ----------------------------------------------------
+float convertUnits ( float t ) {
+  if( Cscale ) return F_TO_C( t );
+  else return t;
+}
+
 // ------------------------------------------------------------------
 void logger()
 {
 // print ambient
-  Serial.print( AT, DP );
+  Serial.print( convertUnits( AT ), DP );
+  Serial.print( "," );
+// print BT
+  Serial.print( convertUnits( BT ), DP );
   Serial.print( "," );
 
-// print BT
-  Serial.print( BT, DP );
-  Serial.print( "," );
-  
 // print ET
-  Serial.println( ET, DP );
-};
+  Serial.println( convertUnits( ET ), DP );
+}
 
 // --------------------------------------------------------------------------
-void get_samples() // this function talks to the amb sensor and ADC via I2C
+void get_samples( int nchan ) // this function talks to the amb sensor and ADC via I2C
 {
   int32_t v;
   TC_TYPE tc;
-  float tempC;
+  float tempF;
   
-  for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
+  for( int j = 0; j < nchan; j++ ) { // one-shot conversions on both chips
     adc.nextConversion( j ); // start ADC conversion on channel j
     amb.nextConversion(); // start ambient sensor conversion
     checkStatus( MIN_DELAY ); // give the chips time to perform the conversions
     amb.readSensor(); // retrieve value from ambient temp register
     v = adc.readuV(); // retrieve microvolt sample from MCP3424
-    tempC = tc.Temp_C( 0.001 * v, amb.getAmbC() ); // convert uV to Celsius
-#ifdef CELSIUS
-    v = round( tempC / D_MULT ); // store results as integers
-    AT = amb.getAmbC();
-#else
-    v = round( C_TO_F( tempC ) / D_MULT ); // store results as integers
+    tempF = tc.Temp_F( 0.001 * v, amb.getAmbF() ); // convert uV to Celsius
+    v = round( tempF / D_MULT ); // store results as integers
     AT = amb.getAmbF();
-#endif
     temps[j] = fT[j].doFilter( v ); // apply digital filtering for display/logging
   }
   BT = 0.001 * temps[0];
   ET = 0.001 * temps[1];
+
 };
 
 #ifdef LCD
 // --------------------------------------------
 void updateLCD() {
-
-  // AT
-  int it01 = round( AT );
+  
+ // AT
+  int it01 = round( convertUnits( AT ) );
   if( it01 > 999 ) 
     it01 = 999;
   else
@@ -218,7 +260,7 @@ void updateLCD() {
   lcd.print(st1);
 
   // BT
-  it01 = round( BT );
+  it01 = round( convertUnits( BT ) );
   if( it01 > 999 ) 
     it01 = 999;
   else
@@ -229,7 +271,7 @@ void updateLCD() {
   lcd.print(st1);
 
   // ET
-  int it02 = round( ET );
+  int it02 = round( convertUnits( ET ) );
   if( it02 > 999 ) it02 = 999;
   else if( it02 < -999 ) it02 = -999;
   sprintf( st2, "%3d", it02 );
@@ -257,12 +299,19 @@ void setup()
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_ARTISAN ); // display version banner
-#ifdef CELSIUS  // display a C or F after the version to indicate temperature scale
-  lcd.print( "C" );
+  lcd.setCursor( 0, 1 );
+#ifdef ARTISAN03x
+  lcd.print( "ARTISAN03.x" );
+#ifdef CELSIUS
+  lcd.print( " C");
 #else
-  lcd.print( "F" );
-#endif
-#endif
+  lcd.print( " F");
+#endif // Celsius
+#endif // Artisan 03
+#ifdef ARTISAN04x
+  lcd.print( "ARTISAN04.x" );
+#endif // Artisan 04
+#endif // LCD
 
 
 #ifdef EEPROM_ARTISAN
@@ -293,7 +342,7 @@ void setup()
 // -----------------------------------------------------------------
 void loop()
 {
-  get_samples();
+  get_samples( NCHAN );
   
 #ifdef LCD
   updateLCD();
