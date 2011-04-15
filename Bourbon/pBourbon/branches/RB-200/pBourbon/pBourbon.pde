@@ -20,6 +20,8 @@
 // version 20101023 by Jim Gallt
 // added code to optionally turn off TC reading average (SAMPLESIZE = 1)
 
+// Release 2.00 by Brad (mostly) and Jim (a little)
+// -------------------------------------------------
 // added code for Celsius mode
 // added 'First Crack' and 'Second Crack' markers. 'F' and 'S'
 // added code to scale temp axis in celsius mode if c_MAX_TEMP is changed
@@ -32,19 +34,28 @@
 // added RESET command to synchronize with TC4 (by Jim)
 // added code to load and plot old logfiles in background
 
-// ******************************************************************************************
-// ----------------------------------- User preferences -----------------------------------
+// ************************************* User Preferences **************************************
+
+// Optionally, plot a target roast profile to guide you
 boolean enable_guideprofile = false; // set true to enable
 //boolean enable_guideprofile = true; // set true to enable
 //String PROFILE = "myprofile_c.csv";
 String PROFILE = "myprofile.csv";
 
+// Optionally, plot the results of an old roast that you want to duplicate
 boolean enable_loadlogfile = false; // set true to enable
+//boolean enable_loadlogfile = true; // set true to enable
 String LOGFILE = "logfile.csv";
+//String LOGFILE ="logfile_c.csv";
 
-int MINUTES = 19; // time limit for graph (change to suit)
-// ----------------------------------------------------------------------------------------
-// *****************************************************************************************
+// make this as short as possible for good resolution;  depends on your roaster
+int MINUTES = 17; // time limit for graph (change to suit)
+
+// change the plot background color
+//int CBGND = 64; // background color dark grey
+int CBGND = 0;  // background color black
+
+// **********************************************************************************************
 
 
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
@@ -68,18 +79,19 @@ color cidx = color( 0,255,255 );
 color clabel = color( 255,255,160 );
 color cgrid_maj = color(120,120,120); // major grid lines
 color cgrid_min = color (90,90,90);
-int cbgnd = 0;  // background color black
-color cloadlogfile_BT = color(100,0,0);
-color cloadlogfile_BTROR = color(0,50,0);
-color cloadlogfile_ET = color(100,100,0);
-
+int cbgnd = CBGND;  // background color
+color cloadlogfile_BT = color(150,0,0);
+color cloadlogfile_BTROR = color(0,125,0);
+color cloadlogfile_ET = color(150,150,0);
 
 int NCHAN = 2;  // 2 input channels
+int START_DELAY = 2000; // ms to wait to be sure aBourbon sketch is up and running
 
 // default values for port and baud rate
 String whichport = "COM1";
 int baudrate = 57600;
 boolean started;  // waits for a keypress to begin logging
+boolean makeJPG = false; // flag for doing a frame grab in draw()
 
 import processing.serial.*;
 Serial comport;
@@ -502,6 +514,12 @@ void draw() {
    
     // put numeric monitor at top of screen
     monitor( 18, 16 );
+    
+    // grab a frame if request is queued
+    if( makeJPG ) {
+      saveFrame(filename + "-##" + ".jpg" );
+      makeJPG = false;
+    }
    
     if (timestamp > MAX_TIME - 60) {
       MAX_TIME = MAX_TIME + 120;
@@ -549,7 +567,7 @@ void serialEvent(Serial comport) { // this is executed each time a line of data 
         } else if (rec[0].equals("# EJCT")) {
           er_x = T0[0][idx-1];
           er_y = MAX_TEMP - T0[1][idx-1];
-          saveFrame(filename + "-##" + ".jpg" );  // save an image for posterity at eject time
+          makeJPG = true;  // save an image for posterity at eject time
         }
       } // end if started (for roast markers)
     } // end if this line is a comment
@@ -599,11 +617,12 @@ void serialEvent(Serial comport) { // this is executed each time a line of data 
 void mouseClicked() {
   if( !started ) {  // waiting for user to begin logging
     started = true;
+    delay( START_DELAY ); // make sure the Arduino sketch has had time to get started
     println("\nSynchronising aBourbon Time");
     comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
   }
   else {
-    saveFrame(filename + "-##" + ".jpg" );
+    makeJPG = true;  // queue a request to save a frame
   }
 }
 
@@ -612,6 +631,7 @@ void keyPressed() {
   
   if( !started ) { // waiting for user to begin logging
     started = true; 
+    delay( START_DELAY ); // make sure the Arduino sketch has had time to get started
     println("\nSynchronising aBourbon Time");
     comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
   }
@@ -638,7 +658,7 @@ void keyPressed() {
           er_y = MAX_TEMP - T0[1][idx-1];
           println("# EJCT," + timestamp);
           logfile.println("# EJCT," + timestamp);
-          saveFrame(filename + "-##" + ".jpg" );  // save an image for posterity at eject time
+          makeJPG = true; // save an image for posterity at eject time
           break;
         case 'B':
         case 'b':
