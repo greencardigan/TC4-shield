@@ -1,8 +1,8 @@
 // aArtisan.pde
 // ------------
 
-// This sketch responds to a "READ\n" command on the serial line (ARTISAN03x)
-// or "RF2000" or "RC2000" on the serial line (ARTISAN04x)
+// This sketch responds to a "READ\n" command on the serial line (Artisan 0.3.x)
+// or "RF2000\n" or "RC2000\n" on the serial line (Artisan 0.4.x)
 // and outputs ambient temperature, bean temperature, environmental temperature
 //
 // Written to support the Artisan roasting scope //http://code.google.com/p/artisan/
@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V1.03"
+#define BANNER_ARTISAN "aARTISAN V1.04"
 
 // Revision history:
 // 20110408 Created.
@@ -49,6 +49,7 @@
 // 20110413 Added support for Artisan 0.4.1
 // 20110414 Reduced filtering levels on BT, ET
 //          Improved robustness of checkSerial() for stops/starts by Artisan
+//          Revised command format to include newline character for Artisan 0.4.x
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -71,9 +72,7 @@
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 
-#define READ "READ" // text string command from Artisan 03x
 #define MAX_COMMAND 80 // max length of a command string
-
 
 #ifdef EEPROM_ARTISAN // optional code if EEPROM flag is active
 #include <mcEEPROM.h>
@@ -103,10 +102,8 @@ filterRC fT[NCHAN]; // filter for logged ET, BT
 
 // ---------------------------------- LCD interface definition
 #ifdef LCD
-
 // LCD output strings
 char st1[6],st2[6];
-
 #ifdef LCDAPTER
   #define BACKLIGHT lcd.backlight();
   cLCD lcd; // I2C LCD interface
@@ -121,6 +118,7 @@ char st1[6],st2[6];
   LiquidCrystal lcd( RS, ENABLE, D4, D5, D6, D7 ); // standard 4-bit parallel interface
 #endif
 #endif
+// --------------------------------------------- end LCD interface
 
 // array to store temperatures for each channel
 int32_t temps[NCHAN]; //  stored temperatures are divided by D_MULT
@@ -130,7 +128,6 @@ float AT, BT, ET; // ambient, bean, environmental temps
 
 char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
 
-#ifdef ARTISAN03x
 // -------------------------------------
 void append( char* str, char c ) { // reinventing the wheel
   int len = strlen( str );
@@ -139,23 +136,11 @@ void append( char* str, char c ) { // reinventing the wheel
 }
 
 // -------------------------------------
-void processCommand() {  // a newline character has been received, so process the command
-#ifdef LCD
-    lcd.setCursor( 0, 1 ); // echo all commands to the LCD
-    lcd.print( command );
-#endif
-  if( ! strcmp( command, READ ) ) { // READ command received, read and output a sample
-    logger();
-    return;
-  }
-}
-
-// -------------------------------------
 void checkSerial() {  // buffer the input from the serial port
   char c;
   while( Serial.available() > 0 ) {
     c = Serial.read();
-    // check for newline, buffer overflow, or character count
+    // check for newline, buffer overflow
     if( ( c == '\n' ) || ( strlen( command ) == MAX_COMMAND ) ) { 
       processCommand();
       strcpy( command, "" ); // empty the buffer
@@ -165,9 +150,7 @@ void checkSerial() {  // buffer the input from the serial port
     } // end else
   } // end while
 }
-#endif
 
-#ifdef ARTISAN04x
 // -------------------------------------
 void processCommand() {  // a newline character has been received, so process the command
 #ifdef LCD
@@ -184,24 +167,11 @@ void processCommand() {  // a newline character has been received, so process th
     logger();
     return;
   }
-}
-
-void checkSerial() { // read the input from the serial port
-  char c;
-  if( Serial.available() >= 6 ) {
-    c = Serial.read();
-    if( c == 'R' ) { // wait for an R character
-      command[0] = c;
-      if( Serial.available() >= 5 ) {
-        for( int i = 1; i < 6; i++ )
-          command[i] = Serial.read();
-        command[6] = '\0';
-        processCommand();
-      }     
-    }
+  if( ! strcmp( command, "READ" ) ) { // legacy code to support Artisan 0.3.4
+    logger();
+    return;
   }
 }
-#endif
 
 // ----------------------------------
 void checkStatus( uint32_t ms ) { // this is an active delay loop
@@ -308,20 +278,12 @@ void setup()
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_ARTISAN ); // display version banner
-  lcd.setCursor( 0, 1 );
-#ifdef ARTISAN03x
-  lcd.print( "ARTISAN03.x" );
 #ifdef CELSIUS
   lcd.print( " C");
 #else
   lcd.print( " F");
 #endif // Celsius
-#endif // Artisan 03
-#ifdef ARTISAN04x
-  lcd.print( "ARTISAN04.x" );
-#endif // Artisan 04
 #endif // LCD
-
 
 #ifdef EEPROM_ARTISAN
   // read calibration and identification data from eeprom
@@ -342,7 +304,7 @@ void setup()
   fT[1].init( ET_FILTER ); // digital filtering on ET
 
 #ifdef LCD
-  delay( 1000 );
+  delay( 800 );
   lcd.clear();
 #endif
 

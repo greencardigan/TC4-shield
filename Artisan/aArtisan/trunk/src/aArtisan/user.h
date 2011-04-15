@@ -12,7 +12,7 @@
 //#define CELSIUS // if defined, output is in Celsius units; otherwise Fahrenheit
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
-#define ARTISAN04x
+//#define ARTISAN04x
 //#define ARTISAN03x
 
 #define BAUD 19200  // serial baud rate
