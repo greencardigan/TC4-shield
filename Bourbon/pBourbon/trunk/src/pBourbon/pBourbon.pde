@@ -637,7 +637,6 @@ void mouseClicked() {
 void keyPressed() { 
   
   if( !started ) { // waiting for user to begin logging
-    started = true; 
     delay( START_DELAY ); // make sure the Arduino sketch has had time to get started
     println("\nSynchronising aBourbon Time");
     comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
