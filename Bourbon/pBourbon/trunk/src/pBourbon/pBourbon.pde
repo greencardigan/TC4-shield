@@ -37,20 +37,9 @@
 // Version 2.10
 // ----------------
 // added code for multiple resets to accommodate slow response from Uno board
+// program now loads guide profile and log file automatically if they are present
 
 // ************************************* User Preferences **************************************
-
-// Optionally, plot a target roast profile to guide you
-boolean enable_guideprofile = false; // set true to enable
-//boolean enable_guideprofile = true; // set true to enable
-//String PROFILE = "myprofile_c.csv";
-String PROFILE = "myprofile.csv";
-
-// Optionally, plot the results of an old roast that you want to duplicate
-boolean enable_loadlogfile = false; // set true to enable
-//boolean enable_loadlogfile = true; // set true to enable
-String LOGFILE = "logfile.csv";
-//String LOGFILE ="logfile_c.csv";
 
 // make this as short as possible for good resolution;  depends on your roaster
 int MINUTES = 17; // time limit for graph (change to suit)
@@ -60,7 +49,6 @@ int MINUTES = 17; // time limit for graph (change to suit)
 int CBGND = 0;  // background color black
 
 // **********************************************************************************************
-
 
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
@@ -72,6 +60,12 @@ String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
 String profile_data[];
 String logfile_data[];
 String kb_note = "";
+
+// ---------------- variables for guide profiles
+boolean enable_guideprofile = true; // true unless file is not found
+boolean enable_loadlogfile = true;
+String LOGFILE = "logfile.csv";
+String PROFILE = "profile.csv";
 
 color c0 = color(255,0,0); // channel 0
 color c1 = color(0,255,0);
@@ -89,7 +83,6 @@ color cloadlogfile_BTROR = color(0,125,0);
 color cloadlogfile_ET = color(150,150,0);
 
 int NCHAN = 2;  // 2 input channels
-// int START_DELAY = 2000; // ms to wait to be sure aBourbon sketch is up and running
 int resetAck = 0;  // count RESET command acknowledgements
 
 // default values for port and baud rate
@@ -178,7 +171,11 @@ void setup() {
   };
   if( lines.length >= 4 ) {
     String[] corfstring = split( lines[3], "," );
-    if( corfstring[0].equals("C")) corf = "Celsius";
+    if( corfstring[0].equals("C")) {
+      corf = "Celsius";
+      LOGFILE = "logfile_c.csv";
+      PROFILE = "profile_c.csv";
+    }
   };
 
   print( "COM Port: "); println( whichport );
@@ -228,12 +225,25 @@ void setup() {
   smooth();
   background(cbgnd);
 
+// -------------- if guide profile or guide logfile are present, load them
+  profile_data = loadStrings( PROFILE );
+  if( profile_data == null ) {
+    enable_guideprofile = false;
+  }
+  
+  logfile_data = loadStrings(LOGFILE);
+  if( logfile_data == null ) {
+    enable_loadlogfile = false;
+  }
+
+/*  
   if (enable_guideprofile) {
     profile_data = loadStrings(PROFILE);
   }
   if (enable_loadlogfile) {
     logfile_data = loadStrings(LOGFILE);
   }
+*/
 
 } // setup
 
