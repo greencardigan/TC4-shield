@@ -89,7 +89,8 @@ color cloadlogfile_BTROR = color(0,125,0);
 color cloadlogfile_ET = color(150,150,0);
 
 int NCHAN = 2;  // 2 input channels
-int START_DELAY = 2000; // ms to wait to be sure aBourbon sketch is up and running
+// int START_DELAY = 2000; // ms to wait to be sure aBourbon sketch is up and running
+int resetAck = 0;  // count RESET command acknowledgements
 
 // default values for port and baud rate
 String whichport = "COM1";
@@ -557,8 +558,11 @@ void serialEvent(Serial comport) { // this is executed each time a line of data 
     if (msg.charAt(0) == '#') { // this line is a comment
       logfile.println(msg); // write it to the log no matter what
       println(msg); // write it to the terminal no matter what     
-      String[] rec = split(msg, ",");  // comma separated input list      
-      if( started ) { // skip these roast markers if logging hasn't been started by the user
+      String[] rec = split(msg, ",");  // comma separated input list
+      if( rec[0].equals( "# Reset" ) ) { // acknowledge, and count, RESET's echoed back from remote
+        ++resetAck;    // count them for possible debugging use
+      }
+        else if( started ) { // skip these roast markers if logging hasn't been started by the user
         if (rec[0].equals("# STRT")) { 
           ba_x = T0[0][idx-1];
           ba_y = MAX_TEMP - T0[1][idx-1];
@@ -617,16 +621,25 @@ void serialEvent(Serial comport) { // this is executed each time a line of data 
   
 } // serialEvent
 
+// ------------------------------- reset the Arduino, etc.
+void resetRemote() {
+//    delay( START_DELAY ); // make sure the remote has had time to get started
+    println("\nSynchronising with remote:");
+    int i = 0;
+    while( resetAck == 0 && i < 10 ) {
+      comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
+      delay( 500 );
+      i++;
+    }
+    print( resetAck ); println( " reset(s) required." );
+    if( resetAck != 0 )
+      started = true;
+}
+
 // ------------------------------- save a frame when mouse is clicked
 void mouseClicked() {
   if( !started ) {  // waiting for user to begin logging
-    delay( START_DELAY ); // make sure the Arduino sketch has had time to get started
-    println("\nSynchronising aBourbon Time");
-    comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
-    delay( 200 );
-    comport.write( "RESET\n" ); // Uno requires a second reset -- why?
-    delay( 1200 ); // make sure reset has occurred before we start logging data
-    started = true;
+    resetRemote();
   }
   else {
     makeJPG = true;  // queue a request to save a frame
@@ -637,13 +650,7 @@ void mouseClicked() {
 void keyPressed() { 
   
   if( !started ) { // waiting for user to begin logging
-    delay( START_DELAY ); // make sure the Arduino sketch has had time to get started
-    println("\nSynchronising aBourbon Time");
-    comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
-    delay( 200 );
-    comport.write( "RESET\n" ); // Uno requires a second reset -- why?
-    delay( 1200 ); // make sure reset has occurred before we start logging data
-    started = true;
+    resetRemote();
   }
   else {
     if (kb_note.length() == 0) {
