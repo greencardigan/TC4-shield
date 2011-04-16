@@ -34,6 +34,10 @@
 // added RESET command to synchronize with TC4 (by Jim)
 // added code to load and plot old logfiles in background
 
+// Version 2.10
+// ----------------
+// added code for multiple resets to accommodate slow response from Uno board
+
 // ************************************* User Preferences **************************************
 
 // Optionally, plot a target roast profile to guide you
@@ -61,7 +65,7 @@ int CBGND = 0;  // background color black
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
 PrintWriter logfile;
-String appname = "Bourbon Roast Logger v2.00";
+String appname = "Bourbon Roast Logger v2.10";
 
 String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
 
@@ -616,10 +620,13 @@ void serialEvent(Serial comport) { // this is executed each time a line of data 
 // ------------------------------- save a frame when mouse is clicked
 void mouseClicked() {
   if( !started ) {  // waiting for user to begin logging
-    started = true;
     delay( START_DELAY ); // make sure the Arduino sketch has had time to get started
     println("\nSynchronising aBourbon Time");
     comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
+    delay( 200 );
+    comport.write( "RESET\n" ); // Uno requires a second reset -- why?
+    delay( 1200 ); // make sure reset has occurred before we start logging data
+    started = true;
   }
   else {
     makeJPG = true;  // queue a request to save a frame
@@ -634,6 +641,10 @@ void keyPressed() {
     delay( START_DELAY ); // make sure the Arduino sketch has had time to get started
     println("\nSynchronising aBourbon Time");
     comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
+    delay( 200 );
+    comport.write( "RESET\n" ); // Uno requires a second reset -- why?
+    delay( 1200 ); // make sure reset has occurred before we start logging data
+    started = true;
   }
   else {
     if (kb_note.length() == 0) {
@@ -693,8 +704,8 @@ void startSerial() {
   println( whichport + " comport opened.");
   comport.clear();
   println( "comport clear()'ed." );
-  comport.bufferUntil('\n'); 
-  println( "buffering..." );
+//  comport.bufferUntil('\n'); 
+//  println( "buffering..." );
 };
 
 // ---------------------------------------------------
