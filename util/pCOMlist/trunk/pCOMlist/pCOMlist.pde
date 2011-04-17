@@ -9,7 +9,6 @@ String[] portlist;
 PFont listfont;
 String portstrings;
 
-
 void setup() {
   portstrings = "Available COM ports:\n";
   portlist = Serial.list();
