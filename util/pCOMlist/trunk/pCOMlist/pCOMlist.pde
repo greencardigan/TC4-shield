@@ -17,7 +17,7 @@ void setup() {
   for( int i = 0; i < portlist.length; i++ ) {
     portstrings += portlist[i] + "\n";
   };
-  size( 200,400 );
+  size( 400,400 );
   frameRate( 1 );
   smooth();
   background( 100 );
