@@ -19,7 +19,23 @@ board, is aBourbon.pde.
 
 A mouseclick will capture a JPG version of the screen to a file.
 
+All user-configurable items are contained in "pBourbon.cfg".  This file
+must be present.
+
+The program will also look for files with these names, and 
+if found, open them:
+
+"profile.csv":  A guide profile in default F units
+"logfile.csv":  A saved log file in default F units
+
+If the config file has put the program in C units, then it will
+look for, and open if found, these files:
+
+"profile_c.csv"
+"logfile_c.csv"
+
+The guide profile and saved log files are optional.
 
 
 Jim Gallt
-7/3/2010
+4/16/2011

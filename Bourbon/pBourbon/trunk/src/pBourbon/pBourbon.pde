@@ -37,9 +37,20 @@
 // Version 2.10
 // ----------------
 // added code for multiple resets to accommodate slow response from Uno board
-// program now loads guide profile and log file automatically if they are present
+
+// Version 3.xx
+// ------------
+// program now loads guide profile and saved log file automatically if files are present
+
 
 // ************************************* User Preferences **************************************
+
+// you may choose your own file names here:
+String logfile_f = "logfile.csv";
+String logfile_c = "logfile_c.csv";
+String profile_f = "profile.csv";
+String profile_c = "profile_c.csv";
+String cfgfilename = "pBourbon.cfg";
 
 // make this as short as possible for good resolution;  depends on your roaster
 int MINUTES = 17; // time limit for graph (change to suit)
@@ -53,9 +64,7 @@ int CBGND = 0;  // background color black
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
 PrintWriter logfile;
-String appname = "Bourbon Roast Logger v2.10";
-
-String cfgfilename = "pBourbon.cfg"; // whichport, baudrate
+String appname = "Bourbon Roast Logger v3.xx";
 
 String profile_data[];
 String logfile_data[];
@@ -64,8 +73,9 @@ String kb_note = "";
 // ---------------- variables for guide profiles
 boolean enable_guideprofile = true; // true unless file is not found
 boolean enable_loadlogfile = true;
-String LOGFILE = "logfile.csv";
-String PROFILE = "profile.csv";
+
+String LOGFILE = logfile_f; // by default
+String PROFILE = profile_f;
 
 color c0 = color(255,0,0); // channel 0
 color c1 = color(0,255,0);
@@ -173,8 +183,8 @@ void setup() {
     String[] corfstring = split( lines[3], "," );
     if( corfstring[0].equals("C")) {
       corf = "Celsius";
-      LOGFILE = "logfile_c.csv";
-      PROFILE = "profile_c.csv";
+      LOGFILE = logfile_c;
+      PROFILE = profile_c;
     }
   };
 
