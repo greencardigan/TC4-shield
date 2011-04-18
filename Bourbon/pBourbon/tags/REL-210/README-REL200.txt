@@ -1,4 +1,4 @@
-This is release 2.00 of the Bourbon application.
+This is release 2.10 of the Bourbon application.
 ------------------------------------------------
 
 This application suite requires an Arduino board and
@@ -76,3 +76,11 @@ http://code.google.com/p/tc4-shield/
 
 Jim Gallt
 4/15/2011
+
+
+Version 2.10 Revisions
+----------------------
+
+Users of the Arduino Uno and PICAXE reported that the elapsed timer
+counter was being reset inconsistently.  Code was added to fix this.
+
