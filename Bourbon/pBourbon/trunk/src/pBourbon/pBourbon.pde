@@ -730,8 +730,7 @@ void startSerial() {
   println( whichport + " comport opened.");
   comport.clear();
   println( "comport clear()'ed." );
-//  comport.bufferUntil('\n'); 
-//  println( "buffering..." );
+  comport.bufferUntil('\n'); 
 };
 
 // ---------------------------------------------------
