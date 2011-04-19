@@ -8,7 +8,7 @@ int DATE_LENGTH = 16;
 
 
 String infilename = " " ; //
-int serial_ptr =0;
+//int serial_ptr =0;
 boolean wait_file = true;
 
 Serial myPort;  // Create object from Serial class
@@ -266,7 +266,7 @@ void send_profile() {
 
 //*********************************************************************************************************************
 
-// draw screen 01, which is the directory and select profile to send screen
+// draw screen 01, which is the select profile to send or edit screen, or go to PID param edit screen
 
 void screen_01() {
 
@@ -295,32 +295,12 @@ void screen_01() {
   text ("Type 'r' to return to roast screen", cursor_x, cursor_y );
   cursor_y +=30;
 
-   //infilename = new String(filename);
-   //infilename = trim(infilename);  
- /*  for (int k=0; k < (serial_ptr); k++) {		
-      char temp_char = filename[k];
-      text (temp_char, cursor_x, cursor_y );
-      cursor_x = cursor_x + 9;
-      }
-
-*/
   if (wait_file == false ) {   //wait until file name is entered.
      cursor_x=10;
      cursor_y =600;
      text ("Sending ", cursor_x, cursor_y );
      cursor_x += 80;
-
-//   infilename = new String(filename);
-//   infilename = trim(infilename);  
-       text (infilename, cursor_x, cursor_y );
-
-/*     for (int k=0; k < (serial_ptr); k++) {		
-       char temp_char = filename[k];
-       text (temp_char, cursor_x, cursor_y );
-       cursor_x = cursor_x + 9;
-        }
-*/
-        
+     text (infilename, cursor_x, cursor_y );
      cursor_x=10;
      cursor_y =620;
      text (" to aKona ", cursor_x, cursor_y );
@@ -359,8 +339,9 @@ struct PID_struc {
 
   
   String screen02_string[] = {"1  Pb (FL)", "2  I (FL)", "3  D (FL)", "4  PID factor (FL)", "5  Start temp", "6  Max Temp", "7  Segment 0", "8  Segment 1", "9  Segment 2", "10 Seg 0 bias", 
-  "11 Seg 1 bias", "12 Seg 2 bias",  "13 Seg 0 Min", "14 Seg 1 Min", "15 Seg 2 Min", "16 Starting heat", "17 Serial type                       (1=pKona, 2 = Artisan)",
-  "18 Roaster                            (1=default, 2 = Alpenrost)" };
+  "11 Seg 1 bias", "12 Seg 2 bias",  "13 Seg 0 Min", "14 Seg 1 Min", "15 Seg 2 Min", "16 Starting heat"
+  , "17 Serial type                       (1=pKona, 2 = Artisan)"
+  , "18 Roaster                           (1=default, 2 = Alpenrost)" };
   
  // size(700, 700);
   frameRate(2);
@@ -466,15 +447,145 @@ struct PID_struc {
   text("Note for floating point, ONLY one number after decimal point allowed ", cursor_x, cursor_y);
   cursor_y += 30;
   text("Press 'r' to return to first screen, or 'i' to reinit params ", cursor_x, cursor_y);
-  cursor_y += 30;
+  cursor_y += 40;
 
-if (serial_ptr > 0) {
-   for (int k=0; k < (serial_ptr); k++) {		
-      char temp_char = in_line_char[k];
-      text (temp_char, cursor_x, cursor_y );
-      cursor_x = cursor_x + 9;
-      }
-   }
+  if (in_line_ptr > 0) {
+     for (int k=0; k < (in_line_ptr); k++) {		
+         char temp_char = in_line_char[k];
+         if (k==0) {
+             text (temp_char, cursor_x, cursor_y );
+             }
+         else  {
+             text (temp_char ); 
+             }
+         }//end for
+     }//end if in_line ptr > 0
+}
+
+//*********************************************************************************************************************
+//draw screen 04, which is the screen for waiting for the temp(CT) to reach start temp
+
+void screen_04() {
+
+ // size(700, 700);
+  frameRate(2);
+//  smooth();
+  background(cbgnd);
+ 
+//  labelFont = createFont("Arial-Bold", 20 );
+  labelFont = createFont("Times New Roman", 20 );
+  fill( clabel );
+
+  int curx_inc = 70;
+  int cury_inc = 50;
+  int start_x = 50;
+  int start_y = 100;
+
+  cursor_x = curx_inc;
+  cursor_y = 25;
+  
+  textFont( labelFont, 20 );
+  text("Start Roast Screen 4", cursor_x, cursor_y);
+  
+  cursor_x=start_x;
+  cursor_y = start_y;
+
+  text("CT is ", cursor_x, cursor_y);
+  String parm_str = ""+ct; //convert ct to string
+  text (parm_str);
+
+  cursor_y = cursor_y + cury_inc;
+
+  text("MT is ", cursor_x, cursor_y);
+  parm_str = ""+mt; //convert ct to string
+  text (parm_str);
+
+  cursor_y = cursor_y + cury_inc;
+
+  text("Start temp is ", cursor_x, cursor_y);
+  parm_str = ""+starttemp; //convert starttemp to string
+  text (parm_str);
+
+  cursor_y = cursor_y + cury_inc + cury_inc;
+  cursor_x = start_x;
+
+  text("Type rnn to start roast, where nn is the profile number to run", cursor_x, cursor_y);
+
+  cursor_y = cursor_y + cury_inc;
+  cursor_x = start_x;
+
+  text("For example, type 'r13' to run profile number 13", cursor_x, cursor_y);
+
+  cursor_y = cursor_y + cury_inc;
+  cursor_x = start_x;
+
+  text("This screen will display until ct = start temp", cursor_x, cursor_y);
+  
+  cursor_y = cursor_y + cury_inc;
+  cursor_x = start_x;
+  
+    if (in_line_ptr > 0) {
+     for (int k=0; k < (in_line_ptr); k++) {		
+         char temp_char = in_line_char[k];
+         if (k==0) {
+             text (temp_char, cursor_x, cursor_y );
+             }
+         else  {
+             text (temp_char ); 
+             }
+         }//end for
+     }//end if in_line ptr > 0
+
+
+}
+
+//*********************************************************************************************************************
+//draw screen 05, which is the screen for waiting for comm 
+//This screen is called before screen 4.  Screen 5 asks Kona for the pid parameters, and then waits to get a valid start temp before calling screen 4
+ 
+void screen_05() {
+
+ // size(700, 700);
+  frameRate(2);
+//  smooth();
+  background(cbgnd);
+  
+//note will keep sending until aKona responds
+   comport.write('b');  //send 'b' to tell aKona to send PID parameters
+   comport.write('^');  //send '^' to tell aKona that a command was sent
+   send_once = true;
+   println ("send b^ command");
+ 
+ //  labelFont = createFont("Arial-Bold", 20 );
+  labelFont = createFont("Times New Roman", 20 );
+  fill( clabel );
+
+  int curx_inc = 70;
+  int cury_inc = 50;
+  int start_x = 50;
+
+
+  cursor_x = curx_inc;
+  cursor_y = 25;
+  
+  textFont( labelFont, 20 );
+  text("Wait for Comm Screen 5", cursor_x, cursor_y);
+  
+  cursor_x=start_x;
+  cursor_y = 100;
+
+  text("Send request to the Arduino, waiting for an answer ", cursor_x, cursor_y);
+
+
+  delay (500);  //add a delay so we dont' send too often
+  print ("start temp ");
+  println (starttemp);
+  
+  
+  if (starttemp > 0) {  //after starttemp is a valid number, then go to screen 4
+    screen_num = 4;
+    }
+ 
 
 }
 

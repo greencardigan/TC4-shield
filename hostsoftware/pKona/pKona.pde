@@ -49,10 +49,12 @@ int NCHAN = 2;  // 2 input channels
 String whichport = "COM2";
 int baudrate = 57600;
 boolean started;  // waits for a keypress
+boolean send_once = false;
 
 import processing.serial.*;
 Serial comport;
 
+int serial_ptr = 0;
 
 int idx = 0;
 float timestamp = 0.0;
@@ -65,6 +67,7 @@ float mt = 0;
 float output = 0;
 float fanspeed = 0;
 float ror = 0;
+float target_temp = 0;
 
 float ambient;
 float [][] T0;
@@ -114,7 +117,7 @@ void setup() {
 
   started = false;  // force a key press to begin reading from serial port
 
-  screen_num = 0;
+  screen_num = 5;   //go to this screen first
 
 } // setup
 
@@ -176,14 +179,14 @@ void drawchan(float [][] T, color c) {
 void monitor( int t1, int t2 ) {
   int minutes,seconds;
   
-	if( idx > 0 ) {
-		String strng;
+  if( idx > 0 ) {
+    String strng;
     float w;
     int iwidth = width;    //from above "size(1200, 800);", so width is 1200
     int incr = iwidth / 10;  
     int pos = incr;
 
-  labelFont = createFont("Tahoma-Bold", 16 );
+    labelFont = createFont("Tahoma-Bold", 16 );
   
 //write time
 
@@ -228,7 +231,8 @@ void monitor( int t1, int t2 ) {
     pos += incr;
     fill(clabel);	
     //fill( c2 );
-    strng = nf( T2[1][idx-1],3,1 );
+    strng = nf( ct,3,1 );
+//    strng = nf( T2[1][idx-1],3,1 );
     w = textWidth(strng);
     textFont( labelFont, t1 );
     text(strng,pos-w,16);
@@ -311,6 +315,37 @@ void monitor( int t1, int t2 ) {
     w = textWidth( strng );
     text(strng,pos-w,80 );
 	
+//write Target Temp
+    pos += incr;
+    fill(clabel);	
+    strng = nf( target_temp,3,0 );
+    w = textWidth(strng);
+    textFont( labelFont, t1 );
+    text(strng,pos-w,64);            //text (data, x posn, y posn)
+    strng = " Targ Temp";
+    textFont( labelFont, t2 );
+    w = textWidth( strng );
+    text(strng,pos-w,80 );
+  
+  //write keyboard input in the bottom left corner
+         cursor_x= 900;
+         cursor_y =500;
+         if (in_line_ptr > 0) {
+            //labelFont = createFont("Times New Roman", 12 );
+            textFont( labelFont, 14 );
+            for (int k=0; k < (in_line_ptr); k++) {		
+               char temp_char = in_line_char[k];
+               if (k==0) {
+                  text (temp_char, cursor_x, cursor_y );
+                  }
+               else  {
+                  text (temp_char ); 
+                  }
+               }//end for
+            labelFont = createFont("Tahoma-Bold", 16 );
+            }//end if serial ptr > 0
+
+
   }
 }
 
@@ -351,22 +386,28 @@ void draw() {
   if( !started ) {
     labelFont = createFont("Tahoma-Bold", 20 );
     textFont( labelFont );
-    text( appname + "\nPress a key or click to begin Arduino program ...\n",110, 110 );
-    text( "\nPress 'k' to send profiles or read and change the PID/eeprom parameters\n",110, 150 );
+    text( appname + "\nPress a key or click to begin...\n",110, 110 );
+    text( "\n Or press 'k' to send profiles or read and change the PID/eeprom parameters\n",110, 150 );
     }
   else {
-     if ( screen_num == 0 )  { //default screen, displays graph during the roast
-        screen_00();  }
-     if ( screen_num == 1 )  { //goes to this screen if you push 'k' at startup, lets you send a profile or change the PID (eeprom) parameters
+     if ( screen_num == 5 )  { //default screen, displays graph during the roast
+        screen_05();  }     //start roast screen, in SendProfile module
+     else if ( screen_num == 4 )  { //default screen, displays graph during the roast
+        screen_04();  }     //start roast screen, in SendProfile module
+     else if ( screen_num == 0 )  { //default screen, displays graph during the roast
+        screen_00();  }     //roast graph screen
+     else if ( screen_num == 1 )  { //goes to this screen if you push 'k' at startup, lets you send a profile or change the PID (eeprom) parameters
         screen_01();  }        //routine in SendProflie module
         if (wait_file == false ) {   //wait until file name is entered.
            send_profile();      //routine in SendProflie module
            } //end if wait_file
-     if ( screen_num == 2 )  {
+     else if ( screen_num == 2 )  {
         screen_02();  }         //routine in SendProflie module
      };
   }
 
+//****************************************************************************************************************************************************************
+// Read Serial port code HERE  *************************************************************************************************************************************
 // -------------------------------------------------------------
 void serialEvent(Serial comport) {    //reads data from serial port
   // grab a line of ascii text from the logger and sanity check it.
@@ -379,7 +420,7 @@ void serialEvent(Serial comport) {    //reads data from serial port
   //logfile.println(msg);
 
 	//end of roast message from Kona is "#End roast"
-   if ((msg.charAt(0) == '#') && (msg.charAt(0) == 'E')) {   //check for end of roast
+   if ((msg.charAt(0) == '#') && (msg.charAt(1) == 'E')) {   //check for end of roast
       logfile.println(msg);
    println(msg);
    saveFrame(filename + "-##" + ".jpg" );
@@ -392,6 +433,11 @@ void serialEvent(Serial comport) {    //reads data from serial port
      return;
      }
 
+   if ((msg.charAt(0) == '#') && (msg.charAt(1) == 's') && (msg.charAt(2) == 't')&& (msg.charAt(3) == 'a')&& (msg.charAt(4) == 'r')) {   //check for #star
+     println ("starting roast"); 
+     screen_num = 0;  //go to starting roast screen
+     return;
+     }
 
   if (msg.charAt(0) == '#') {   //check if debug message
     logfile.println(msg);
@@ -402,29 +448,29 @@ void serialEvent(Serial comport) {    //reads data from serial port
   String[] rec = split(msg, ",");  // comma separated input list, split msg into an array
 
 
-  if ( screen_num == 0 )  {
+  if ( ( screen_num == 0 ) || ( screen_num == 4 ) ) {
 
 /* rec[0]=time,  rec[1]=ambient temp, rec[2]=tmp ch1(mt),  rec[3]=ror 1,  rec[4]=tmp ch 2(ct), rec[5]=ror 2,
-   rec[6]=setpoint, rec[7]=step number, rec[8]=countdown timer, rec[9]=heat, rec[10]=fanspeed, rec[11]=ROR
+   rec[6]=setpoint, rec[7]=step number, rec[8]=countdown timer, rec[9]=heat, rec[10]=fanspeed, rec[11]=ROR, rec[12]=target_temp
 */
 
      timestamp = float(rec[0]);
      ambient = float(rec[1]);
 
-     T0[0][idx] = timestamp;
-     T0[1][idx] = float(rec[2]); 
-     T1[0][idx] = timestamp;
-     T1[1][idx] = float(rec[3]) * 10.0;  // exaggerate the rate traces
 
-     if( NCHAN >= 2 ) {
+     if (  screen_num == 0 ) {  //only collect this data for screen 0, otherwise it messes up the graphing at the beginning.
+        T0[0][idx] = timestamp;
+        T0[1][idx] = float(rec[2]); 
+        T1[0][idx] = timestamp;
+        T1[1][idx] = float(rec[3]) * 10.0;  // exaggerate the rate traces
         T2[0][idx] = timestamp;
         T2[1][idx] = float(rec[4]);
-        }
-     if( NCHAN >= 2 ) {
         T3[0][idx] = timestamp;
         T3[1][idx] = float(rec[5]) * 10.0;  // exaggerate the rate traces
-        };
-  
+        }
+
+     mt = float (rec [2]); 
+
      ct = float (rec [4]); 
     
      setpoint = float (rec[6]);
@@ -437,26 +483,37 @@ void serialEvent(Serial comport) {    //reads data from serial port
   
      ror = float (rec[11]);
 
+     target_temp = float (rec[12]);
+
      delta_temp = setpoint - ct; //delta temp is setpoint - ct
   
+
 //read in as many numbers per line as is sent by the Arduino program, and send to logfile
      for (int i=0; i<(rec.length); i++) {
-       print(rec[i]);
-       logfile.print(rec[i]);
-       if (i < (rec.length)) print(",");
-       if (i < (rec.length)) logfile.print(",");
-     }
+//       print(rec[i]);
+//       if (i < (rec.length)) {
+//          print(",");
+//          }
+       if ( screen_num == 0 )  {
+          logfile.print(rec[i]);
+          if (i < (rec.length)) {
+            logfile.print(",");
+            }
+          }
+       }
   
 // send delta temp to the log file at the end of the arduino sent data  
+  if ( screen_num == 0 )  {
      logfile.print(delta_temp);
-     logfile.println();
-     println();
+     logfile.println();  }
+     
+//     println();
   
      idx++;
      idx = idx % BUFFER_SIZE;  //keep idx from overflowing
      } // end if screen num = 00
      
-  else if ( screen_num == 2 )  {
+  else if (( screen_num == 2) || ( screen_num == 5 ) )  {
     
 /* rec[0]=Pb,  rec[1]=I, rec[2]=D,  rec[3]=PID_factor,  rec[4]=start temp, rec[5]=max temp, rec[6]=segment 0, 
    rec[7]=segment 1, rec[8]=segment 2, rec[9]=seg0 bias, rec[10]=seg1 bias, rec[11]=seg2 bias, rec[12]=seg0 min
@@ -491,17 +548,23 @@ void mouseClicked() {
     startSerial();
   }
   else {
-   saveFrame(filename + "-##" + ".jpg" );
+
+    if ( screen_num == 0 )  {
+
+      saveFrame(filename + "-##" + ".jpg" );
+    }
   };
 }
 
+//****************************************************************************************************************************************************************
+// GET KEYBOARD INFO HERE  *************************************************************************************************************************************
 // ---------------------------------------------
 void keyPressed()          //reads the keyboard data
 { 
   if( !started )  {  //check to see if program has started yet
     char key_char = key;
     if ((key == 'k') || (key == 'K')) {  //see if k was pushed
-       screen_num = 1; 
+       screen_num = 1;   //call screen to allow user to change eepprom/pid parameters, or to send a profile to aKona
        serial_ptr = 0;
        in_line_ptr=0;
        }
@@ -510,40 +573,97 @@ void keyPressed()          //reads the keyboard data
   else {       //program is now running, go get the kb input
 //    print(key);
   char key_char = key;
-  if ( screen_num == 0 )  {
+  if  ( screen_num == 0 ) {
     if (keyCode == 10)  { //check for CR, if CR then process the line
-      if ((in_line_char[0]== 'r') ||  (in_line_char[0]== 'R')) {
-          in_line_char[in_line_ptr++]= '^';  }       //add termination char to end of line 
-      in_line_string = new String(in_line_char);  //convert to a string
-      in_line_string = trim(in_line_string);  //trim out spaces and other junk
-      String[]text_in = split(in_line_string, ",");  // comma separated input list, split in_line_string into an array
-      comport.write(text_in [0]);          //send out first char (command)
-      comport.write(',');          //send out comma (don't care about this char
-      comport.write('0');          //send out first char of 4 digit number, always a zero
-      println ("sent r command");
-
-      if (text_in[1].length() == 1) {
-        comport.write('0');          //send out 2nd char of 4 digit number
-        comport.write('0');          //send out 3rd char of 4 digit number
-        comport.write(text_in[1]);          //send out fourth char of 4 digit number
-        }
-
-      if (text_in[1].length() == 2) {
-        comport.write('0');          //send out 2nd char of 4 digit number
-        comport.write(text_in[1]);          //send out 3rd and fourth char of 4 digit number
-        }
-      else {
-        comport.write(text_in[1]);    }      //send out 2nd, 3rd and fourth char of 4 digit number
-//      comport.write(in_line_string);          //send out line now
-
+      if ( (in_line_char[0]== 'a') || (in_line_char[0]== 'A') || (in_line_char[0]== 't')||  (in_line_char[0]== 'T') ) {  //'a' is ROR change, 't' is temp change command
+         in_line_string = new String(in_line_char);  //convert to a string
+         in_line_string = trim(in_line_string);  //trim out spaces and other junk
+         comport.write(in_line_char [0]);          //send out first char (command)
+         print(in_line_char [0]);          //send out first char (command)
+         comport.write(',');          //send out comma (don't care about this char
+         comport.write('0');          //send out first char of 4 digit number, always a zero
+         println ("send command");
+         if (in_line_string.length() == 2) {
+           comport.write('0');          //send out 2nd char of 4 digit number
+           comport.write('0');          //send out 3rd char of 4 digit number
+           comport.write(in_line_char[1]);          //send out fourth char of 4 digit number
+           print(in_line_char [1]);          //send out first char (command)
+           }
+         if (in_line_string.length() == 3) {
+           comport.write('0');          //send out 2nd char of 4 digit number
+           comport.write(in_line_char[1]);      
+           comport.write(in_line_char[2]);         
+           print(in_line_char [1]);          //send out first char (command)
+           print(in_line_char [2]);          //send out first char (command)
+           }
+         else {
+           comport.write(in_line_char[1]);          //send out 2nd, 3rd and fourth char of 4 digit number
+           comport.write(in_line_char[2]);          
+           comport.write(in_line_char[3]);          
+           print(in_line_char [1]);          //send out first char (command)
+           print(in_line_char [2]);          //send out first char (command)
+           print(in_line_char [3]);          //send out first char (command)
+            //      comport.write(in_line_string);          //send out line now
+           }
+         //send_command = true;
+         }  //end if a or A or t or T
       in_line_ptr = 0;                        //reset pointer for next line
-      send_command = true;
-      }  //end if CR
+      in_line_char[0] = ' ';
+      in_line_char[1] = ' ';
+      in_line_char[2] = ' ';
+      in_line_char[3] = ' ';
+      in_line_char[4] = ' ';
+      in_line_char[5] = ' ';
+      in_line_char[6] = ' ';
+      } //end if CR    
     else {   //if not CR,then just read in the char
-      in_line_char[in_line_ptr++]= key_char; // 
-      }
-    }  
- else if ( screen_num == 1 )  {
+       if ((key == BACKSPACE) && (in_line_ptr > 0)) {
+          in_line_ptr--;  //if backspace, delete last character
+       }
+       else {
+         in_line_char[in_line_ptr++]= key_char; // 
+          }     
+       }   
+    }//end if screen 0 
+    
+    
+  if  (( screen_num == 4 ) || ( screen_num == 5 ))  {   //screen 5 is waiting for com screen, screen 4 is waiting to reach start temp screen
+    if (keyCode == 10)  { //check for CR, if CR then process the line
+      if ((in_line_char[0]== 'r') ||  (in_line_char[0]== 'R') || (in_line_char[0]== 'g') ||  (in_line_char[0]== 'G')) {
+          in_line_char[in_line_ptr++]= '^';        //add termination char to end of line 
+          in_line_string = new String(in_line_char);  //convert to a string
+          in_line_string = trim(in_line_string);  //trim out spaces and other junk
+          println ("sent r command");
+          comport.write(in_line_string);          //send out line now
+          //send_command = true;
+          }  //end if 'r' or 'R'
+      in_line_ptr = 0;                        //reset pointer for next line
+      in_line_char[0] = ' ';
+      in_line_char[1] = ' ';
+      in_line_char[2] = ' ';
+      in_line_char[3] = ' ';
+      in_line_char[4] = ' ';
+      in_line_char[5] = ' ';
+      in_line_char[6] = ' ';
+      } //end if CR    
+    else {   //if not CR,then just read in the char
+       if ((key == BACKSPACE) && (in_line_ptr > 0)) {
+          in_line_ptr--;  //if backspace, delete last character
+       }
+       else {
+         in_line_char[in_line_ptr++]= key_char; // 
+         cursor_x=1000;
+         cursor_y =700;
+         labelFont = createFont("Times New Roman", 12 );
+         textFont( labelFont, 12 );
+         String disp_string = new String(in_line_char);  //convert to a string
+         text(disp_string, cursor_x, cursor_y);
+         labelFont = createFont("Tahoma-Bold", 16 );
+         }
+       }   
+    }//end if screen 4
+    
+ else if ( screen_num == 1 )  {    //screen 1 is to select profile to edit or send, or go the PID param display screen
      if ((key == 'p') || (key == 'P') || (keyCode == 10))  { //check for CR
         infilename = selectInput("choose File");  // Opens file chooser, set infilename to file picked
         if (infilename == null) {
@@ -555,17 +675,17 @@ void keyPressed()          //reads the keyboard data
            println ("");
            println(infilename);
            wait_file = false;     //set flag to notify that file was selected
-           serial_ptr = 0;
            }
+        serial_ptr = 0;
 
-       }  //end if CR
+        }  //end if CR
      else if ((key == 's') || (key == 'S')) {  //see if p was pushed
      //SEARCH
        comport.write('b');  //send 'b' to tell aKona that a send PID parameters
        comport.write('^');  //send '^' to tell aKona that a command was sent
        screen_num = 2;  // this is command to go to screen 2 (display and change PID parameters)
        serial_ptr = 0;
-     } //end if 'p'
+       } //end if 's'
 
      else if ((key == 'e') || (key == 'E')) {  //see if e was pushed
        infilename = selectInput("choose File to Edit");  // Opens file chooser, set infilename to file picked
@@ -573,18 +693,18 @@ void keyPressed()          //reads the keyboard data
        println (prog_name);
        open (prog_name);
        serial_ptr = 0;
-     } //end if 'e'
+       } //end if 'e'
    
-     else if ((key == 'r') || (key == 'R')) {  //see if k was pushed
-       screen_num = 0; 
+     else if ((key == 'r') || (key == 'R')) {  //see if r (roast) was pushed
+       screen_num = 5; 
        serial_ptr = 0;
        }
 
    }  //end if screen_num == 1
    
-   else if ( screen_num == 2 )  {
+   else if ( screen_num == 2 )  {   //screen 2 is the PID param display or edit screen
     if (keyCode == 10)  { //check for CR, if CR then process the line
-      in_line_char[serial_ptr++]= '^';         //add termination char to end of line 
+      in_line_char[in_line_ptr++]= '^';         //add termination char to end of line 
       in_line_string = new String(in_line_char);  //convert to a string
       in_line_string = trim(in_line_string);  //trim out spaces and other junk
 //      println(in_line_string);
@@ -592,33 +712,33 @@ void keyPressed()          //reads the keyboard data
       comport.write('p');  //send 'p' to tell aKona to program a PID parameter
       comport.write(in_line_string);          //send out line now
       comport.write('^');  //send '^' to tell aKona that a command was sent
-      serial_ptr = 0;                        //reset pointer for next line
+      in_line_ptr = 0;                        //reset pointer for next line
       delay (500);  //give aKona time to write the parameters
-      comport.write('b');  //send 'b' to tell aKona that a send PID parameters
+      comport.write('b');  //send 'b' to tell aKona to send PID parameters
       comport.write('^');  //send '^' to tell aKona that a command was sent
       //send_command = true;
       }  //end if CR
     else {   //if not CR,then just read in the char
         if ((key == 'r') || (key == 'R')) {  //see if ^r was pushed
           screen_num = 1; 
-          serial_ptr = 0;
+          in_line_ptr = 0;
           }
         if ((key == 'i') || (key == 'I')) {  //see if i was pushed.  If it was pushed, sent init PID command to aKona
      //SEARCH
          comport.write('i');  //send 'i' to tell aKona to reinit the PID parameters
          comport.write('^');  //send '^' to tell aKona that a command was sent
-         serial_ptr = 0;                        //reset pointer for next line
+         in_line_ptr = 0;                        //reset pointer for next line
          delay (500);  //give aKona time to write the parameters
-         comport.write('b');  //send 'b' to tell aKona that a send PID parameters
+         comport.write('b');  //send 'b' to tell aKona to send PID parameters
          comport.write('^');  //send '^' to tell aKona that a command was sent
          //send_command = true;
           }
-       else if ((key == BACKSPACE) && (serial_ptr > 0)) {
-          serial_ptr--;  //if backspace, delete last character
+       else if ((key == BACKSPACE) && (in_line_ptr > 0)) {
+          in_line_ptr--;  //if backspace, delete last character
           clear_screen = true;
           }
        else {
-         in_line_char[serial_ptr++]= key_char; // 
+         in_line_char[in_line_ptr++]= key_char; // 
       }
     } //end else
   }//end if screen_num == 2
