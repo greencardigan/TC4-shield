@@ -30,13 +30,16 @@ prog_char prt_string_03[] PROGMEM = "3= Manual ROR):     ";
 prog_char prt_string_04[] PROGMEM = "# Time,Ambient,MT,RO"; 
 prog_char prt_string_05[] PROGMEM = "R MT,CT,ROR CT,Setpo";
 prog_char prt_string_06[] PROGMEM = "int,Step,Step Timer,";
-prog_char prt_string_07[] PROGMEM = "Heat,Fanspeed,ROR,De";
+prog_char prt_string_07[] PROGMEM = "Heat,Fanspeed,ROR,";
 prog_char prt_string_000[] PROGMEM = "";
 prog_char prt_string_001[] PROGMEM = "";
 prog_char prt_string_10[] PROGMEM = "# Max temp is:    ";
-prog_char prt_string_11[] PROGMEM = "lta T(sp-ct)";
+prog_char prt_string_11[] PROGMEM = "Delta T(sp-ct)";
 prog_char prt_string_12[] PROGMEM = "#End roast";
 prog_char prt_string_13[] PROGMEM = ",";
+prog_char prt_string_14[] PROGMEM = "Targ Temp,";
+prog_char prt_string_15[] PROGMEM = "#start";
+prog_char prt_string_16[] PROGMEM = "P,I,D,";
 // Then set up a table to refer to your strings.
 
 PROGMEM const char *prt_string_table[] = 	   // change "prt_string_table" name to suit
@@ -54,7 +57,10 @@ PROGMEM const char *prt_string_table[] = 	   // change "prt_string_table" name t
   prt_string_10,
   prt_string_11,
   prt_string_12,
-  prt_string_13
+  prt_string_13,
+  prt_string_14,
+  prt_string_15,
+  prt_string_16
 };
 
 
@@ -111,6 +117,20 @@ int i;
 //  Serial.print(",");
   Serial.print( char_buf);
   Serial.print( ROR, DP );
+//  Serial.print( ROR );
+
+  Serial.print( char_buf);
+//  Serial.print( target_temp);
+  Serial.print( target_temp, DP );
+
+  Serial.print( char_buf);
+  Serial.print( Proportion, DP );
+
+  Serial.print( char_buf);
+  Serial.print( Integral, DP );
+
+  Serial.print( char_buf);
+  Serial.print( Derivative, DP );
 
   Serial.println();
 
@@ -168,15 +188,32 @@ Serial.print( char_buf);
 //Serial.print("int,Step,Step Timer,");
 strcpy_P(char_buf, (char*)pgm_read_word(&(prt_string_table[07]))); // Necessary casts and dereferencing
 Serial.print( char_buf);
-//Serial.print("Heat,Fanspeed,ROR,De");
+//Serial.print("Heat,Fanspeed,ROR,");
+strcpy_P(char_buf, (char*)pgm_read_word(&(prt_string_table[14]))); // Necessary casts and dereferencing
+Serial.print( char_buf);
+
+strcpy_P(char_buf, (char*)pgm_read_word(&(prt_string_table[16]))); // Necessary casts and dereferencing
+Serial.print( char_buf);
+
 strcpy_P(char_buf, (char*)pgm_read_word(&(prt_string_table[11]))); // Necessary casts and dereferencing
 Serial.print( char_buf);
-//Serial.print("lta T(sp-ct)");
+//Serial.print("Delta T(sp-ct)");
 Serial.println();
 
  
 }
 
+// ------------------------------------------------------------------------
+// this routine sends the end of roast message to the serial port
+ 
+void serial_send_start()
+{
+
+// send start of roast message
+strcpy_P(char_buf, (char*)pgm_read_word(&(prt_string_table[15]))); // Necessary casts and dereferencing
+Serial.print( char_buf);
+Serial.println(); 
+}
 
 // ------------------------------------------------------------------------
 // this routine sends the end of roast message to the serial port
@@ -292,7 +329,7 @@ void send_PID() {
 void serial_read_art()
 
 {
-
+//float float1;
 //char cmd0;
 //char cmd1;
 //char arg0;
@@ -301,10 +338,12 @@ void serial_read_art()
 //char arg3; 
 
 // protocol is "CCaaaa", two bytes of command, four bytes of args
-if( Serial.available() >= 6 ) { // command length is 6 bytes
-   for (serial_in_cnt=0; serial_in_cnt<6; serial_in_cnt++) {
-      serial_in_line[serial_in_cnt]  = Serial.read();    //if something is there, go read it
-      }
+if ( Serial.available() >= 6 ) { // command length is 6 bytes
+   serial_in_cnt=0;
+   while ( Serial.available() > 0 ) { // command length is 6 bytes
+//   for (serial_in_cnt=0; serial_in_cnt<6; serial_in_cnt++) {
+      serial_in_line[serial_in_cnt++]  = Serial.read();    //if something is there, go read it
+     }
    }
 
 if (serial_in_line[0] == 'R') {  //check for a read command
@@ -314,6 +353,8 @@ else if ((serial_in_line[0] == 'A') || (serial_in_line[0] == 'a')) {  //check fo
    serial_in_line[6]  = ('^');    //setup the end of number indicator for convert_int function call
    byte_ptr = &serial_in_line[2];       //set pointer to arg0
    temp_int = (convert_int());    //  convert_int is a function that converts a string to an int
+//   float1 = (convert_float());    //  convert_int is a function that converts a string to an int
+//   ROR = float1;  
    ROR = temp_int;  
    delta_t_per_sec = (ROR / 60);   //convert ROR from deg per min to slope in deg per second
    step_timer = 0;  //reset step timer when ROR/slope is changed
@@ -322,13 +363,22 @@ else if ((serial_in_line[0] == 'T') || (serial_in_line[0] == 't')) {  //check fo
    serial_in_line[6]  = ('^');    //setup the end of number indicator for convert_int function call
    byte_ptr = &serial_in_line[2];       //set pointer to arg0
    temp_int = (convert_int());    //  convert_int is a function that converts a string to an int
-   target_temp = temp_int;        //set new target temp
-   if (roast_method == AUTO_TEMP) {  //check to see if this is in an temp/time profile
-      delta_temp =  (target_temp - setpoint);  //change end temp for this ramp by adjusting slope used in setpoint calcs
-      delta_t_per_sec =  (delta_temp / step_timer); //
+   if (temp_int > 99) {  //make sure temp_int is OK to use for target temp
+//   float1 = (convert_float());    //  convert_int is a function that converts a string to an int
+      target_temp = temp_int;        //set new target temp
+//   target_temp = float1;        //set new target temp
+      if (roast_method == AUTO_TEMP) {  //check to see if this is in an temp/time profile
+         delta_temp =  (target_temp - setpoint);  //change end temp for this ramp by adjusting slope used in setpoint calcs
+         delta_t_per_sec =  (delta_temp / step_timer); //
+         }
       }
    }//end if 'T'
 }  //end serial_read_art function
+
+
+
+
+
 
 
 // ------------------------------------------------------------------------
