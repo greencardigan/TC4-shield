@@ -1,6 +1,6 @@
  // Kona.pde
 // Kona project
-#define VERSION 5.01
+#define VERSION 5.3
 
 /*
 // *** BSD License ***
@@ -21,6 +21,7 @@
 // A PID roasting program for the Arduino using a TC4 thermocouple input.
 
 Revision history
+Version 5.1     Changed profile record to make easier to save.  Added support for Artisan and to receive serial commands from pKona
 Version 4.00	Implemented I2C EEprom, so profiles and PID constants are stored in EEprom.  Can receive profiles from processing program.
 Version 3.00    Moved buttons to I2C port expander
 Version 2.00	Merged Moka and Kona into one program.
@@ -112,10 +113,10 @@ void profile_act();        //routine in profile.pde
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 #define MT_FILTER 10 // filtering level (percent) for T1
 #define CT_FILTER 10 // filtering level (percent) for T2
+
+
 #define BAUD 57600  // serial baud rate
 
-// fixme This value should be user selectable
-#define NSAMPLES 10 // samples used for moving average calc for temperature
 
 // use RISE_FILTER to adjust the sensitivity of the RoR calculation
 // higher values will give a smoother RoR trace, but will also create more
@@ -134,6 +135,8 @@ void profile_act();        //routine in profile.pde
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings
 //#define ANALOG_IN // comment this line out if you do not connect a pot to anlg1 port
 
+#define BACKLIGHT lcd.backlight();  // use this version if using the LCDapter        
+//#define BACKLIGHT ; // use this version if I2C LCD adapter automatically enables the backlight 
 
 //****************************************************************************************************
 //                  Global Variables
@@ -143,9 +146,11 @@ void profile_act();        //routine in profile.pde
 float ramp_delta_temp; //delta temp for the current ramp step
 float delta_temp;      //delta temp, used to increment setpoint for each second
 float target_temp;
+//int target_temp;
 float t_amb;		//ambient temp
 float delta_t_per_sec;      // setpoint slope
 float ROR;		// Rate of rise
+//int ROR;		// Rate of rise
 float ct;         // Control temp, input from thermocouple ch 2
 float ct_old;     // Control temp from previous cycle/second
 float mt;         // Monitor temp, based on thermocouple ch 1
@@ -271,6 +276,7 @@ pinMode (ALP_FLAP_OPEN, OUTPUT);
 pinMode (ALP_FLAP_CLOSE, OUTPUT);
 
 lcd.begin(COLS, ROWS);  //intialize LCD, COLS and ROWS are defined in user.h
+BACKLIGHT // explicitly turn on backlight
 
 Serial.begin(BAUD);    //start serial port
 
@@ -315,7 +321,7 @@ while (done_pick==false) {
   
   serial_read ();
   if (serial_command_rx == true) {
-     if ((serial_in_line[0] == 'r') || (serial_in_line[0] == 'R')) {  //see if a roast command was sent
+     if ((serial_in_line[0] == 'r') || (serial_in_line[0] == 'R') || (serial_in_line[0] == 'g') || (serial_in_line[0] == 'G')) {  //see if a roast command was sent
          byte_ptr = &serial_in_line[1];              //set pointer to first number in the serial input string
          temp_int = (convert_int());    //  convert_int is a function that converts a string to an int
          if (temp_int < MAX_PROFILE) {
@@ -375,23 +381,24 @@ heat = myPID.startheat;
 get_samples;
 
 digitalWrite(ALP_MOTOR_ON, 1);
-digitalWrite(ALP_FLAP_OPEN, 0);
+delay (100);
 digitalWrite(ALP_FLAP_CLOSE, 1);
- 
-//if (myPID.roaster == ALPENROST) {
-//   start_alpen();  //in U_roaster.pde
-//   }
+delay (400);
+digitalWrite(ALP_FLAP_CLOSE, 1);
+delay (200);
+digitalWrite(ALP_FLAP_CLOSE, 0);
+
 
 while (ct < (myPID.starttemp) ) {    // wait until et is at start temp (make sure heater turns on), then continue
+	delay (1000);
 	get_samples();             //in tc4.pde 
-        //init_temp1;
 	//start heater and fan
 	pwmOut.Out( heat, FanSpeed );
 	setpoint= myPID.starttemp;  //set init step start temp to the start of roast temp
 	display_roast();   //display roast information on LCD, routine in display.pde
-	delay (500);
         ct_old = ct;
         mt_old = mt;
+        serial_send_data();
 	}
 	
 
@@ -432,6 +439,8 @@ next_step = true;
 //step = 0;
 
 start_roast = millis() * 0.001;  //set start roast time to current time.  This is used to offset tod, so time displayed is for roast time
+
+serial_send_start();  //send start of roast message 
 
 serial_send_header();
 
@@ -487,14 +496,13 @@ if (mt > myPID.starttemp) {
 if (step > NMAX) {      //start cooling cycle, then stop sending data after 1 min.
    pwmOut.Out( 0,100 ); //shut off heater, set fan speed to full
    //if (myPID.roaster == ALPENROST) {
-       digitalWrite(ALP_FLAP_OPEN, 1);
-       digitalWrite(ALP_FLAP_CLOSE, 0);
+   digitalWrite(ALP_FLAP_OPEN, 1);
+   delay (400);
+   digitalWrite(ALP_FLAP_OPEN, 1);
+   delay (200);
+   digitalWrite(ALP_FLAP_OPEN, 0);
 
-     	//#ifdef ALPENROST  //if this is my alpenrost, open damper and reverse drum motor.
-//        end_alpen(); }     //routine in U_roaster.pde
-//    #endif
-
-	for (int i = 0; i<61; i++) {  //continue to send data to PC, but only for next 60 secs.
+   for (int i = 0; i<61; i++) {  //continue to send data to PC, but only for next 60 secs.
 		get_samples();  // retrieve TC values from MCP9800 and MCP3424
 		serial_send_data();  //send data to serial port, routine in serial.pde
 		display_ending();  //display used while roast is ending (cooling cycle)
@@ -506,80 +514,78 @@ if (step > NMAX) {      //start cooling cycle, then stop sending data after 1 mi
 	while (1>0) {}       //wait forever, until power down reset
 	}
 
-	
-switch (roast_method){
-	case (AUTO_TEMP):
-	if (step_timer <= 0) {
-		setpoint = myprofile.targ_temp[step];  //reset setpoint to target temp for step just completed, in case of small math errors
-		step = step + 1;               //go to next step
-//		step_st_time = millis() * 0.001; //set new start time for next step
-//total_time = step_st_time + (myprofile_r.time [step]);  //setup serial time as the end time for this step;
-		//added following in case temp was changed manually, to make sure temp for next step is not lower then current target temp
-		if (target_temp > (myprofile.targ_temp[step])) 
-			{myprofile.targ_temp [step] = target_temp;}
-		else
-			{target_temp = myprofile.targ_temp[step]; }
-		ramp_delta_temp =  ( (target_temp) - (myprofile.targ_temp [(step - 1)]) );
-		delta_t_per_sec =  (ramp_delta_temp / (myprofile.time [step]));  //calculate delta temp per second
-		step_timer = myprofile.time [step];     //set step timer to time for this step.  In this method, step time is decremented.
-		FanSpeed = myprofile.speed [step];
-		}
-	step_timer--;   //decrement time left in step
-//setpoint is the target temp of the last step + delta_t_per_sec 
-	setpoint = setpoint + delta_t_per_sec;  //add delta temp per sec to previous setpoint
-	
-	break;
-		   
-	case (AUTO_ROR):
-  if (myprofile.time[step] == 0) {    //if time for this step = 0, then perform a ROR type step
-    if (mt >= target_temp) {  //when measured temp reaches target temp, then time to go to next step
-      step++;  //increment step counter
-      if (myprofile.time[step] == 0) {    //if time for next step = 0, then setup for a ROR type step
-        ROR = myprofile.ror[step];           //get ROR for this step   
-        delta_t_per_sec = (ROR / 60);   //convert ROR from deg per min to delta temp per second
-        step_timer = 0;                     //reset step timer
-        target_temp = myprofile.targ_temp [step];  //set new target temp, for this step
-        }
-      else {  //setup for a timed step
-        step_timer = myprofile.time[step];
-        }
-      }	
-    else {	//else have have reached target temp yet, update setpoint for next second
-      step_timer ++; //see how long it has been in this step, use step timer in incrementing mode
-      setpoint = setpoint + delta_t_per_sec;  //current target temp is setpoint plus slope
-      if (setpoint > max_temp) { //do not allow setpoint to exceed max temp 
-        setpoint = max_temp;  //note that MAXTEMP is defined per profile, in the profile structure
-        }
-      }
-    }
-    // determine PID setpoint based on delta_t_per_sec (ramp) and time
-  else {     //else time > 0, do a timed step, without changing setpoint, use step timer in decrementing mode
-    if (step_timer <= 0) {  //if step timer reaches 0, then go to next step
-      step++;
-    if (myprofile.time[step] == 0) {    //if time for next step = 0, then setup for a ROR type step
-      ROR = myprofile.ror[step];           //get ROR for this step   
-      delta_t_per_sec = (ROR / 60);   //convert ROR from deg per min to delta temp per second
-      step_timer = 0;                     //reset step timer
-      target_temp = myprofile.targ_temp [step];  //set new target temp, for this step
-      }
-    else {  //setup for a timed step
-      step_timer = myprofile.time[step];
-      }
-    }			
-  else {
-    step_timer--;
-    }
-  }
-  break;
 
-	case (MANUAL_ROR):
-		step_timer++; //for manual ROR roasting, using step_timer for how long at this ramp rate, step_timer in inc mode
-		//delta_t_per_sec = (ROR / 60);   //convert ROR from deg per min to slope in deg per second
-		setpoint = setpoint + delta_t_per_sec;  //current target temp is setpoint plus slope
-		if (setpoint > max_temp) { //do not allow setpoint to exceed max temp constant
-			setpoint = max_temp; } //note that MAXTEMP is defined in user.h
-        break;
-	}		
+
+//main logic, find roast method for this roast, then apply correct logic	
+switch (roast_method){
+   case (AUTO_TEMP):
+   if (step_timer <= 0) {
+      setpoint = myprofile.targ_temp[step];  //reset setpoint to target temp for step just completed, in case of small math errors
+      step = step + 1;               //go to next step
+//added following in case temp was changed manually, to make sure temp for next step is not lower then current target temp
+      if (target_temp > (myprofile.targ_temp[step])) 
+         {myprofile.targ_temp [step] = target_temp;}
+      else
+         {target_temp = myprofile.targ_temp[step]; }
+      ramp_delta_temp =  ( (target_temp) - (myprofile.targ_temp [(step - 1)]) );
+      delta_t_per_sec =  (ramp_delta_temp / (myprofile.time [step]));  //calculate delta temp per second
+      step_timer = myprofile.time [step];     //set step timer to time for this step.  In this method, step time is decremented.
+      FanSpeed = myprofile.speed [step];
+      }
+   step_timer--;   //decrement time left in step
+//setpoint is the target temp of the last step + delta_t_per_sec 
+   setpoint = setpoint + delta_t_per_sec;  //add delta temp per sec to previous setpoint
+   break;
+		   
+   case (AUTO_ROR):
+   if (myprofile.time[step] == 0) {    //if time for this step = 0, then perform a ROR type step
+      if (mt >= target_temp) {  //when measured temp reaches target temp, then time to go to next step
+        step++;  //increment step counter
+        if (myprofile.time[step] == 0) {    //if time for next step = 0, then setup for a ROR type step
+           ROR = myprofile.ror[step];           //get ROR for this step   
+           delta_t_per_sec = (ROR / 60);   //convert ROR from deg per min to delta temp per second
+           step_timer = 0;                     //reset step timer
+           target_temp = myprofile.targ_temp [step];  //set new target temp, for this step
+           }
+        else {  //setup for a timed step
+           step_timer = myprofile.time[step];
+           }
+        }	
+      else {	//else have have reached target temp yet, update setpoint for next second
+         step_timer ++; //see how long it has been in this step, use step timer in incrementing mode
+         setpoint = setpoint + delta_t_per_sec;  //current target temp is setpoint plus slope
+         if (setpoint > max_temp) { //do not allow setpoint to exceed max temp 
+            setpoint = max_temp;  //note that MAXTEMP is defined per profile, in the profile structure
+            }
+         }
+      }
+    // determine PID setpoint based on delta_t_per_sec (ramp) and time
+   else {     //else time > 0, do a timed step, without changing setpoint, use step timer in decrementing mode
+      if (step_timer <= 0) {  //if step timer reaches 0, then go to next step
+         step++;
+         if (myprofile.time[step] == 0) {    //if time for next step = 0, then setup for a ROR type step
+            ROR = myprofile.ror[step];           //get ROR for this step   
+            delta_t_per_sec = (ROR / 60);   //convert ROR from deg per min to delta temp per second
+            step_timer = 0;                     //reset step timer
+            target_temp = myprofile.targ_temp [step];  //set new target temp, for this step
+            }
+        else {  //setup for a timed step
+            step_timer = myprofile.time[step];
+            }
+        }			
+      else {
+         step_timer--;
+         }
+      }
+   break;
+
+   case (MANUAL_ROR):
+   step_timer++; //for manual ROR roasting, using step_timer for how long at this ramp rate, step_timer in inc mode
+   setpoint = setpoint + delta_t_per_sec;  //current target temp is setpoint plus slope
+   if (setpoint > max_temp) { //do not allow setpoint to exceed max temp constant
+      setpoint = max_temp; } //note that MAXTEMP is defined in user.h
+   break;
+   }		
 
 // PID control, adjust heater output 
 PID();
@@ -599,12 +605,13 @@ mt_old = mt;
 
 display_roast();   //display roast information on LCD  routine in display.pde
 
+
 if (myPID.serial_type == pkona) {
    serial_send_data();  //send data to serial port, routine in serial.pde
    }
-//else if (myPID.serial_type == artisan) {
-   serial_read_art();
-//   }
+
+//Check for artisan, if it is there, then send it data
+serial_read_art();  //routine in serial.pde
 
 time_left = nextLoop - millis() ;
 
