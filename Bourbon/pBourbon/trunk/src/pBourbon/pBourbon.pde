@@ -188,18 +188,6 @@ void setup() {
     }
   };
 
-  print( "COM Port: "); println( whichport );
-  print( "Baudrate: "); println( baudrate );
-  if( SAMPLESIZE > 1 ) {
-    print( "TC average sample size: "); println( SAMPLESIZE );
-  }
-  print( "Fahrenheit or Celsius: "); println( corf ); println();
- 
-
-  // initialize the COM port (this can take a loooooong time on some computers)
-  println("Initializing COM port.  Please stand by....");
-  startSerial();
-  
   // create arrays
   T0 = new float[2][MAX_TIME];
   T1 = new float[2][MAX_TIME];
@@ -234,6 +222,17 @@ void setup() {
   frameRate(5); 
   smooth();
   background(cbgnd);
+  
+  print( "COM Port: "); println( whichport );
+  print( "Baudrate: "); println( baudrate );
+  if( SAMPLESIZE > 1 ) {
+    print( "TC average sample size: "); println( SAMPLESIZE );
+  }
+  print( "Fahrenheit or Celsius: "); println( corf ); println();
+ 
+  // initialize the COM port (this can take a loooooong time on some computers)
+  println("Initializing COM port.  Please stand by....");
+  startSerial();
 
 // -------------- if guide profile or guide logfile are present, load them
   profile_data = loadStrings( PROFILE );
