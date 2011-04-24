@@ -59,6 +59,9 @@ int MINUTES = 17; // time limit for graph (change to suit)
 //int CBGND = 64; // background color dark grey
 int CBGND = 0;  // background color black
 
+int FRAMERATE = 5;
+boolean SMOOTH = true;
+
 // **********************************************************************************************
 
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
@@ -167,6 +170,8 @@ void setup() {
   // format is: value, comment/n
   String[] lines = loadStrings( cfgfilename );
   SAMPLESIZE = 1; // default value in case sample size not given in config file
+  
+  // --------------- read config file FIXME: make this more flexible
   if( lines.length >= 1 ) {
     String[] portstring = split( lines[0], "," );
     whichport = portstring[0];
@@ -201,27 +206,37 @@ void setup() {
   monitorFont = createFont("Tahoma-Bold", 16 );
   markerFont = createFont("Tahoma-Bold", 16 );
 
-
  fill( clabel );
-  
-  if ( corf.charAt(0) == 'C') {
-    labelFont = c_labelFont;
-    templabelypos = 1;
-    templabelxpos = 25;
-    temp_scale = float (520 - MIN_TEMP) / (c_MAX_TEMP - c_MIN_TEMP);
-    MAX_TEMP = c_MAX_TEMP;
-    MIN_TEMP = c_MIN_TEMP; // degrees
-    TEMP_INCR = c_TEMP_INCR;  // degrees
-  } else {
-      temp_scale = float (520 - MIN_TEMP) / (MAX_TEMP - MIN_TEMP);
-  }
+ 
+ if ( corf.charAt(0) == 'C') {
+   labelFont = c_labelFont;
+   templabelypos = 1;
+   templabelxpos = 25;
+   temp_scale = float (520 - MIN_TEMP) / (c_MAX_TEMP - c_MIN_TEMP);
+   MAX_TEMP = c_MAX_TEMP;
+   MIN_TEMP = c_MIN_TEMP; // degrees
+   TEMP_INCR = c_TEMP_INCR;  // degrees
+ } else {
+     temp_scale = float (520 - MIN_TEMP) / (MAX_TEMP - MIN_TEMP);
+ }
   
   time_scale = 1020 / float (MAX_TIME); // calcs new time scale if MAX_TIME <> 1020 = 17 minutes
     
   size(1200, 800);
-  frameRate(5); 
-  smooth();
+  frameRate(FRAMERATE); 
+  if( SMOOTH ) smooth();
   background(cbgnd);
+  
+  // -------------- if guide profile or guide logfile are present, load them
+  profile_data = loadStrings( PROFILE );
+  if( profile_data == null ) {
+    enable_guideprofile = false;
+  }
+  
+  logfile_data = loadStrings(LOGFILE);
+  if( logfile_data == null ) {
+    enable_loadlogfile = false;
+  }
   
   print( "COM Port: "); println( whichport );
   print( "Baudrate: "); println( baudrate );
@@ -233,26 +248,6 @@ void setup() {
   // initialize the COM port (this can take a loooooong time on some computers)
   println("Initializing COM port.  Please stand by....");
   startSerial();
-
-// -------------- if guide profile or guide logfile are present, load them
-  profile_data = loadStrings( PROFILE );
-  if( profile_data == null ) {
-    enable_guideprofile = false;
-  }
-  
-  logfile_data = loadStrings(LOGFILE);
-  if( logfile_data == null ) {
-    enable_loadlogfile = false;
-  }
-
-/*  
-  if (enable_guideprofile) {
-    profile_data = loadStrings(PROFILE);
-  }
-  if (enable_loadlogfile) {
-    logfile_data = loadStrings(LOGFILE);
-  }
-*/
 
 } // setup
 
