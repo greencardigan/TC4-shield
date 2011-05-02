@@ -1,6 +1,6 @@
  // Kona.pde
 // Kona project
-#define VERSION 5.3
+#define VERSION 5.00
 
 /*
 // *** BSD License ***
@@ -21,7 +21,8 @@
 // A PID roasting program for the Arduino using a TC4 thermocouple input.
 
 Revision history
-Version 5.1     Changed profile record to make easier to save.  Added support for Artisan and to receive serial commands from pKona
+Version 5.00     Changed profile record to make easier to save.  Added support for Artisan and to receive serial commands from pKona
+                 The structure of the profile is different in this version.  Also added some eeprom parameters for serial type and roaster type.
 Version 4.00	Implemented I2C EEprom, so profiles and PID constants are stored in EEprom.  Can receive profiles from processing program.
 Version 3.00    Moved buttons to I2C port expander
 Version 2.00	Merged Moka and Kona into one program.
@@ -124,7 +125,7 @@ void profile_act();        //routine in profile.pde
 // or other roasters where BT might be jumpy, then a higher value of RISE_FILTER
 // will be needed.  Theoretical max. is 99%, but watch out for the lag when
 // you get above 85%.
-#define RISE_FILTER 70 // heavy filtering on non-displayed BT for RoR calculations
+#define RISE_FILTER 80 // heavy filtering on non-displayed BT for RoR calculations
 
 // ---------------------------- calibration of ADC and ambient temp sensor
 #define CAL_GAIN 1.00 // substitute known gain adjustment from calibration
@@ -606,7 +607,7 @@ mt_old = mt;
 display_roast();   //display roast information on LCD  routine in display.pde
 
 
-if (myPID.serial_type == pkona) {
+if (myPID.serial_type == PKONA) {
    serial_send_data();  //send data to serial port, routine in serial.pde
    }
 

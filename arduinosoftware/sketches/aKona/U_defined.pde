@@ -57,8 +57,9 @@ PROGMEM  prog_uint16_t flash_seg2_min[] = {0};  //segment 0 min output
 */
 
 PROGMEM  prog_uint16_t flash_startheat[] = {80};  //heater output until start temp is reached
-PROGMEM  prog_uint16_t flash_serial_type[] = {1};  //heater output until start temp is reached
-PROGMEM  prog_uint16_t flash_roaster[] = {ALPENROST};  //heater output until start temp is reached
+PROGMEM  prog_uint16_t flash_serial_type[] = {PKONA};  //serial type, default is pKona, Artisan is other type
+PROGMEM  prog_uint16_t flash_roaster[] = {DEFAULT_ROASTER};  //roaster type, changed for release
+//PROGMEM  prog_uint16_t flash_roaster[] = {ALPENROST};  //roaster type
 
 
 void pwm_init()
