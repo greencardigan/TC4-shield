@@ -9,11 +9,10 @@ has been modified to output the following information on the serial interface:
  channel 0 rate of rise
  channel 1 temperature
  channel 1 rate of rise
- 0 (dummy value used as a placeholder)
 
 This program outputs a series of records on the serial port:
 
-  timestamp, ambient, temp. channel 0, rise rate channel 0, temp. 1, rise 1, 0
+  timestamp, ambient, temp. channel 0, rise rate channel 0, temp. 1, rise 1
 
 This is the arduino half of the application, and can be used standalone when connected
 to a 16 x 2 LCD.
@@ -47,4 +46,14 @@ implement C, use the CELSIUS define in user.h.
 
 Jim Gallt
 4/5/2011
+
+
+Version 2.20
+------------
+Modified so that a dummy value for "power" output is no longer printed after the
+temperature data.
+
+Jim Gallt
+5/23/2011
+
 
