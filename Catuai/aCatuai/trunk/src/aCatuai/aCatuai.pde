@@ -48,7 +48,7 @@
 //                Added PWM fan control code for IO3
 
 // -----------------------------------------------------------------------------------------------
-#define BANNER_CAT "Catuai V0.03" // version
+#define BANNER_CAT "Catuai V1.00" // version
 
 // The user.h file contains user-definable compiler options
 // It must be located in the same folder as aCatuai.pde
