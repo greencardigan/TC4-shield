@@ -1,7 +1,7 @@
 // aCatuai.pde
 //
 // 2-channel Rise-o-Meter and manual roast controller
-// output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, power
+// output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, [power1], [power2]
 // output on LCD : timestamp, power(%), channel 2 temperature
 //                 RoR 1,               channel 1 temperature
 
@@ -48,7 +48,7 @@
 //                Added PWM fan control code for IO3
 
 // -----------------------------------------------------------------------------------------------
-#define BANNER_CAT "Catuai V0.02" // version
+#define BANNER_CAT "Catuai V0.03" // version
 
 // The user.h file contains user-definable compiler options
 // It must be located in the same folder as aCatuai.pde
@@ -70,8 +70,10 @@
 
 // ------ connect a potentiomenter to ANLG1 for manual heater control using Ot1
 #define ANALOG_IN
+#ifdef ANALOG_IN
 #define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1 (if used)
 #define IO3 3 // using pin 3 for PWM output
+#endif
 
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
@@ -225,11 +227,11 @@ void logger()
   };
 
 // log the power level to the serial port
-  Serial.print(",");
 #ifdef ANALOG_IN
+  Serial.print(",");
   Serial.print( power1 );
-#else
-  Serial.print( "0" );
+  Serial.print( "," );
+  Serial.print( power2 );
 #endif
   Serial.println();
 
@@ -481,7 +483,7 @@ void setup()
   if( NCHAN >= 2 ) Serial.print(",T1,rate1");
   if( NCHAN >= 3 ) Serial.print(",T2,rate2");
   if( NCHAN >= 4 ) Serial.print(",T3,rate3");
-  Serial.print(",power");
+  Serial.print(",[power1],[power2]");
   Serial.println();
  
   fT[0].init( BT_FILTER ); // digital filtering on BT

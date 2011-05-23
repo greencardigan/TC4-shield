@@ -1,7 +1,7 @@
 // aBourbon.pde
 //
 // N-channel Rise-o-Meter
-// output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, 0.0 (placeholder)
+// output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2
 // output on LCD : timestamp, channel 2 temperature
 //                 RoR 1,     channel 1 temperature
 
@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_BRBN "Bourbon V2.00"
+#define BANNER_BRBN "Bourbon V2.20"
 // Revision history:
 //   20100922: Added support for I2C LCD interface (optional). 
 //             This program now requires use of cLCD library.
@@ -50,6 +50,8 @@
 //   20110405: Added support for button pushes
 //   20110406: Added post-filtering for RoR values
 //   20110408: Added code to read RESET code from serial port
+//   20110522: Eliminated the dummy power field in the output stream.  pBourbon now is smart
+//             enough to not require the dummy field.
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -214,9 +216,7 @@ void logger()
     i++;
   };
 
-// log the dummy placeholder value to serial port
-  Serial.println(",0");
-  
+  Serial.println();
   updateLCD( t1, t2, RoR );  
 };
 
@@ -415,7 +415,6 @@ void setup()
   if( NCHAN >= 2 ) Serial.print(",T1,rate1");
   if( NCHAN >= 3 ) Serial.print(",T2,rate2");
   if( NCHAN >= 4 ) Serial.print(",T3,rate3");
-  Serial.print(",0");
   Serial.println();
   
   fT[0].init( BT_FILTER ); // digital filtering on BT

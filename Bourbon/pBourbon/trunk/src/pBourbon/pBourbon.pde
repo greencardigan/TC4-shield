@@ -38,10 +38,10 @@
 // ----------------
 // added code for multiple resets to accommodate slow response from Uno board
 
-// Version 3.xx
+// Version 2.20
 // ------------
 // program now loads guide profile and saved log file automatically if files are present
-
+// May 22, 2011:  enabled reading of power1 and power2 from the serial stream
 
 // ************************************* User Preferences **************************************
 
@@ -67,7 +67,7 @@ boolean SMOOTH = true;
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
 PrintWriter logfile;
-String appname = "Bourbon Roast Logger v3.xx";
+String appname = "Bourbon Roast Logger v2.20";
 
 String profile_data[];
 String logfile_data[];
@@ -77,14 +77,19 @@ String kb_note = "";
 boolean enable_guideprofile = true; // true unless file is not found
 boolean enable_loadlogfile = true;
 
+boolean POWER1 = false; // output power 1
+boolean POWER2 = false; // output power 2
+
 String LOGFILE = logfile_f; // by default
 String PROFILE = profile_f;
 
-color c0 = color(255,0,0); // channel 0
-color c1 = color(0,255,0);
-color c2 = color(255,255,0);
-color c3 = color(255,204,0);
-color c4 = color(255,0,255);
+color c0 = color(255,0,0); // red, channel 0
+color c1 = color(0,255,0); // green
+color c2 = color(255,255,0); // yellow
+color c3 = color(255,204,0); // unsaturated yellow ??
+color c4 = color(255,0,255); // magenta
+color c5 = color(0,255,255); // cyan
+color c6 = color(255,165,0); // orange??
 color cmin = color( 0,255,255 );
 color cidx = color( 0,255,255 );
 color clabel = color( 255,255,160 );
@@ -121,10 +126,12 @@ float tstart = 0.0;
 
 float ambient;
 float power;
-float [][] T0;
-float [][] T1;
-float [][] T2;
-float [][] T3;
+float [][] T0; // chennel 1
+float [][] T1; // channel 1 RoR
+float [][] T2; // channel 2
+float [][] T3; // channel 2 RoR
+float [][] P1; // output level 1
+float [][] P2; // output level 2
 
 PFont labelFont;
 
@@ -198,6 +205,8 @@ void setup() {
   T1 = new float[2][MAX_TIME];
   if( NCHAN >= 2 )   T2 = new float[2][MAX_TIME];
   if( NCHAN >= 2 )   T3 = new float[2][MAX_TIME];
+  P1 = new float[2][MAX_TIME]; // output power 1
+  P2 = new float[2][MAX_TIME]; // output power 2
   
   frame.setResizable(true);
   labelFont = createFont("Tahoma-Bold", 16 );
@@ -452,6 +461,18 @@ void monitor( int t1, int t2 ) {
     textFont( monitorFont, t2 );
     text(strng,pos-w,32 );
 
+    if( POWER1 ) {
+      pos += incr;
+      fill( c6 );
+      strng = nf( P1[1][idx-1],3,0 );
+      w = textWidth(strng);
+      textFont( monitorFont, t1 );
+      text(strng,pos-w,16);
+      strng = "OT1";
+      textFont( monitorFont, t2 );
+      text(strng,pos-w,32 );
+    }
+
 /*
     pos += incr;
     fill( cidx );
@@ -525,10 +546,14 @@ void draw() {
     drawprofile();
     drawlogfile();
     drawnote();
-    drawchan(T0, c0 );  
-    drawchan(T1, c1 );
-    if( NCHAN >= 2 )   drawchan(T2, c2 );
+    drawchan(T0, c0 );  // BT
+    drawchan(T1, c1 );  // BT RoR
+    if( NCHAN >= 2 )   drawchan(T2, c2 ); // ET
     // if( NCHAN >= 2 )   drawchan(T3, c3 );   // don't draw RoR for 2nd channel
+    if( POWER2 )
+      drawchan( P2, c5 ); // output power 2
+    if( POWER1 )
+      drawchan( P1, c6 ); // output power 1
     drawmarkers();
    
     // put numeric monitor at top of screen
@@ -553,13 +578,20 @@ void draw() {
       if( NCHAN >= 2 )   T2[1] = (float[]) expand(T2[1], T2[1].length + 120);
       if( NCHAN >= 2 )   T3[0] = (float[]) expand(T3[0], T3[0].length + 120);
       if( NCHAN >= 2 )   T3[1] = (float[]) expand(T3[1], T3[1].length + 120);
+      if( POWER1 ) {
+        P1[0] = (float[]) expand(P1[0], P1[0].length + 120);
+        P1[1] = (float[]) expand(P1[1], P1[1].length + 120);
+      }
+      if( POWER2 ) {
+        P2[0] = (float[]) expand(P2[0], P2[0].length + 120);
+        P2[1] = (float[]) expand(P2[1], P2[1].length + 120);
+      }
     }
   } // end else
 }
 
 // -------------------------------------------------------------
 void serialEvent(Serial comport) { // this is executed each time a line of data is received from the TC4
-
     // grab a line of ascii text from the logger
     String msg = comport.readStringUntil('\n');
 
@@ -597,11 +629,16 @@ void serialEvent(Serial comport) { // this is executed each time a line of data 
     // not a comment, so process the line as data, but only if logging has been started by the user --------
     else if( started ) {
       String[] rec = split(msg, ",");  // comma separated input list
-      if (rec.length != 2 * NCHAN + 3 ) {
+      int rlen = rec.length;
+      if( rlen > 2 * NCHAN + 4 ) {
         println("Ignoring unknown msg from logger: " + msg);
         return; // *******************
       } // end if
-  
+      else if( rlen == 2 * NCHAN + 4 )
+        POWER1 = POWER2 = true;
+      else if( rlen == 2 * NCHAN + 3 )
+        POWER1 = true;
+      
       timestamp = float(rec[0]);
       ambient = float(rec[1]);
 
@@ -610,21 +647,44 @@ void serialEvent(Serial comport) { // this is executed each time a line of data 
       T1[0][idx] = timestamp;
       T1[1][idx] = float(rec[3]) * 10.0;  // exaggerate the rate traces
   
-      if( NCHAN >= 2 ) {
+      if( NCHAN >= 2 ) { // only store and plot channels 1 and 2, but log all of them
         T2[0][idx] = timestamp;
         T2[1][idx] = float(rec[4]);
-      } // end if
-      if( NCHAN >= 2 ) {
         T3[0][idx] = timestamp;
         T3[1][idx] = float(rec[5]) * 10.0;  // exaggerate the rate traces
       }
+      
+      if( POWER1 ) {
+        P1[0][idx] = timestamp;
+        P1[1][idx] = float(rec[2 * NCHAN + 2]);
+      }
+      
+      if( POWER2 ) {
+        P2[0][idx] = timestamp;
+        P2[1][idx] = float(rec[2 * NCHAN + 3]);
+      }
   
-      for (int i=0; i<(2 * NCHAN + 3); i++) {
+      print(rec[0]);
+      logfile.print(rec[0]);
+      for (int i=1; i<(2 * NCHAN + 2); i++) {
+        print(",");
         print(rec[i]);
+        logfile.print(",");
         logfile.print(rec[i]);
-        if (i < 2 * NCHAN +2 ) print(",");
-        if (i < 2 * NCHAN +2 ) logfile.print(",");
       } // end for
+      
+      if( POWER1 ) {
+        print(",");
+        print(rec[2 * NCHAN + 2]);
+        logfile.print(",");
+        logfile.print(rec[2 * NCHAN + 2]);
+      }
+      if( POWER2 ) {
+        print(",");
+        print(rec[2 * NCHAN + 3]);
+        logfile.print(",");
+        logfile.print(rec[2 * NCHAN + 3]);
+      }
   
       logfile.println();
       println();
