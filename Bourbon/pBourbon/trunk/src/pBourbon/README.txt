@@ -15,14 +15,17 @@ corresponds to a rise rate of 20.0 degrees F per minute.
 This is the Processing half of the application that runs on the PC.
 
 The arduino half of the application, which must be flashed to the arduino
-board, is aBourbon.pde.
+board, is aBourbon.pde.  As of release 2.20 of pBourbon, you may also
+use the aCatuai.pde sketch on the remote.
 
 A mouseclick will capture a JPG version of the screen to a file.
 
 All user-configurable items are contained in "pBourbon.cfg".  This file
 must be present.
 
-The program will also look for files with these names, and 
+Version 2.20
+------------
+The program will look for files with these names, and 
 if found, open them:
 
 "profile.csv":  A guide profile in default F units
@@ -36,6 +39,12 @@ look for, and open if found, these files:
 
 The guide profile and saved log files are optional.
 
+pBourbon will log up to two output levels (e.g. for a heater or for a fan).  
+It will plot only the first output level, however. If pBourbon finds values in 
+the serial stream following the temperature data, then it will process them.  
+If there is no additional data following the temperature data, then no errors will be
+generated and no output trace will show up.
+
 
 Jim Gallt
-4/16/2011
+5/23/2011
