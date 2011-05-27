@@ -9,11 +9,8 @@
 // Next compile the sketch and upload it to the Arduino.
 
 #define EEPROM_ARTISAN // comment this line out if no calibration information stored in 64K EEPROM
-//#define CELSIUS // if defined, output is in Celsius units; otherwise Fahrenheit
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
-//#define ARTISAN04x
-//#define ARTISAN03x
 
 #define BAUD 19200  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for BT

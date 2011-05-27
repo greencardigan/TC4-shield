@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V1.04"
+#define BANNER_ARTISAN "aARTISAN V1.04beta"
 
 // Revision history:
 // 20110408 Created.
