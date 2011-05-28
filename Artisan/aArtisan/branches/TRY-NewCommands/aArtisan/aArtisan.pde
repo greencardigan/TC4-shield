@@ -478,8 +478,8 @@ void setup()
   levelOT1 = levelOT2 = levelIO3 = 0;
   
   // initialize the active channels to default values
-  actv[0] = 1;  // BT normally
-  actv[1] = 2;  // ET normally
+  actv[0] = 2;  // BT normally
+  actv[1] = 1;  // ET normally
   actv[2] = 0; // default inactive
   actv[3] = 0;
 
