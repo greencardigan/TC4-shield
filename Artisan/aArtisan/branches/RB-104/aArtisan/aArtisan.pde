@@ -2,8 +2,15 @@
 // ------------
 
 // This sketch responds to a "READ\n" command on the serial line (Artisan 0.3.x)
-// or "RF2000\n" or "RC2000\n" on the serial line (Artisan 0.4.x)
+// or "RF2000\n" or "RC2000\n" on the serial line (Artisan 0.5.x)
 // and outputs ambient temperature, bean temperature, environmental temperature
+//
+// (This sketch is not compatible with Artisan 0.4.1 because a different polling
+// command was used in that version).
+//
+// For consistency with Artisan, the ET sensor should be connected TC1 on the shield.
+// The BT sensor should be connected to TC2.  This will result in the correct information
+// being displayed on the Artisan screens and a connected standalone LCD, if used.
 //
 // Written to support the Artisan roasting scope //http://code.google.com/p/artisan/
 
@@ -39,7 +46,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V1.04beta"
+#define BANNER_ARTISAN "aARTISAN V1.04"
 
 // Revision history:
 // 20110408 Created.
@@ -50,6 +57,8 @@
 // 20110414 Reduced filtering levels on BT, ET
 //          Improved robustness of checkSerial() for stops/starts by Artisan
 //          Revised command format to include newline character for Artisan 0.4.x
+// 20110529 Switched BT and ET to be compatible with Artisan 0.5.x
+//          Made commands case-insensitive
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -146,7 +155,7 @@ void checkSerial() {  // buffer the input from the serial port
       strcpy( command, "" ); // empty the buffer
     } // end if
     else {
-      append( command, c );
+      append( command, toupper(c) );
     } // end else
   } // end while
 }
@@ -194,11 +203,11 @@ void logger()
 // print ambient
   Serial.print( convertUnits( AT ), DP );
   Serial.print( "," );
-// print BT
-  Serial.print( convertUnits( BT ), DP );
-  Serial.print( "," );
 // print ET
-  Serial.println( convertUnits( ET ), DP );
+  Serial.print( convertUnits( ET ), DP );
+  Serial.print( "," );
+// print BT
+  Serial.println( convertUnits( BT ), DP );
 }
 
 // --------------------------------------------------------------------------
@@ -219,8 +228,8 @@ void get_samples( int nchan ) // this function talks to the amb sensor and ADC v
     AT = amb.getAmbF();
     temps[j] = fT[j].doFilter( v ); // apply digital filtering for display/logging
   }
-  BT = 0.001 * temps[0];
-  ET = 0.001 * temps[1];
+  ET = 0.001 * temps[0];
+  BT = 0.001 * temps[1];
 };
 
 #ifdef LCD
@@ -238,24 +247,24 @@ void updateLCD() {
   lcd.print("AMB:");
   lcd.print(st1);
 
-  // BT
-  it01 = round( convertUnits( BT ) );
+  // ET
+  it01 = round( convertUnits( ET ) );
   if( it01 > 999 ) 
     it01 = 999;
   else
     if( it01 < -999 ) it01 = -999;
   sprintf( st1, "%4d", it01 );
   lcd.setCursor( 9, 0 );
-  lcd.print("BT:");
+  lcd.print("ET:");
   lcd.print(st1);
 
-  // ET
-  int it02 = round( convertUnits( ET ) );
+  // BT
+  int it02 = round( convertUnits( BT ) );
   if( it02 > 999 ) it02 = 999;
   else if( it02 < -999 ) it02 = -999;
   sprintf( st2, "%4d", it02 );
   lcd.setCursor( 9, 1 );
-  lcd.print( "ET:" );
+  lcd.print( "BT:" );
   lcd.print( st2 ); 
   
   lcd.setCursor( 0, 1 );

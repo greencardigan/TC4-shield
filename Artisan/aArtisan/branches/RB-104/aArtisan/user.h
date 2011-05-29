@@ -22,6 +22,7 @@
 #define UV_OFFSET 0 // you may subsitute a known value for uV offset in ADC
 #define AMB_OFFSET 0.0 // you may substitute a known value for amb temp offset (Celsius)
 
+//#define CELSIUS // this only affects conditions at startup.  Comment this out for F units.
 
 // *************************************************************************************
 
