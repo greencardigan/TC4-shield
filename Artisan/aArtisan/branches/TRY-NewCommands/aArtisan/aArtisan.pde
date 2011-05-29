@@ -189,7 +189,7 @@ void processCommand() {  // a newline character has been received, so process th
     lcd.setCursor( 0, 1 ); // echo all commands to the LCD
     lcd.print( command );
 #endif
-  for( int i =0; i < NC; i++ )
+  for( int i =0; i < MAX_TOKENS; i++ )
     tokens[i][0] = '\0';  // clear out old tokens
   int n = tokenize( tokens, command );
   if( n != 0 ) {
@@ -309,6 +309,7 @@ void processCommand() {  // a newline character has been received, so process th
       uint8_t len1 = strlen( tokens[1] );
       uint8_t len2 = strlen( tokens[2] );
       if( len1 > 0 && len2 > 0 ) {
+        pinMode( dpin, OUTPUT );
         dpin = atoi( tokens[1] );
         if( ! strcmp( tokens[2], "HIGH" ) ) {
           digitalWrite( dpin, HIGH );
