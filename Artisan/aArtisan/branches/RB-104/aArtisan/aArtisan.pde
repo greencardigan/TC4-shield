@@ -3,7 +3,9 @@
 
 // This sketch responds to a "READ\n" command on the serial line (Artisan 0.3.x)
 // or "RF2000\n" or "RC2000\n" on the serial line (Artisan 0.5.x)
-// and outputs ambient temperature, bean temperature, environmental temperature
+// and outputs ambient temperature, roaster environmental temperature (ET),
+// and bean temperature (BT) to the serial line.  By default it is configured
+// to transmit/receive at 19200 baud (see user.h to modify).
 //
 // (This sketch is not compatible with Artisan 0.4.1 because a different polling
 // command was used in that version).
