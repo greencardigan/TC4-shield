@@ -70,6 +70,16 @@
 #include <cLCD.h> // required only if LCD is used
 #endif
 
+// ----------------------- commands
+#define READ_CMD "READ" // triggers the TC4 to output current temps on serial line
+#define UNITS_CMD "UNITS" // changes units, F or C
+#define CHAN_CMD "CHAN" // maps logical channels to physical channels
+#define OT1_CMD "OT1" // 0 to 100 percent output on SSR drive OT1
+#define OT2_CMD "OT2" // 0 to 100 percent output on SSR drive OT2
+#define IO3_CMD "IO3" // 0 to 100 percent PWM 5V output on IO3
+#define DIGITAL_WRITE_CMD "DWRITE" // turn digital pin LOW or HIGH
+#define ANALOG_WRITE_CMD "AWRITE" // write a value 0 to 255 to PWM pin
+
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
 #define NC 4   // max physical number of TC input channels (activate using CHAN command)
@@ -204,13 +214,13 @@ void processCommand() {  // a newline character has been received, so process th
       logger();
       return;
     }
-    if( ! strcmp( tokens[0], "READ" ) ) { // legacy code to support Artisan 0.3.4
+    if( ! strcmp( tokens[0], READ_CMD ) ) { // legacy code to support Artisan 0.3.4
       logger();
       return;
     }
     // --------------- next, check the new command structure
     // UNITS;F\n or UNITS;C\n
-    if( ! strcmp( tokens[0], "UNITS" )  ) {
+    if( ! strcmp( tokens[0], UNITS_CMD )  ) {
       Serial.print("# Changed units to ");
       if( ! strcmp( tokens[1], "F" ) ) {
         Cscale = false;
@@ -226,7 +236,7 @@ void processCommand() {  // a newline character has been received, so process th
     
     // --------------------------- specify active channels, and order of output
     // CHAN;ijkl\n
-    if( ! strcmp( tokens[0], "CHAN" ) ) {
+    if( ! strcmp( tokens[0], CHAN_CMD ) ) {
       char str[2];
       uint8_t n;
       uint8_t len = strlen( tokens[1] );
@@ -248,7 +258,7 @@ void processCommand() {  // a newline character has been received, so process th
 
     // --------------------------- specify output level on OT1
     // OT1;ddd\n
-    if( ! strcmp( tokens[0], "OT1" ) ) {
+    if( ! strcmp( tokens[0], OT1_CMD ) ) {
       uint8_t len = strlen( tokens[1] );
       if( len > 0 ) {
         levelOT1 = atoi( tokens[1] );
@@ -260,7 +270,7 @@ void processCommand() {  // a newline character has been received, so process th
 
     // --------------------------- specify output level on OT2
     // OT2;ddd\n
-    if( ! strcmp( tokens[0], "OT2" ) ) {
+    if( ! strcmp( tokens[0], OT2_CMD ) ) {
       uint8_t len = strlen( tokens[1] );
       if( len > 0 ) {
         levelOT2 = atoi( tokens[1] );
@@ -272,7 +282,7 @@ void processCommand() {  // a newline character has been received, so process th
 
     // --------------------------- specify output level on I/O3
     // IO3;ddd\n
-    if( ! strcmp( tokens[0], "IO3" ) ) {
+    if( ! strcmp( tokens[0], IO3_CMD ) ) {
       uint8_t len = strlen( tokens[1] );
       if( len > 0 ) {
         levelIO3 = atoi( tokens[1] );
@@ -285,7 +295,7 @@ void processCommand() {  // a newline character has been received, so process th
     // --------------------------- specify analog output to arbitrary pin
     // WARNING - this is not error checked.
     // APIN;ppp;ddd\n
-    if( ! strcmp( tokens[0], "APIN" ) ) {
+    if( ! strcmp( tokens[0], ANALOG_WRITE_CMD ) ) {
       uint8_t apin;
       int level;
       uint8_t len1 = strlen( tokens[1] );
@@ -294,9 +304,9 @@ void processCommand() {  // a newline character has been received, so process th
         apin = atoi( tokens[1] );
         level = atoi( tokens[2] );
         analogOut( apin, level );
-        Serial.print("# APIN ");
+        Serial.print("# Analog ");
         Serial.print( (int) apin );
-        Serial.print(" level set to "); Serial.println( level );
+        Serial.print(" output level set to "); Serial.println( level );
       }
       return;
     }
@@ -304,7 +314,7 @@ void processCommand() {  // a newline character has been received, so process th
     // --------------------------- specify digital output to arbitrary pin
     // WARNING - this is not error checked.
     // DPIN;ppp;ddd\n
-    if( ! strcmp( tokens[0], "DPIN" ) ) {
+    if( ! strcmp( tokens[0], DIGITAL_WRITE_CMD ) ) {
       uint8_t dpin;
       uint8_t len1 = strlen( tokens[1] );
       uint8_t len2 = strlen( tokens[2] );
@@ -313,7 +323,7 @@ void processCommand() {  // a newline character has been received, so process th
         pinMode( dpin, OUTPUT );
         if( ! strcmp( tokens[2], "HIGH" ) ) {
           digitalWrite( dpin, HIGH );
-          Serial.print("# DPIN ");
+          Serial.print("# Pin ");
           Serial.print( (int) dpin );
           Serial.println(" set to HIGH");
          }
@@ -326,7 +336,6 @@ void processCommand() {  // a newline character has been received, so process th
       }
       return;
     }
-
   }
 }
 
