@@ -5,12 +5,12 @@
 #include <TypeK.h>
 #include <cLCD.h>
 
-#define BANNER_K "Cal_K 20110313" // version
+#define BANNER_K "Cal_K 20110530" // version
 #define BACKLIGHT lcd.backlight();
-#define CHAN 0
+#define CHAN 1 // use TC2
 #define CALPT 200.0
-#define DEFAULT_OFFS -0.30
-#define DEFAULT_CAL 1.00250
+#define DEFAULT_OFFS 0.0
+#define DEFAULT_CAL 1.000
 
 cADC adc;
 ambSensor amb;

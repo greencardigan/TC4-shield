@@ -4,11 +4,11 @@
 #include <Wire.h>
 #include <cLCD.h>
 
-#define BANNER_CALMV "Cal_mV 20110313" // version
+#define BANNER_CALMV "Cal_mV 20110530" // version
 #define BACKLIGHT lcd.backlight();
 #define CHAN 0
 #define CALPT 50000.0
-#define DEFAULT_CAL 1.00250
+#define DEFAULT_CAL 1.000
 
 cADC adc;
 filterRC f;
