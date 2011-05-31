@@ -294,18 +294,23 @@ void processCommand() {  // a newline character has been received, so process th
 
     // --------------------------- specify analog output to arbitrary pin
     // WARNING - this is not error checked.
-    // APIN;ppp;ddd\n
+    // AWRITE;ppp;ddd\n
     if( ! strcmp( tokens[0], ANALOG_WRITE_CMD ) ) {
       uint8_t apin;
       int level;
       uint8_t len1 = strlen( tokens[1] );
       uint8_t len2 = strlen( tokens[2] );
       if( len1 > 0 && len2 > 0 ) {
-        apin = atoi( tokens[1] );
+        if( tokens[1][0] == 'D' )  // permit pin ID to be D01, D13, etc
+          apin = atoi( tokens[1] + 1 );
+        else if( tokens [1][0] == 'A' ) // invalid for the A pins
+          return;
+        else
+          apin = atoi( tokens[1] ); // or if no leading character, assume digital
         level = atoi( tokens[2] );
-        analogOut( apin, level );
-        Serial.print("# Analog ");
-        Serial.print( (int) apin );
+        analogWrite( apin, level );
+        Serial.print("# Analog (PWM) ");
+        Serial.print( tokens[1] );
         Serial.print(" output level set to "); Serial.println( level );
       }
       return;
@@ -313,25 +318,62 @@ void processCommand() {  // a newline character has been received, so process th
 
     // --------------------------- specify digital output to arbitrary pin
     // WARNING - this is not error checked.
-    // DPIN;ppp;ddd\n
+    // DWRITE;ppp;ddd\n
     if( ! strcmp( tokens[0], DIGITAL_WRITE_CMD ) ) {
       uint8_t dpin;
+      int pinID;
       uint8_t len1 = strlen( tokens[1] );
       uint8_t len2 = strlen( tokens[2] );
       if( len1 > 0 && len2 > 0 ) {
-        dpin = atoi( tokens[1] );
-        pinMode( dpin, OUTPUT );
-        if( ! strcmp( tokens[2], "HIGH" ) ) {
-          digitalWrite( dpin, HIGH );
-          Serial.print("# Pin ");
-          Serial.print( (int) dpin );
-          Serial.println(" set to HIGH");
-         }
-        else if( ! strcmp( tokens[2], "LOW" ) ) {
-          digitalWrite( dpin, LOW );
-          Serial.print("# DPIN ");
-          Serial.print( (int) dpin );
-          Serial.println(" set to LOW");
+        // determine if pin ID is analog (A0, A1, etc)
+        if( tokens[1][0] == 'A' ) {
+          dpin = atoi( tokens[1] + 1 ); // skip first character, convert remaining to integer
+          switch (dpin) {
+            case 0: pinID = A0; break;
+            case 1: pinID = A1; break;
+            case 2: pinID = A2; break;
+            case 3: pinID = A3; break;
+            case 4: pinID = A4; break;
+            case 5: pinID = A5; break;
+            default: return;
+          } // end switch
+          if( ! strcmp( tokens[2], "HIGH" ) ) {
+            pinMode( pinID, OUTPUT );
+            digitalWrite( pinID, HIGH );
+            Serial.print("# Pin A");
+            Serial.print( (int) dpin );
+            Serial.println(" set to HIGH");
+           }
+          else if( ! strcmp( tokens[2], "LOW" ) ) {
+            pinMode( pinID, INPUT);
+            digitalWrite( pinID, LOW ); // must turn off pull-up on A pins
+            pinMode( pinID, OUTPUT );
+            digitalWrite( dpin, LOW );
+            Serial.print("# Pin A");
+            Serial.print( (int) dpin );
+            Serial.println(" set to LOW");
+          }
+          return;
+        } // end if analog
+        else {
+          // not analog pin, so assume digital
+          if( tokens[1][0] == 'D' )  // permit pin ID to be D01, D13, etc
+            dpin = atoi( tokens[1] + 1 );
+          else
+            dpin = atoi( tokens[1] ); // or if no leading character, assume digital
+          pinMode( dpin, OUTPUT );
+          if( ! strcmp( tokens[2], "HIGH" ) ) {
+            digitalWrite( dpin, HIGH );
+            Serial.print("# Pin D");
+            Serial.print( (int) dpin );
+            Serial.println(" set to HIGH");
+           }
+          else if( ! strcmp( tokens[2], "LOW" ) ) {
+            digitalWrite( dpin, LOW );
+            Serial.print("# Pin D");
+            Serial.print( (int) dpin );
+            Serial.println(" set to LOW");
+          }
         }
       }
       return;
