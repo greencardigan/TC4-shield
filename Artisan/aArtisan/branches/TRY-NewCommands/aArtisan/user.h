@@ -8,6 +8,9 @@
 // First, load and edit this sketch in the Arduino IDE.
 // Next compile the sketch and upload it to the Arduino.
 
+#ifndef USER_H
+#define USER_H
+
 #define EEPROM_ARTISAN // comment this line out if no calibration information stored in 64K EEPROM
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
@@ -24,7 +27,9 @@
 #define AMB_OFFSET 0.0 // you may substitute a known value for amb temp offset (Celsius)
 
 #define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR's on OT1, OT2
+#define NC 4 // maximum number of physical channels on the TC4
 
 
 // *************************************************************************************
 
+#endif

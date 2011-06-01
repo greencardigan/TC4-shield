@@ -54,15 +54,20 @@
 //          Select PWM logic level output on I/O3 using IO3 command
 //          Directly control digital pins using DPIN command (WARNING -- this might not be smart)
 //          Directly control analog pins using APIN command (WARNING -- this might not be smart)
+// 20110601 Major rewrite to use cmndproc.h library
 
 // this library included with the arduino distribution
 #include <Wire.h>
 
-// The user.h file contains user-definable compiler options
+// The user.h file contains user-definable and some other global compiler options
 // It must be located in the same folder as aArtisan.pde
 #include "user.h"
 
+// command processor declarations -- must be in same folder as aArtisan
+#include "cmndreader.h"
+
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
+#include <cmndproc.h> // for command interpreter
 #include <TypeK.h>
 #include <cADC.h> // MCP3424
 #include <PWM16.h> // for SSR output
@@ -70,29 +75,12 @@
 #include <cLCD.h> // required only if LCD is used
 #endif
 
-// ----------------------- commands
-#define READ_CMD "READ" // triggers the TC4 to output current temps on serial line
-#define UNITS_CMD "UNITS" // changes units, F or C
-#define CHAN_CMD "CHAN" // maps logical channels to physical channels
-#define OT1_CMD "OT1" // 0 to 100 percent output on SSR drive OT1
-#define OT2_CMD "OT2" // 0 to 100 percent output on SSR drive OT2
-#define IO3_CMD "IO3" // 0 to 100 percent PWM 5V output on IO3
-#define DIGITAL_WRITE_CMD "DWRITE" // turn digital pin LOW or HIGH
-#define ANALOG_WRITE_CMD "AWRITE" // write a value 0 to 255 to PWM pin
-
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
-#define NC 4   // max physical number of TC input channels (activate using CHAN command)
 #define TC_TYPE TypeK  // thermocouple type / library
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
-
-#define MAX_COMMAND 80 // max length of a command string
-#define MAX_TOKEN_LEN 8 // max length of an individual token
-#define MAX_TOKENS 4 // max is 4 tokens in one command
-#define DLMTR "; ,"  // delimiters in new command language
-
-#define IO3 3 // use DIO3 for PWM output
+#define DELIM "; ," // command line parameter delimiters
 
 #ifdef EEPROM_ARTISAN // optional code if EEPROM flag is active
 #include <mcEEPROM.h>
@@ -118,16 +106,15 @@ boolean Cscale = true;
 boolean Cscale = false;
 #endif
 
-char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
-char tokens[MAX_TOKENS+1][MAX_TOKEN_LEN+1];  // tokens from command line
-
 int levelOT1, levelOT2, levelIO3;  // parameters to control output levels
+//char cmndstr[MAX_CMND_LEN+1];  // not required with command interpreter
 
 // class objects
 cADC adc( A_ADC ); // MCP3424
 ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NC]; // filter for logged ET, BT
 PWM16 ssr;  // object for SSR output on OT1, OT2
+CmndInterp ci( DELIM ); // command interpreter object
 
 // ---------------------------------- LCD interface definition
 #ifdef LCD
@@ -149,244 +136,61 @@ char st1[6],st2[6];
 #endif
 // --------------------------------------------- end LCD interface
 
-// -------------------------- parse string and create tokens
-int tokenize( char dest[][MAX_TOKEN_LEN+1], char src[] ) {
-  char* pch;
-  int n = 0;
-  pch = strtok( src, DLMTR );
-  while( pch != NULL && n <= MAX_TOKENS ) {
-   strncpy( dest[n], pch, MAX_TOKEN_LEN );
-//   Serial.println( dest[n] );
-   pch = strtok( NULL, DLMTR );
-   ++n;
+// ------------- wrapper for the command interpreter's serial line reader
+void checkSerial() {
+  const char* result = ci.checkSerial();
+  #ifdef LCD
+  if( result != NULL ) { // echo command to LCD for visual confirmation
+    lcd.setCursor( 0, 1 ); // echo all commands to the LCD
+    lcd.print( result );
   }
-//  Serial.println( n );
-  return n; 
+  #endif
 }
 
-// -------------------------------------
-void append( char* str, char c ) { // reinventing the wheel
-  int len = strlen( str );
-  str[len] = c;
-  str[len+1] = '\0';
-}
-
-// -------------------------------------
-void checkSerial() {  // buffer the input from the serial port
+/* old code replaced by command interpreter object 
+// ---------------- read data from the serial port (CmndInterp could do this, but we need
+//                  to update the LCD)
+void checkSerial() {
   char c;
   while( Serial.available() > 0 ) {
     c = Serial.read();
     // check for newline, buffer overflow
-    if( ( c == '\n' ) || ( strlen( command ) == MAX_COMMAND ) ) { 
-      processCommand();
-      strcpy( command, "" ); // empty the buffer
+    if( ( c == '\n' ) || ( strlen( cmndstr ) == MAX_CMND_LEN ) ) { 
+      #ifdef LCD
+      lcd.setCursor( 0, 1 ); // echo all commands to the LCD
+      lcd.print( cmndstr );
+      #endif
+      CmndParser parser( DELIM );
+      parser.doParse( cmndstr );
+      strcpy( cmndstr, "" ); // empty the buffer
+      if( reader.doCommand( &parser ) ) return;
+      else if( dwriter.doCommand( &parser ) ) return;
+      else if( awriter.doCommand( &parser ) ) return;
+      else if( units.doCommand( &parser ) ) return;
+      else if( chan.doCommand( &parser ) ) return;
+      else if( rf2000.doCommand( &parser ) ) return;
+      else if( rc2000.doCommand( &parser ) ) return;
+      else if( ot1.doCommand( &parser ) ) return;
+      else if( ot2.doCommand( &parser ) ) return;
+      else if( io3.doCommand( &parser ) ) return;
+      else return;
     } // end if
     else {
-      append( command, toupper( c ) );
+      int len = strlen( cmndstr );
+      cmndstr[len] = toupper(c);
+      cmndstr[len+1] = '\0';
     } // end else
   } // end while
+  return;
 }
-
-// ------------------------------ analog output based on 0 to 100%
-void analogOut( uint8_t prt, int level ) {
-  float pow = 2.55 * levelIO3;
-  analogWrite( prt, round( pow ) );
-}
-
-// -------------------------------------
-void processCommand() {  // a newline character has been received, so process the command  
-#ifdef LCD
-    lcd.setCursor( 0, 1 ); // echo all commands to the LCD
-    lcd.print( command );
-#endif
-  for( int i =0; i < MAX_TOKENS; i++ )
-    tokens[i][0] = '\0';  // clear out old tokens
-  int n = tokenize( tokens, command );
-  if( n != 0 ) {
-    // first check the legacy commands
-    if( ! strcmp( tokens[0], "RF2000" ) ) { // command received, read and output a sample
-      Cscale = false;
-      logger();
-      return;
-    }
-    if( ! strcmp( tokens[0], "RC2000" ) ) { // command received, read and output a sample
-      Cscale = true;
-      logger();
-      return;
-    }
-    if( ! strcmp( tokens[0], READ_CMD ) ) { // legacy code to support Artisan 0.3.4
-      logger();
-      return;
-    }
-    // --------------- next, check the new command structure
-    // UNITS;F\n or UNITS;C\n
-    if( ! strcmp( tokens[0], UNITS_CMD )  ) {
-      Serial.print("# Changed units to ");
-      if( ! strcmp( tokens[1], "F" ) ) {
-        Cscale = false;
-        Serial.println("F");
-        return;
-      }
-      if( ! strcmp( tokens[1], "C" ) ) {
-        Cscale = true;
-        Serial.println("C");
-        return;
-      }
-    }
-    
-    // --------------------------- specify active channels, and order of output
-    // CHAN;ijkl\n
-    if( ! strcmp( tokens[0], CHAN_CMD ) ) {
-      char str[2];
-      uint8_t n;
-      uint8_t len = strlen( tokens[1] );
-      if( len > 0 && len <= NC ) {
-        for( int i = 0; i < len && i <= NC; i++ ) {
-          str[0] = '\0';
-          append( str, tokens[1][i] );
-          n = atoi( str );        
-          if( n <= NC ) 
-            actv[i] = n;
-          else 
-            actv[i] = 0;
-        }
-        Serial.print("# Active channels set to ");
-        Serial.println( tokens[1] );
-      }
-      return;
-    }
-
-    // --------------------------- specify output level on OT1
-    // OT1;ddd\n
-    if( ! strcmp( tokens[0], OT1_CMD ) ) {
-      uint8_t len = strlen( tokens[1] );
-      if( len > 0 ) {
-        levelOT1 = atoi( tokens[1] );
-        ssr.Out( levelOT1, levelOT2 );
-        Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
-      }
-      return;
-    }
-
-    // --------------------------- specify output level on OT2
-    // OT2;ddd\n
-    if( ! strcmp( tokens[0], OT2_CMD ) ) {
-      uint8_t len = strlen( tokens[1] );
-      if( len > 0 ) {
-        levelOT2 = atoi( tokens[1] );
-        ssr.Out( levelOT1, levelOT2 );
-        Serial.print("# OT2 level set to "); Serial.println( levelOT2 );
-      }
-      return;
-    }
-
-    // --------------------------- specify output level on I/O3
-    // IO3;ddd\n
-    if( ! strcmp( tokens[0], IO3_CMD ) ) {
-      uint8_t len = strlen( tokens[1] );
-      if( len > 0 ) {
-        levelIO3 = atoi( tokens[1] );
-        analogOut( IO3, levelIO3 );
-        Serial.print("# IO3 level set to "); Serial.println( levelIO3 );
-      }
-      return;
-    }
-
-    // --------------------------- specify analog output to arbitrary pin
-    // WARNING - this is not error checked.
-    // AWRITE;ppp;ddd\n
-    if( ! strcmp( tokens[0], ANALOG_WRITE_CMD ) ) {
-      uint8_t apin;
-      int level;
-      uint8_t len1 = strlen( tokens[1] );
-      uint8_t len2 = strlen( tokens[2] );
-      if( len1 > 0 && len2 > 0 ) {
-        if( tokens[1][0] == 'D' )  // permit pin ID to be D01, D13, etc
-          apin = atoi( tokens[1] + 1 );
-        else if( tokens [1][0] == 'A' ) // invalid for the A pins
-          return;
-        else
-          apin = atoi( tokens[1] ); // or if no leading character, assume digital
-        level = atoi( tokens[2] );
-        analogWrite( apin, level );
-        Serial.print("# Analog (PWM) ");
-        Serial.print( tokens[1] );
-        Serial.print(" output level set to "); Serial.println( level );
-      }
-      return;
-    }
-
-    // --------------------------- specify digital output to arbitrary pin
-    // WARNING - this is not error checked.
-    // DWRITE;ppp;ddd\n
-    if( ! strcmp( tokens[0], DIGITAL_WRITE_CMD ) ) {
-      uint8_t dpin;
-      int pinID;
-      uint8_t len1 = strlen( tokens[1] );
-      uint8_t len2 = strlen( tokens[2] );
-      if( len1 > 0 && len2 > 0 ) {
-        // determine if pin ID is analog (A0, A1, etc)
-        if( tokens[1][0] == 'A' ) {
-          dpin = atoi( tokens[1] + 1 ); // skip first character, convert remaining to integer
-          switch (dpin) {
-            case 0: pinID = A0; break;
-            case 1: pinID = A1; break;
-            case 2: pinID = A2; break;
-            case 3: pinID = A3; break;
-            case 4: pinID = A4; break;
-            case 5: pinID = A5; break;
-            default: return;
-          } // end switch
-          if( ! strcmp( tokens[2], "HIGH" ) ) {
-            pinMode( pinID, OUTPUT );
-            digitalWrite( pinID, HIGH );
-            Serial.print("# Pin A");
-            Serial.print( (int) dpin );
-            Serial.println(" set to HIGH");
-           }
-          else if( ! strcmp( tokens[2], "LOW" ) ) {
-            pinMode( pinID, INPUT);
-            digitalWrite( pinID, LOW ); // must turn off pull-up on A pins
-            pinMode( pinID, OUTPUT );
-            digitalWrite( dpin, LOW );
-            Serial.print("# Pin A");
-            Serial.print( (int) dpin );
-            Serial.println(" set to LOW");
-          }
-          return;
-        } // end if analog
-        else {
-          // not analog pin, so assume digital
-          if( tokens[1][0] == 'D' )  // permit pin ID to be D01, D13, etc
-            dpin = atoi( tokens[1] + 1 );
-          else
-            dpin = atoi( tokens[1] ); // or if no leading character, assume digital
-          pinMode( dpin, OUTPUT );
-          if( ! strcmp( tokens[2], "HIGH" ) ) {
-            digitalWrite( dpin, HIGH );
-            Serial.print("# Pin D");
-            Serial.print( (int) dpin );
-            Serial.println(" set to HIGH");
-           }
-          else if( ! strcmp( tokens[2], "LOW" ) ) {
-            digitalWrite( dpin, LOW );
-            Serial.print("# Pin D");
-            Serial.print( (int) dpin );
-            Serial.println(" set to LOW");
-          }
-        }
-      }
-      return;
-    }
-  }
-}
+*/
 
 // ----------------------------------
 void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
     checkSerial();
-    // add future code here to detect LCDapter button presses, etc.
+    // add future code here to detect LCDapter button presses, etc. ?
   }
 }
 
@@ -498,11 +302,6 @@ void setup()
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_ARTISAN ); // display version banner
-#ifdef CELSIUS
-  lcd.print( " C");
-#else
-  lcd.print( " F");
-#endif // Celsius
 #endif // LCD
 
 #ifdef EEPROM_ARTISAN
@@ -520,8 +319,9 @@ void setup()
   amb.setOffset( AMB_OFFSET );
 #endif
 
-  fT[0].init( BT_FILTER ); // digital filtering on BT
-  fT[1].init( ET_FILTER ); // digital filtering on ET
+  // initialize filters on all channels
+  fT[0].init( ET_FILTER ); // digital filtering on ET
+  fT[1].init( BT_FILTER ); // digital filtering on BT
   fT[2].init( ET_FILTER);
   fT[3].init( ET_FILTER);
   
@@ -530,27 +330,36 @@ void setup()
   levelOT1 = levelOT2 = levelIO3 = 0;
   
   // initialize the active channels to default values
-  actv[0] = 2;  // BT normally
-  actv[1] = 1;  // ET normally
+  actv[0] = 1;  // ET on TC1
+  actv[1] = 2;  // BT on TC2
   actv[2] = 0; // default inactive
   actv[3] = 0;
+
+// add active commands to the linked list in the command interpreter object
+  ci.addCommand( &dwriter );
+  ci.addCommand( &awriter );
+  ci.addCommand( &units );
+  ci.addCommand( &chan );
+  ci.addCommand( &io3 );
+  ci.addCommand( &ot2 );
+  ci.addCommand( &ot1 );
+  ci.addCommand( &rf2000 );
+  ci.addCommand( &rc2000 );
+  ci.addCommand( &reader );
 
 #ifdef LCD
   delay( 800 );
   lcd.clear();
 #endif
-
 }
 
 // -----------------------------------------------------------------
 void loop()
 {
   get_samples();
-  
-#ifdef LCD
+  #ifdef LCD
   updateLCD();
-#endif
-
-  checkSerial(); // Has a command been received?
+  #endif
+  checkSerial();  // Has a command been received?
 }
 
