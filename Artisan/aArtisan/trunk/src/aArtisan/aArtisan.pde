@@ -1,10 +1,6 @@
 // aArtisan.pde
 // ------------
 
-// This sketch responds to a "READ\n" command on the serial line (Artisan 0.3.x)
-// or "RF2000\n" or "RC2000\n" on the serial line (Artisan 0.4.x)
-// and outputs ambient temperature, bean temperature, environmental temperature
-//
 // Written to support the Artisan roasting scope //http://code.google.com/p/artisan/
 
 // *** BSD License ***
@@ -39,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V1.04beta"
+#define BANNER_ARTISAN "aARTISAN V1.05prelease"
 
 // Revision history:
 // 20110408 Created.
@@ -50,29 +46,49 @@
 // 20110414 Reduced filtering levels on BT, ET
 //          Improved robustness of checkSerial() for stops/starts by Artisan
 //          Revised command format to include newline character for Artisan 0.4.x
+// 20110528 New command language added (major revision)
+//          Use READ command to poll the device for up to 4 temperature channels
+//          Change temperature scale using UNITS command
+//          Map physical channels on ADC to logical channels using the CHAN command
+//          Select SSR output duty cycle with OT1 and OT2 commands
+//          Select PWM logic level output on I/O3 using IO3 command
+//          Directly control digital pins using DPIN command (WARNING -- this might not be smart)
+//          Directly control analog pins using APIN command (WARNING -- this might not be smart)
+// 20110601 Major rewrite to use cmndproc.h library
+//          RF2000 and RC2000 set channel mapping to 1200
+
+//#define MEMORY_CHK
 
 // this library included with the arduino distribution
 #include <Wire.h>
 
-// The user.h file contains user-definable compiler options
+// The user.h file contains user-definable and some other global compiler options
 // It must be located in the same folder as aArtisan.pde
 #include "user.h"
 
+// command processor declarations -- must be in same folder as aArtisan
+#include "cmndreader.h"
+
+#ifdef MEMORY_CHK
+// debugging memory problems
+#include "MemoryFree.h"
+#endif
+
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
+#include <cmndproc.h> // for command interpreter
 #include <TypeK.h>
 #include <cADC.h> // MCP3424
+#include <PWM16.h> // for SSR output
 #ifdef LCD
 #include <cLCD.h> // required only if LCD is used
 #endif
 
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
-#define NCHAN 2   // number of TC input channels
 #define TC_TYPE TypeK  // thermocouple type / library
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
-
-#define MAX_COMMAND 80 // max length of a command string
+#define DELIM "; ," // command line parameter delimiters
 
 #ifdef EEPROM_ARTISAN // optional code if EEPROM flag is active
 #include <mcEEPROM.h>
@@ -89,16 +105,24 @@ mcEEPROM eeprom;
 infoBlock caldata;
 #endif
 
-#ifdef CELSIUS
+float AT; // ambient temp
+float T[NC];  // final output values referenced to physical channels 0-3
+uint8_t actv[NC];  // identifies channel status, 0 = inactive, n = physical channel + 1
+#ifdef CELSIUS // only affects startup conditions
 boolean Cscale = true;
 #else
 boolean Cscale = false;
 #endif
 
+int levelOT1, levelOT2;  // parameters to control output levels
+//int levelIO3;
+
 // class objects
 cADC adc( A_ADC ); // MCP3424
 ambSensor amb( A_AMB ); // MCP9800
-filterRC fT[NCHAN]; // filter for logged ET, BT
+filterRC fT[NC]; // filter for logged ET, BT
+PWM16 ssr;  // object for SSR output on OT1, OT2
+CmndInterp ci( DELIM ); // command interpreter object
 
 // ---------------------------------- LCD interface definition
 #ifdef LCD
@@ -120,65 +144,65 @@ char st1[6],st2[6];
 #endif
 // --------------------------------------------- end LCD interface
 
-// array to store temperatures for each channel
-int32_t temps[NCHAN]; //  stored temperatures are divided by D_MULT
-
-// global values
-float AT, BT, ET; // ambient, bean, environmental temps
-
-char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
-
-// -------------------------------------
-void append( char* str, char c ) { // reinventing the wheel
-  int len = strlen( str );
-  str[len] = c;
-  str[len+1] = '\0';
+// ------------- wrapper for the command interpreter's serial line reader
+void checkSerial() {
+  const char* result = ci.checkSerial();
+  if( result != NULL ) { // some things we might want to do after a command is executed
+    #ifdef LCD
+    lcd.setCursor( 0, 1 ); // echo all commands to the LCD
+    lcd.print( result );
+    #endif
+    #ifdef MEMORY_CHK
+    Serial.print("# freeMemory()=");
+    Serial.println(freeMemory());
+    #endif
+  }
 }
 
-// -------------------------------------
-void checkSerial() {  // buffer the input from the serial port
+/* old code replaced by command interpreter object 
+// ---------------- read data from the serial port (CmndInterp could do this, but we need
+//                  to update the LCD)
+void checkSerial() {
   char c;
   while( Serial.available() > 0 ) {
     c = Serial.read();
     // check for newline, buffer overflow
-    if( ( c == '\n' ) || ( strlen( command ) == MAX_COMMAND ) ) { 
-      processCommand();
-      strcpy( command, "" ); // empty the buffer
+    if( ( c == '\n' ) || ( strlen( cmndstr ) == MAX_CMND_LEN ) ) { 
+      #ifdef LCD
+      lcd.setCursor( 0, 1 ); // echo all commands to the LCD
+      lcd.print( cmndstr );
+      #endif
+      CmndParser parser( DELIM );
+      parser.doParse( cmndstr );
+      strcpy( cmndstr, "" ); // empty the buffer
+      if( reader.doCommand( &parser ) ) return;
+      else if( dwriter.doCommand( &parser ) ) return;
+      else if( awriter.doCommand( &parser ) ) return;
+      else if( units.doCommand( &parser ) ) return;
+      else if( chan.doCommand( &parser ) ) return;
+      else if( rf2000.doCommand( &parser ) ) return;
+      else if( rc2000.doCommand( &parser ) ) return;
+      else if( ot1.doCommand( &parser ) ) return;
+      else if( ot2.doCommand( &parser ) ) return;
+      else if( io3.doCommand( &parser ) ) return;
+      else return;
     } // end if
     else {
-      append( command, c );
+      int len = strlen( cmndstr );
+      cmndstr[len] = toupper(c);
+      cmndstr[len+1] = '\0';
     } // end else
   } // end while
+  return;
 }
-
-// -------------------------------------
-void processCommand() {  // a newline character has been received, so process the command
-#ifdef LCD
-    lcd.setCursor( 0, 1 ); // echo all commands to the LCD
-    lcd.print( command );
-#endif
-  if( ! strcmp( command, "RF2000" ) ) { // command received, read and output a sample
-    Cscale = false;
-    logger();
-    return;
-  }
-  if( ! strcmp( command, "RC2000" ) ) { // command received, read and output a sample
-    Cscale = true;
-    logger();
-    return;
-  }
-  if( ! strcmp( command, "READ" ) ) { // legacy code to support Artisan 0.3.4
-    logger();
-    return;
-  }
-}
+*/
 
 // ----------------------------------
 void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
     checkSerial();
-    // add future code here to detect LCDapter button presses, etc.
+    // add future code here to detect LCDapter button presses, etc. ?
   }
 }
 
@@ -193,34 +217,42 @@ void logger()
 {
 // print ambient
   Serial.print( convertUnits( AT ), DP );
-  Serial.print( "," );
-// print BT
-  Serial.print( convertUnits( BT ), DP );
-  Serial.print( "," );
-// print ET
-  Serial.println( convertUnits( ET ), DP );
+// print active channels
+  for( uint8_t jj = 0; jj < NC; ++jj ) {
+    uint8_t k = actv[jj];
+    if( k > 0 ) {
+      --k;
+      Serial.print(",");
+      Serial.print( convertUnits( T[k] ) );
+    }
+  }
+  Serial.println();
 }
 
 // --------------------------------------------------------------------------
-void get_samples( int nchan ) // this function talks to the amb sensor and ADC via I2C
+void get_samples() // this function talks to the amb sensor and ADC via I2C
 {
   int32_t v;
   TC_TYPE tc;
   float tempF;
+  int32_t itemp;
   
-  for( int j = 0; j < nchan; j++ ) { // one-shot conversions on both chips
-    adc.nextConversion( j ); // start ADC conversion on channel j
-    amb.nextConversion(); // start ambient sensor conversion
-    checkStatus( MIN_DELAY ); // give the chips time to perform the conversions
-    amb.readSensor(); // retrieve value from ambient temp register
-    v = adc.readuV(); // retrieve microvolt sample from MCP3424
-    tempF = tc.Temp_F( 0.001 * v, amb.getAmbF() ); // convert uV to Celsius
-    v = round( tempF / D_MULT ); // store results as integers
-    AT = amb.getAmbF();
-    temps[j] = fT[j].doFilter( v ); // apply digital filtering for display/logging
+  for( uint8_t jj = 0; jj < NC; jj++ ) { // one-shot conversions on both chips
+    uint8_t k = actv[jj]; // map logical channels to physical ADC channels
+    if( k > 0 ) {
+      --k;
+      adc.nextConversion( k ); // start ADC conversion on physical channel k
+      amb.nextConversion(); // start ambient sensor conversion
+      checkStatus( MIN_DELAY ); // give the chips time to perform the conversions
+      amb.readSensor(); // retrieve value from ambient temp register
+      v = adc.readuV(); // retrieve microvolt sample from MCP3424
+      tempF = tc.Temp_F( 0.001 * v, amb.getAmbF() ); // convert uV to Celsius
+      v = round( tempF / D_MULT ); // store results as integers
+      AT = amb.getAmbF();
+      itemp = fT[k].doFilter( v ); // apply digital filtering for display/logging
+      T[k] = 0.001 * itemp;
+    }
   }
-  BT = 0.001 * temps[0];
-  ET = 0.001 * temps[1];
 };
 
 #ifdef LCD
@@ -238,26 +270,30 @@ void updateLCD() {
   lcd.print("AMB:");
   lcd.print(st1);
 
-  // BT
-  it01 = round( convertUnits( BT ) );
-  if( it01 > 999 ) 
-    it01 = 999;
-  else
-    if( it01 < -999 ) it01 = -999;
-  sprintf( st1, "%4d", it01 );
-  lcd.setCursor( 9, 0 );
-  lcd.print("BT:");
-  lcd.print(st1);
-
-  // ET
-  int it02 = round( convertUnits( ET ) );
-  if( it02 > 999 ) it02 = 999;
-  else if( it02 < -999 ) it02 = -999;
-  sprintf( st2, "%4d", it02 );
-  lcd.setCursor( 9, 1 );
-  lcd.print( "ET:" );
-  lcd.print( st2 ); 
-  
+  // display the first 2 active channels encountered, normally BT and ET
+  uint8_t jj,j;
+  uint8_t k;
+  for( jj = 0, j = 0; jj < NC && j < 2; ++jj ) {
+    k = actv[jj];
+    if( k != 0 ) {
+      ++j;
+      it01 = round( convertUnits( T[k-1] ) );
+      if( it01 > 999 ) 
+        it01 = 999;
+      else
+        if( it01 < -999 ) it01 = -999;
+      sprintf( st1, "%4d", it01 );
+      if( j == 1 ) {
+        lcd.setCursor( 9, 0 );
+        lcd.print("T1:");
+      }
+      else {
+        lcd.setCursor( 9, 1 );
+        lcd.print( "T2:" );
+      }
+      lcd.print(st1);  
+    }
+  }
   lcd.setCursor( 0, 1 );
   lcd.print( "         ");
 }
@@ -278,12 +314,12 @@ void setup()
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_ARTISAN ); // display version banner
-#ifdef CELSIUS
-  lcd.print( " C");
-#else
-  lcd.print( " F");
-#endif // Celsius
 #endif // LCD
+
+#ifdef MEMORY_CHK
+  Serial.print("# freeMemory()=");
+  Serial.println(freeMemory());
+#endif
 
 #ifdef EEPROM_ARTISAN
   // read calibration and identification data from eeprom
@@ -300,25 +336,47 @@ void setup()
   amb.setOffset( AMB_OFFSET );
 #endif
 
-  fT[0].init( BT_FILTER ); // digital filtering on BT
-  fT[1].init( ET_FILTER ); // digital filtering on ET
+  // initialize filters on all channels
+  fT[0].init( ET_FILTER ); // digital filtering on ET
+  fT[1].init( BT_FILTER ); // digital filtering on BT
+  fT[2].init( ET_FILTER);
+  fT[3].init( ET_FILTER);
+  
+  // set up output variables
+  ssr.Setup( TIME_BASE );
+  levelOT1 = levelOT2 = 0;
+  
+  // initialize the active channels to default values
+  actv[0] = 1;  // ET on TC1
+  actv[1] = 2;  // BT on TC2
+  actv[2] = 0; // default inactive
+  actv[3] = 0;
+
+// add active commands to the linked list in the command interpreter object
+  ci.addCommand( &dwriter );
+  ci.addCommand( &awriter );
+  ci.addCommand( &units );
+  ci.addCommand( &chan );
+  ci.addCommand( &io3 );
+  ci.addCommand( &ot2 );
+  ci.addCommand( &ot1 );
+  ci.addCommand( &rf2000 );
+  ci.addCommand( &rc2000 );
+  ci.addCommand( &reader );
 
 #ifdef LCD
   delay( 800 );
   lcd.clear();
 #endif
-
 }
 
 // -----------------------------------------------------------------
 void loop()
 {
-  get_samples( NCHAN );
-  
-#ifdef LCD
+  get_samples();
+  #ifdef LCD
   updateLCD();
-#endif
-
-  checkSerial(); // Has a command been received?
+  #endif
+  checkSerial();  // Has a command been received?
 }
 
