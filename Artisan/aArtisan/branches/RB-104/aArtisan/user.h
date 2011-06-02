@@ -11,6 +11,7 @@
 #define EEPROM_ARTISAN // comment this line out if no calibration information stored in 64K EEPROM
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
+//#define CELSIUS // if defined, starts application in C units (otherwise F)
 
 #define BAUD 19200  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for BT
@@ -22,7 +23,6 @@
 #define UV_OFFSET 0 // you may subsitute a known value for uV offset in ADC
 #define AMB_OFFSET 0.0 // you may substitute a known value for amb temp offset (Celsius)
 
-//#define CELSIUS // this only affects conditions at startup.  Comment this out for F units.
 
 // *************************************************************************************
 

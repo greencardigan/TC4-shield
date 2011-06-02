@@ -2,19 +2,13 @@
 // ------------
 
 // This sketch responds to a "READ\n" command on the serial line (Artisan 0.3.x)
-// or "RF2000\n" or "RC2000\n" on the serial line (Artisan 0.5.x)
-// and outputs ambient temperature, roaster environmental temperature (ET),
-// and bean temperature (BT) to the serial line.  By default it is configured
-// to transmit/receive at 19200 baud (see user.h to modify).
-//
-// (This sketch is not compatible with Artisan 0.4.1 because a different polling
-// command was used in that version).
-//
-// For consistency with Artisan, the ET sensor should be connected TC1 on the shield.
-// The BT sensor should be connected to TC2.  This will result in the correct information
-// being displayed on the Artisan screens and a connected standalone LCD, if used.
+// or "RF2000\n" or "RC2000\n" on the serial line (Artisan 0.4.x)
+// and outputs ambient temperature, bean temperature, environmental temperature
 //
 // Written to support the Artisan roasting scope //http://code.google.com/p/artisan/
+//
+// Current (0.5.x) version of Artisan works best with ET connected to TC1 
+// and BT connected to TC2
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
@@ -59,8 +53,9 @@
 // 20110414 Reduced filtering levels on BT, ET
 //          Improved robustness of checkSerial() for stops/starts by Artisan
 //          Revised command format to include newline character for Artisan 0.4.x
-// 20110529 Switched BT and ET to be compatible with Artisan 0.5.x
-//          Made commands case-insensitive
+// 20110601 Limit command echo to LCD to 9 characters
+//          Remove case sensitivity from commands
+//          ET is now on TC1, BT on TC2
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -83,7 +78,7 @@
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 
-#define MAX_COMMAND 80 // max length of a command string
+#define MAX_COMMAND 40 // max length of a command string
 
 #ifdef EEPROM_ARTISAN // optional code if EEPROM flag is active
 #include <mcEEPROM.h>
@@ -165,8 +160,11 @@ void checkSerial() {  // buffer the input from the serial port
 // -------------------------------------
 void processCommand() {  // a newline character has been received, so process the command
 #ifdef LCD
+    char echo[10];  // limit the echo'd output to 9 characters to fit on LCD
+    strncpy( echo, command, 9 );
+    echo[9] = '\0';
     lcd.setCursor( 0, 1 ); // echo all commands to the LCD
-    lcd.print( command );
+    lcd.print( echo );
 #endif
   if( ! strcmp( command, "RF2000" ) ) { // command received, read and output a sample
     Cscale = false;
@@ -311,11 +309,11 @@ void setup()
   amb.setOffset( AMB_OFFSET );
 #endif
 
-  fT[0].init( BT_FILTER ); // digital filtering on BT
-  fT[1].init( ET_FILTER ); // digital filtering on ET
+  fT[0].init( ET_FILTER ); // digital filtering on ET
+  fT[1].init( BT_FILTER ); // digital filtering on BT
 
 #ifdef LCD
-  delay( 800 );
+  delay( 500 );
   lcd.clear();
 #endif
 
