@@ -81,18 +81,22 @@ boolean dwriteCmnd::doCommand( CmndParser* pars ) {
         if( strcmp( pars->paramStr(2), "HIGH" ) == 0 ) {
           pinMode( pinID, OUTPUT );
           digitalWrite( pinID, HIGH );
+          #ifdef ACKS_ON
           Serial.print("# Pin A");
           Serial.print( (int) dpin );
           Serial.println(" set to HIGH");
+          #endif
          }
         else if( strcmp( pars->paramStr(2), "LOW" ) == 0 ) {
           pinMode( pinID, INPUT);
           digitalWrite( pinID, LOW ); // must turn off pull-up on A pins
           pinMode( pinID, OUTPUT );
           digitalWrite( dpin, LOW );
+          #ifdef ACKS_ON
           Serial.print("# Pin A");
           Serial.print( (int) dpin );
           Serial.println(" set to LOW");
+          #endif
         }
         return true;
       } // end if analog
@@ -105,15 +109,19 @@ boolean dwriteCmnd::doCommand( CmndParser* pars ) {
         pinMode( dpin, OUTPUT );
         if( strcmp( pars->paramStr(2), "HIGH" ) == 0 ) {
           digitalWrite( dpin, HIGH );
+          #ifdef ACKS_ON
           Serial.print("# Pin D");
           Serial.print( (int) dpin );
           Serial.println(" set to HIGH");
+          #endif
          }
         else if( strcmp( pars->paramStr(2), "LOW" ) == 0 ) {
           digitalWrite( dpin, LOW );
+          #ifdef ACKS_ON
           Serial.print("# Pin D");
           Serial.print( (int) dpin );
           Serial.println(" set to LOW");
+          #endif
         }
       }
     }
@@ -149,9 +157,11 @@ boolean awriteCmnd::doCommand( CmndParser* pars ) {
         apin = atoi( pars->paramStr(1) ); // or if no leading character, assume digital
       level = atoi( pars->paramStr(2) );
       analogWrite( apin, level );
+      #ifdef ACKS_ON
       Serial.print("# Analog (PWM) ");
       Serial.print( pars->paramStr(1) );
       Serial.print(" output level set to "); Serial.println( level );
+      #endif
       }
     return true;
   }
@@ -203,8 +213,10 @@ boolean chanCmnd::doCommand( CmndParser* pars ) {
         else 
           actv[i] = 0;
       }
+      #ifdef ACKS_ON
       Serial.print("# Active channels set to ");
       Serial.println( pars->paramStr(1) );
+      #endif
     }
     return true;
   }
@@ -229,7 +241,9 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
     if( len > 0 ) {
       levelOT1 = atoi( pars->paramStr(1) );
       ssr.Out( levelOT1, levelOT2 );
+      #ifdef ACKS_ON
       Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
+      #endif
     }
     return true;
   }
@@ -253,7 +267,9 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
     if( len > 0 ) {
       levelOT2 = atoi( pars->paramStr(1) );
       ssr.Out( levelOT1, levelOT2 );
+      #ifdef ACKS_ON
       Serial.print("# OT2 level set to "); Serial.println( levelOT1 );
+      #endif
     }
     return true;
   }
@@ -279,7 +295,9 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
       levelIO3 = atoi( pars->paramStr(1) );
       float pow = 2.55 * levelIO3;
       analogWrite( IO3, round( pow ) );
+      #ifdef ACKS_ON
       Serial.print("# IO3 level set to "); Serial.println( levelIO3 );
+      #endif
     }
     return true;
   }
@@ -301,12 +319,16 @@ boolean unitsCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     if( strcmp( pars->paramStr(1), "F" ) == 0 ) {
       Cscale = false;
+      #ifdef ACKS_ON
       Serial.println("# Changed units to F");
+      #endif
       return true;
     }
     else if( strcmp( pars->paramStr(1), "C" ) == 0 ) {
       Cscale = true;
+      #ifdef ACKS_ON
       Serial.println("# Changed units to C");
+      #endif
       return true;
     }
   }

@@ -29,6 +29,12 @@
 #define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR's on OT1, OT2
 #define NC 4 // maximum number of physical channels on the TC4
 
+// Useful for debugging only -- leave inactive otherwise
+//#define MEMORY_CHK
+
+// This turns on the "# xxxxxxx\n" acknowledgements after commands
+#define ACKS_ON
+
 
 // *************************************************************************************
 

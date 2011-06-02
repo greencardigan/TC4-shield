@@ -56,8 +56,7 @@
 //          Directly control analog pins using APIN command (WARNING -- this might not be smart)
 // 20110601 Major rewrite to use cmndproc.h library
 //          RF2000 and RC2000 set channel mapping to 1200
-
-//#define MEMORY_CHK
+// 20110602 Added ACKS_ON to control verbose output
 
 // this library included with the arduino distribution
 #include <Wire.h>
