@@ -1,9 +1,12 @@
 // aArtisan.pde
 // ------------
 
-// This sketch responds to a "READ\n" command on the serial line (Artisan 0.3.x)
-// or "RF2000\n" or "RC2000\n" on the serial line (Artisan 0.4.x)
-// and outputs ambient temperature, bean temperature, environmental temperature
+// This sketch responds to a "READ\n" command (Artisan 0.3.x)
+// or "RF2000\n" or "RC2000\n" on the serial line (Artisan 0.5.x)
+// and outputs ambient temperature, environmental temperature (ET), 
+// and bean temperature (BT).
+//
+// This version of aArtisan is not compatible with aArtisan version 0.4.1
 //
 // Written to support the Artisan roasting scope //http://code.google.com/p/artisan/
 //
