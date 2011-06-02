@@ -51,9 +51,10 @@
 #include <WProgram.h>
 
 #define MAX_TOKENS 4  // maximum number of tokens in a command line
-#define MAX_TOKEN_LEN 6  // max characters per token
+#define MAX_TOKEN_LEN 6  // max characters read per token (input may be longer)
 #define MAX_CMND_LEN 40 // max overall characters in a command line
 #define MAX_DLMTR 4 // max number of delimiter characters
+#define MAX_RESULT_LEN 9 // max length of result string sent back to caller
 
 // --------------------------- command line parser
 class CmndParser {
@@ -71,7 +72,7 @@ class CmndParser {
     // returns number of tokens
     uint8_t nTokens(){ return ntok; }
   protected:
-    char tokens[MAX_TOKENS + 1][MAX_TOKEN_LEN + 1]; // space to store the tokenized string
+    char tokens[MAX_TOKENS][MAX_TOKEN_LEN + 1]; // space to store the tokenized string
     char dlmtr[MAX_DLMTR + 1]; // string of delimiters
     uint8_t ntok; // token count
 };
@@ -102,7 +103,7 @@ class CmndInterp {
     virtual void processCommand();
   protected:
     char cmndstr[MAX_CMND_LEN + 1];  // unparsed raw input string
-    char result[MAX_CMND_LEN + 1]; // return value
+    char result[MAX_RESULT_LEN + 1]; // return value
     CmndParser parser;  // parser object
     CmndBase* cmndList;  // head of linked list
     uint8_t numCmnds;  // number of commands in the linked list

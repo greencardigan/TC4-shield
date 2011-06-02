@@ -55,6 +55,9 @@
 //          Directly control digital pins using DPIN command (WARNING -- this might not be smart)
 //          Directly control analog pins using APIN command (WARNING -- this might not be smart)
 // 20110601 Major rewrite to use cmndproc.h library
+//          RF2000 and RC2000 set channel mapping to 1200
+
+//#define MEMORY_CHK
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -65,6 +68,11 @@
 
 // command processor declarations -- must be in same folder as aArtisan
 #include "cmndreader.h"
+
+#ifdef MEMORY_CHK
+// debugging memory problems
+#include "MemoryFree.h"
+#endif
 
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <cmndproc.h> // for command interpreter
@@ -106,8 +114,8 @@ boolean Cscale = true;
 boolean Cscale = false;
 #endif
 
-int levelOT1, levelOT2, levelIO3;  // parameters to control output levels
-//char cmndstr[MAX_CMND_LEN+1];  // not required with command interpreter
+int levelOT1, levelOT2;  // parameters to control output levels
+//int levelIO3;
 
 // class objects
 cADC adc( A_ADC ); // MCP3424
@@ -139,12 +147,16 @@ char st1[6],st2[6];
 // ------------- wrapper for the command interpreter's serial line reader
 void checkSerial() {
   const char* result = ci.checkSerial();
-  #ifdef LCD
-  if( result != NULL ) { // echo command to LCD for visual confirmation
+  if( result != NULL ) { // some things we might want to do after a command is executed
+    #ifdef LCD
     lcd.setCursor( 0, 1 ); // echo all commands to the LCD
     lcd.print( result );
+    #endif
+    #ifdef MEMORY_CHK
+    Serial.print("# freeMemory()=");
+    Serial.println(freeMemory());
+    #endif
   }
-  #endif
 }
 
 /* old code replaced by command interpreter object 
@@ -304,6 +316,11 @@ void setup()
   lcd.print( BANNER_ARTISAN ); // display version banner
 #endif // LCD
 
+#ifdef MEMORY_CHK
+  Serial.print("# freeMemory()=");
+  Serial.println(freeMemory());
+#endif
+
 #ifdef EEPROM_ARTISAN
   // read calibration and identification data from eeprom
   if( eeprom.read( 0, (uint8_t*) &caldata, sizeof( caldata) ) == sizeof( caldata ) ) {
@@ -327,7 +344,7 @@ void setup()
   
   // set up output variables
   ssr.Setup( TIME_BASE );
-  levelOT1 = levelOT2 = levelIO3 = 0;
+  levelOT1 = levelOT2 = 0;
   
   // initialize the active channels to default values
   actv[0] = 1;  // ET on TC1

@@ -273,8 +273,8 @@ io3Cmnd::io3Cmnd() :
 
 boolean io3Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-//  Serial.println( "# IO3 command entered." );
     uint8_t len = strlen( pars->paramStr(1) );
+    int levelIO3;
     if( len > 0 ) {
       levelIO3 = atoi( pars->paramStr(1) );
       float pow = 2.55 * levelIO3;
@@ -325,6 +325,9 @@ rf2000Cmnd::rf2000Cmnd() :
 boolean rf2000Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     Cscale = false;
+    actv[0] = 1;
+    actv[1] = 2;
+    actv[2] = actv[3] = 0;
     logger();
     return true;
   }
@@ -343,6 +346,9 @@ rc2000Cmnd::rc2000Cmnd() :
 boolean rc2000Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     Cscale = true;
+    actv[0] = 1;
+    actv[1] = 2;
+    actv[2] = actv[3] = 0;
     logger();
     return true;
   }

@@ -85,7 +85,6 @@ extern unitsCmnd units;
 extern PWM16 ssr;
 extern int levelOT1;
 extern int levelOT2;
-extern int levelIO3;  // parameters to control output levels
 extern void logger();
 extern boolean Cscale;
 extern uint8_t actv[NC];

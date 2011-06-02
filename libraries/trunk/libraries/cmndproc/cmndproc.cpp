@@ -52,15 +52,16 @@
 // constructor
 CmndParser::CmndParser( const char* dstr ){
   strncpy( dlmtr, dstr, MAX_DLMTR );
+  dlmtr[MAX_DLMTR] = '\0';  // for safety
 }
 
 // parse the long command string
 uint8_t CmndParser::doParse( char* command ){
   clrTokens();  // reinitialize
   char* pch = strtok( command, dlmtr );
-  while( pch != NULL && ntok <= MAX_TOKENS ) {
+  while( pch != NULL && ntok < MAX_TOKENS ) {
    strncpy( tokens[ntok], pch, MAX_TOKEN_LEN );
-//   Serial.println( tokens[ntok] );
+   tokens[ntok][MAX_TOKEN_LEN] = '\0'; // for safety
    pch = strtok( NULL, dlmtr );
    ++ntok;
   }
@@ -79,6 +80,7 @@ void CmndParser::clrTokens() {
 // constructor
 CmndBase::CmndBase( const char* cname ) {
   strncpy( keyword, cname, MAX_TOKEN_LEN );
+  keyword[MAX_TOKEN_LEN] = '\0'; // for safety
 }
 
 // override this with a function that actually does something
@@ -124,8 +126,9 @@ const char* CmndInterp::checkSerial() {
     // check for newline, buffer overflow
     uint8_t len = strlen( cmndstr );
     if( ( c == '\n' ) || ( len == MAX_CMND_LEN ) ) {
-      // preserve the raw input for the calling program's use
-      strncpy( result, cmndstr, MAX_CMND_LEN );
+      // report input back to calling program
+      strncpy( result, cmndstr, MAX_RESULT_LEN );
+      result[MAX_RESULT_LEN] = '\0'; // for safety
       processCommand();
       cmndstr[0] = '\0'; // empty the buffer
       return result;
@@ -141,5 +144,6 @@ const char* CmndInterp::checkSerial() {
 // input a string directly (not using serial read)
 void CmndInterp::setCmndStr( const char* cstr ) {
   strncpy( cmndstr, cstr, MAX_CMND_LEN );
+  cmndstr[MAX_CMND_LEN] = '\0';  // for safety
 }
 
