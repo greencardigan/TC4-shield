@@ -364,7 +364,7 @@ void setup()
   ci.addCommand( &reader );
 
 #ifdef LCD
-  delay( 800 );
+  delay( 500 );
   lcd.clear();
 #endif
 }
@@ -372,10 +372,10 @@ void setup()
 // -----------------------------------------------------------------
 void loop()
 {
+  checkSerial();  // Has a command been received?
   get_samples();
   #ifdef LCD
   updateLCD();
   #endif
-  checkSerial();  // Has a command been received?
 }
 

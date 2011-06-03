@@ -23,6 +23,16 @@
 #define STR_MAX 128 // default maximum string variable size
 #define MAX_ADDR 0xFFFF // this is a 64K EEPROM
 
+// eeprom calibration data structure for TC4
+struct calBlock {
+  char PCB[40]; // identifying information for the board
+  char version[16];
+  float cal_gain;  // calibration factor of ADC at 50000 uV
+  int16_t cal_offset; // uV, probably small in most cases
+  float T_offset; // temperature offset (Celsius) at 0.0C (type T)
+  float K_offset; // same for type K
+};
+
 class mcEEPROM {
 public:
 

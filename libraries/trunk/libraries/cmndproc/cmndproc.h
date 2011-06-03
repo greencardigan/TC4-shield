@@ -51,7 +51,7 @@
 #include <WProgram.h>
 
 #define MAX_TOKENS 4  // maximum number of tokens in a command line
-#define MAX_TOKEN_LEN 6  // max characters read per token (input may be longer)
+#define MAX_TOKEN_LEN 4  // max characters read per token (input may be longer)
 #define MAX_CMND_LEN 40 // max overall characters in a command line
 #define MAX_DLMTR 4 // max number of delimiter characters
 #define MAX_RESULT_LEN 9 // max length of result string sent back to caller

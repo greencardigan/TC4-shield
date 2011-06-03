@@ -213,10 +213,10 @@ boolean chanCmnd::doCommand( CmndParser* pars ) {
         else 
           actv[i] = 0;
       }
-      #ifdef ACKS_ON
+      // #ifdef ACKS_ON
       Serial.print("# Active channels set to ");
       Serial.println( pars->paramStr(1) );
-      #endif
+      // #endif
     }
     return true;
   }
@@ -236,7 +236,6 @@ ot1Cmnd::ot1Cmnd() :
 
 boolean ot1Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-//  Serial.println( "# OT1 command entered." );
     uint8_t len = strlen( pars->paramStr(1) );
     if( len > 0 ) {
       levelOT1 = atoi( pars->paramStr(1) );

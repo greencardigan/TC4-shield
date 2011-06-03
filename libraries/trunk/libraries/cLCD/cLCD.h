@@ -75,6 +75,9 @@ public:
 	virtual void write(uint8_t);
 	void command(uint8_t);
 
+      virtual void backlight(){}
+      virtual void noBacklight(){}
+
 protected:
 	virtual void config() = 0;
 	virtual void send(uint8_t, uint8_t) = 0;

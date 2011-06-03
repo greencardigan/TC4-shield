@@ -33,7 +33,7 @@
 //#define MEMORY_CHK
 
 // This turns on the "# xxxxxxx\n" acknowledgements after commands
-#define ACKS_ON
+//#define ACKS_ON
 
 
 // *************************************************************************************
