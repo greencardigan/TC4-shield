@@ -209,8 +209,9 @@ void appBase::run() {
 // retrieves samples from each active channel; returns true if values in limits
 boolean appBase::getSamples()
 {
-  int32_t v;
+  int32_t v,vt;
   float tempC;
+  boolean isOK = true;
 
   for( uint8_t j = 0; j < 4; j++ ) { // one-shot conversions on both chips
     uint8_t k = chan.getChan( j );
@@ -222,19 +223,20 @@ boolean appBase::getSamples()
       ftimes[k] = millis(); // record timestamp for RoR calculations
       amb.readSensor(); // retrieve value from ambient temp register
       v = adc.readuV(); // retrieve microvolt sample from MCP3424
-      if( checkLimits( v, j ) ) {
+      isOK = checkLimits( v, j );  // v and j are available to calling program
+      if( isOK ) {
         tempC = TC->Temp_C( 0.001 * v, amb.getAmbC() ); // convert to Celsius
         if( celsius )
-            v = round( tempC / _D_MULT ); // store results as integers
+          vt = round( tempC / _D_MULT ); // store results as integers
         else
-            v = round( C_TO_F( tempC ) / _D_MULT ); // store results as integers
-        temps[k] = fT[k].doFilter( v ); // apply digital filtering for display/logging
-        ftemps[k] =fRise[k].doFilter( v ); // filtering for RoR
+          vt = round( C_TO_F( tempC ) / _D_MULT ); // store results as integers
+        temps[k] = fT[k].doFilter( vt ); // apply digital filtering for display/logging
+        ftemps[k] =fRise[k].doFilter( vt ); // filtering for RoR
       }
-      else return false;
+      else break;  // abort remaining samples if one is bad
     }
   }
-  return true;
+  return isOK;
 }
 
 // active delay loop

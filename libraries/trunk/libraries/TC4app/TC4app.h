@@ -110,7 +110,7 @@ class appBase {
     // some placeholders for future use
     virtual void doControl(){} // gets called by run() each time after first time
     virtual void initControl(){} // gets called by run() on the first time through
-    virtual boolean checkLimits( uint32_t uv, uint8_t pchan ) { return true; } // checks input
+    virtual boolean checkLimits( int32_t &uv, uint8_t &pchan ) { return true; } // checks input
   protected:
 
     // this must be set to point to a TC defined in the main program
