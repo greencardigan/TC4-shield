@@ -32,7 +32,8 @@
 // Useful for debugging only -- leave inactive otherwise
 //#define MEMORY_CHK
 
-// This turns on the "# xxxxxxx\n" acknowledgements after commands
+// CHAN command always returns "# Active ....."  This is used to confirm communication link.
+// This define turns on the "# xxxxxxx\n" acknowledgements after all other commands, except READ
 //#define ACKS_ON
 
 

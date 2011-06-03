@@ -43,7 +43,7 @@
 
 #include "user.h"
 
-// ----------------------- commands
+// ----------------------- commands (only first 4 characters are significant)
 #define READ_CMD "READ" // triggers the TC4 to output current temps on serial line
 #define RF2000_CMD "RF2000" // legacy code
 #define RC2000_CMD "RC2000" // legacy code
