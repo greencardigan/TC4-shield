@@ -35,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V1.05prelease"
+#define BANNER_ARTISAN "aARTISAN V1.05"
 
 // Revision history:
 // 20110408 Created.
@@ -157,44 +157,6 @@ void checkSerial() {
     #endif
   }
 }
-
-/* old code replaced by command interpreter object 
-// ---------------- read data from the serial port (CmndInterp could do this, but we need
-//                  to update the LCD)
-void checkSerial() {
-  char c;
-  while( Serial.available() > 0 ) {
-    c = Serial.read();
-    // check for newline, buffer overflow
-    if( ( c == '\n' ) || ( strlen( cmndstr ) == MAX_CMND_LEN ) ) { 
-      #ifdef LCD
-      lcd.setCursor( 0, 1 ); // echo all commands to the LCD
-      lcd.print( cmndstr );
-      #endif
-      CmndParser parser( DELIM );
-      parser.doParse( cmndstr );
-      strcpy( cmndstr, "" ); // empty the buffer
-      if( reader.doCommand( &parser ) ) return;
-      else if( dwriter.doCommand( &parser ) ) return;
-      else if( awriter.doCommand( &parser ) ) return;
-      else if( units.doCommand( &parser ) ) return;
-      else if( chan.doCommand( &parser ) ) return;
-      else if( rf2000.doCommand( &parser ) ) return;
-      else if( rc2000.doCommand( &parser ) ) return;
-      else if( ot1.doCommand( &parser ) ) return;
-      else if( ot2.doCommand( &parser ) ) return;
-      else if( io3.doCommand( &parser ) ) return;
-      else return;
-    } // end if
-    else {
-      int len = strlen( cmndstr );
-      cmndstr[len] = toupper(c);
-      cmndstr[len+1] = '\0';
-    } // end else
-  } // end while
-  return;
-}
-*/
 
 // ----------------------------------
 void checkStatus( uint32_t ms ) { // this is an active delay loop
