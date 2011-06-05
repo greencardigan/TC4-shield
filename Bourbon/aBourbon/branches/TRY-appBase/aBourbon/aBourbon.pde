@@ -1,4 +1,4 @@
-// appbase.pde
+// aBourbon.pde
 
 // demonstration sketch for library class appBase
 
