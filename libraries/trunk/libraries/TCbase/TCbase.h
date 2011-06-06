@@ -39,7 +39,7 @@
 #define _TCBASE_H_
 
 
-#include "WProgram.h"
+#include <WProgram.h>
 
 // ------------------- base class for thermocouples
 class TCbase {
@@ -62,9 +62,9 @@ class TCbase {
 
 // ----------------- ITS-90 linearization of type K thermocouples
 //
-class TypeK : public TCbase {
+class typeK : public TCbase {
   public:
-    TypeK();
+    typeK();
     virtual double Temp_C( float mV );   // returns temperature (referenced to 0C) for mV
     virtual double Temp_F( float mV );
     virtual double Temp_C( float mV, float ambC );  // returns temperature referenced to ambC

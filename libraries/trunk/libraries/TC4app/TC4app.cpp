@@ -59,12 +59,44 @@ void chanList::setMap( uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4 ) {
   clist[3] = c4; if( c4 != 0 ) ++nc;
 }
 
+// ---------------------------------------------------------------
+// class appCmnd
+appCmnd::appCmnd( const char* cname, appBase* ap ) :
+    CmndBase( cname ),
+    app( ap ){
+}
+
+// ------------------------------------------------------------------
+// class rstCmnd
+rstCmnd::rstCmnd( appBase* ap ) : appCmnd ( _RESET, ap ) {
+  app = ap;
+}
+
+// respond to the command
+boolean rstCmnd::doCommand( CmndParser* pars ) {
+  if( app != NULL && ( strcmp( keyword, pars->cmndName() ) == 0 ) ) {
+    Serial.print( "# Reset, " );
+    Serial.println( app->timestamp ); // write message to log
+    app->nextLoop = 10 + millis(); // wait 10 ms and force a sample/log cycle
+    app->reftime = 0.001 * app->nextLoop; // reset the reference point for timestamp
+    return true;
+  }
+  else
+    return false;
+}
+
 // --------------------------------------------------------------------
 // class appBase
 
 // constructor
 appBase::appBase( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr ) :
-  adc(ADCaddr), amb(ambaddr), eeprom(epaddr), chan(1,2,0,0) {
+  CmndInterp( _DLMTR_STR ),
+  adc(ADCaddr),
+  amb(ambaddr),
+  eeprm(epaddr),
+  chan(1,2,0,0),
+  rst( this ) {
+
   TC = tc;
   lcd = NULL;
   buttons = NULL;
@@ -73,6 +105,7 @@ appBase::appBase( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr )
   baud = 57600;
   ambf = _AMBF; // default value
   banner[0] = '\0'; // initialize to blank string
+  addCommand( &rst );  // add the reset command to the active commands
 }
 
 // initialize the filters for display temperatures
@@ -105,7 +138,7 @@ void appBase::readCal(){
   // read calibration and identification data from eeprom
   // this is not real strong error checking, but should be OK in most situations
   uint16_t len;
-  len = eeprom.read( 0, (uint8_t*) &caldata, sizeof( caldata) );
+  len = eeprm.read( 0, (uint8_t*) &caldata, sizeof( caldata) );
   if( (len == sizeof( caldata )) && (strncmp( "TC4", caldata.PCB, 3 ) == 0 ) ) {
     adc.setCal( caldata.cal_gain, caldata.cal_offset );
     amb.setOffset( caldata.K_offset );
@@ -169,13 +202,13 @@ void appBase::run() {
   while ( millis() < nextLoop ) { // delay until time for next loop
     if( !first ) { // do not want to check the buttons on the first time through
       if( lcd != NULL && buttons != NULL ) // check for button press
-        checkButtons();
+        checkInput();
       checkSerial(); // Has a command been received?
     } // end if not first
   }
 
   thisLoop = millis(); // actual time marker for this loop
-  // timestamp = system time, seconds, for this set of samples
+  // time stamp = system time, seconds, for this set of samples
   timestamp = 0.001 * float( thisLoop ) - reftime;
   getSamples(); // retrieve values from MCP9800 and MCP3424
   if( first ) { // use first set of samples for RoR base values only
@@ -243,32 +276,12 @@ boolean appBase::getSamples()
 void appBase::activeDelay( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
-    checkButtons();
+    checkInput();
   }
 }
 
-// watches the serial port until a newline is encountered, then executes a reset
-void appBase::checkSerial() {
-  while( Serial.available() > 0 ) {
-    char c = Serial.read();
-    if( ( c == '\n' ) || ( strlen( command ) == _MAX_COMMAND ) ) { // check for newline, or buffer overflow
-      if( ! strcmp( command, _RESET ) ) {
-        Serial.print( "# Reset, " ); Serial.println( timestamp ); // write message to log
-        nextLoop = 10 + millis(); // wait 10 ms and force a sample/log cycle
-        reftime = 0.001 * nextLoop; // reset the reference point for timestamp
-      }
-      command[0] = '\0'; // command = ""
-    } // end if
-    else {
-      uint8_t len = strlen( command );
-      command[len++] = toupper( c );
-      command[len] = '\0';
-    } // end else
-  } // end while
-}
-
-// ----------------------------------
-void appBase::checkButtons() { // take action if a button is pressed
+// check for user input (probably button press)
+void appBase::checkInput() { // take action if a button is pressed
   if( buttons == NULL ) return; // just to be safe
   if( buttons->readButtons() ) {
     if( buttons->keyPressed( 3 ) && buttons->keyChanged( 3 ) ) {// left button = start the roast

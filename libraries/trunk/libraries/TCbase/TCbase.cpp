@@ -38,13 +38,13 @@
 
 
 // -------------------------------------
-const int TypeK::nranges_inv = 3;  // number of mV ranges for inverse lookup
-const int TypeK::ncoeff_inv = 10;  // number of coefficients for inverse lookup
-const float TypeK::mv_min = -5.891;
-const float TypeK::mv_max = 54.886;
+const int typeK::nranges_inv = 3;  // number of mV ranges for inverse lookup
+const int typeK::ncoeff_inv = 10;  // number of coefficients for inverse lookup
+const float typeK::mv_min = -5.891;
+const float typeK::mv_max = 54.886;
 
 // coefficients for inverse lookup (given mV, find C)
-const double TypeK::coeff_inv[10][3] = {
+const double typeK::coeff_inv[10][3] = {
          { 0.0000000E+00,  0.000000E+00, -1.318058E+02 },
          { 2.5173462E+01,  2.508355E+01,  4.830222E+01 }, 
          { -1.1662878E+00,  7.860106E-02, -1.646031E+00 },
@@ -58,13 +58,13 @@ const double TypeK::coeff_inv[10][3] = {
 };
 
 // mV ranges for inverse lookup coefficients
-const float TypeK::range_inv[2][3] = {
+const float typeK::range_inv[2][3] = {
   { -5.891,          0.000,         20.644  },
   {  0.000,         20.644,         54.886  }
 };
 
 // coefficients for direct lookup (given C, find mV)
-const double TypeK::coeff_dir[11][2] = {
+const double typeK::coeff_dir[11][2] = {
          {  0.000000000000E+00, -0.176004136860E-01 },
          {  0.394501280250E-01,  0.389212049750E-01 },
          {  0.236223735980E-04,  0.185587700320E-04 },
@@ -79,27 +79,27 @@ const double TypeK::coeff_dir[11][2] = {
 };
 
 // ranges for direct lookup
-const double TypeK::range_dir[2][2] = {
+const double typeK::range_dir[2][2] = {
   { -270.000 ,  0.000 },
   {    0.000 ,1372.00 }
 };
 
-const float TypeK::C_max = 1372.0;
-const float TypeK::C_min = -270.0;
+const float typeK::C_max = 1372.0;
+const float typeK::C_min = -270.0;
 
 // coefficients for exponential portion of direct lookup
-const double TypeK::a[3] = {
+const double typeK::a[3] = {
     0.118597600000E+00, -0.118343200000E-03, 0.126968600000E+03
 };
 
 // -------------------------- constructor
-TypeK::TypeK() {
+typeK::typeK() {
   F_max = C_TO_F( C_max );
   F_min = C_TO_F( C_min );
 }
 
 // ------------------- given mv reading, returns absolute temp C
-double TypeK::Temp_C( float mv ) {
+double typeK::Temp_C( float mv ) {
   double x = 1.0;
   double sum = 0.0;
   int i,j,ind;
@@ -120,42 +120,42 @@ double TypeK::Temp_C( float mv ) {
 
 // --------- given mv reading and ambient temp, returns compensated (true)
 //           temperature at tip of sensor
-double TypeK::Temp_C( float mv, float amb ) {
+double typeK::Temp_C( float mv, float amb ) {
   float mv_amb;
   mv_amb = mV_C( amb );
   return Temp_C( mv + mv_amb );
 };
 
 // --------------------- returns compensated temperature in F units
-double TypeK::Temp_F( float mv, float amb ) {
+double typeK::Temp_F( float mv, float amb ) {
   return C_TO_F( Temp_C( mv, F_TO_C( amb ) ) );
 };
 
 // --------------------- returns absolute temperature in F units
-double TypeK::Temp_F( float mv ) {
+double typeK::Temp_F( float mv ) {
   float temp = Temp_C( mv );
   if( temp == TC_RANGE_ERR ) return TC_RANGE_ERR;
   return C_TO_F( temp );  
 }
 
 // --------------------- checks to make sure mv signal in range
-boolean TypeK::inrange_mV( float mv ) {
+boolean typeK::inrange_mV( float mv ) {
   return ( mv >= mv_min ) & ( mv <= mv_max );
 };
 
 // ---------------------- checks to make sure temperature in range
-boolean TypeK::inrange_C( float ambC ) {
+boolean typeK::inrange_C( float ambC ) {
   return ( ambC >= C_min ) & ( ambC <= C_max );
 };
 
 // ----------------------- checks to make sure temperature in range
-boolean TypeK::inrange_F( float ambF ) {
+boolean typeK::inrange_F( float ambF ) {
   return ( ambF >= F_min ) & ( ambF <= F_max );
 };
 
 // ---------------- returns mV corresponding to temp reading
 //                  used for cold junction compensation
-double TypeK::mV_C( float ambC ) {
+double typeK::mV_C( float ambC ) {
   double sum = 0.0;
   double x = 1.0;
   float sum2 = 0.0;
@@ -181,7 +181,7 @@ double TypeK::mV_C( float ambC ) {
 };
 
 // -------------------- cold junction compensation in F units
-double TypeK::mV_F( float ambF ) {
+double typeK::mV_F( float ambF ) {
   if( inrange_F( ambF ) )
     return mV_C( F_TO_C( ambF ) );
   else

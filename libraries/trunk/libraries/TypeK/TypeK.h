@@ -33,10 +33,29 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
+// revised 6/2/2011 to include TCbase class
+
 #ifndef TYPEK_H
 #define TYPEK_H
 
 #include "WProgram.h"
+
+/*
+// ------------------- base class for thermocouples
+class TCbase {
+  public:
+    TCbase(){}
+    virtual double Temp_C( float mV ){ return 0; }   // returns temperature (referenced to 0C) for mV
+    virtual double Temp_F( float mV ){ return 0; }
+    virtual double Temp_C( float mV, float ambC )){ return 0; } // returns temperature referenced to ambC
+    virtual double Temp_F( float mV, float ambF )){ return 0; } // returns temperature referenced to ambF
+    virtual double mV_C ( float ambC )){ return 0; } // returns emf for ambient temperature
+    virtual double mV_F ( float ambF )){ return 0; }
+    virtual boolean inrange_mV( float mV ){ return FALSE; }
+    virtual boolean inrange_C( float ambC ){ return FALSE; }
+    virtual boolean inrange_F( float ambF ){ return FALSE; }
+};
+*/
 
 #define TC_RANGE_ERR -99999.0
 #define C_TO_F(x) ( 1.8 * x + 32.0 )
@@ -44,18 +63,18 @@
 
 // ----------------- ITS-90 linearization of type K thermocouples
 //
-class TypeK {
+class TypeK /*: public TCbase*/ {
   public:
     TypeK();
-    double Temp_C( float mV );   // returns temperature (referenced to 0C) for mV
-    double Temp_F( float mV );
-    double Temp_C( float mV, float ambC );  // returns temperature referenced to ambC
-    double Temp_F( float mV, float ambF );  // returns temperature referenced to ambF
-    double mV_C ( float ambC );  // returns emf for ambient temperature
-    double mV_F ( float ambF );
-    boolean inrange_mV( float mV );
-    boolean inrange_C( float ambC );
-    boolean inrange_F( float ambF );
+    virtual double Temp_C( float mV );   // returns temperature (referenced to 0C) for mV
+    virtual double Temp_F( float mV );
+    virtual double Temp_C( float mV, float ambC );  // returns temperature referenced to ambC
+    virtual double Temp_F( float mV, float ambF );  // returns temperature referenced to ambF
+    virtual double mV_C ( float ambC );  // returns emf for ambient temperature
+    virtual double mV_F ( float ambF );
+    virtual boolean inrange_mV( float mV );
+    virtual boolean inrange_C( float ambC );
+    virtual boolean inrange_F( float ambF );
   private:
     // inverse coefficients
     static const double coeff_inv[10][3];

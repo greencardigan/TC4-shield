@@ -59,6 +59,7 @@
 #include <cButton.h>
 #include <mcEEPROM.h>
 #include <TCbase.h>
+#include <cmndproc.h>
 
 #define _TF 10 // default value for filtering of display temperatures
 #define _RF 85 // default value for filtering T prior to rise calc
@@ -69,6 +70,11 @@
 #define _MAX_COMMAND 40 // length of command string
 #define _DP 1 // decimal places for output string
 #define _RESET "RESET" // reset command keyword
+#define _DLMTR_STR ";, "  // default delimiters for commands
+
+
+// forward declaration
+class appBase;
 
 // lists the active channels on the ADC, 1 through 4
 class chanList {
@@ -82,7 +88,23 @@ class chanList {
     uint8_t nc; // number of active channels
 };
 
-class appBase {
+// command object that has access to appBase
+class appCmnd : public CmndBase {
+  public:
+    appCmnd( const char* cname, appBase* appB );  // pass a pointer to the application in constructor
+  protected:
+    appBase* app;
+};
+
+// appCmnd that responds to RESET
+class rstCmnd : public appCmnd {
+  public:
+    rstCmnd( appBase* );
+    virtual boolean doCommand( CmndParser* pars );
+};
+
+// base class for TC4 applications
+class appBase : public CmndInterp {
   public:
     appBase( TCbase*, uint8_t ADCaddr = A_ADC, uint8_t ambaddr = A_AMB, uint8_t epaddr = ADDR_BITS );
     void initTempFilters( uint8_t f1 = _TF, uint8_t f2 = _TF, uint8_t f3 = _TF, uint8_t f4 = _TF );
@@ -95,15 +117,14 @@ class appBase {
     void setUnits( char cf = 'F' ) { celsius = toupper(cf) == 'C' ? true : false; }
     void setBanner( const char* bnr ){strncpy( banner,bnr,16); banner[16]='\0'; }
     void setActiveChannels( uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
+    void setBaud( uint32_t baudrate ){ baud = baudrate; }
     virtual void activeDelay( uint32_t ms ); // active delay loop
     virtual void readCal(); // try and read info from eeprom
-    virtual void setBaud( uint32_t baudrate ){ baud = baudrate; }
     virtual void start( uint32_t cycle = 1000 ); // start the app
     virtual void run(); // main loop
     virtual void logSamples(); // logs one set of samples to serial port
     virtual boolean getSamples(); // retrieves samples from ADC
-    virtual void checkSerial(); // checks for incoming commands
-    virtual void checkButtons(); // checks for user input
+    virtual void checkInput(); // checks for user input
     virtual float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ); // derivative
     virtual void updateLCD( float, float, float, float, float=0.0, float=0.0 );  // probably only use 4 values
 
@@ -111,6 +132,15 @@ class appBase {
     virtual void doControl(){} // gets called by run() each time after first time
     virtual void initControl(){} // gets called by run() on the first time through
     virtual boolean checkLimits( int32_t &uv, uint8_t &pchan ) { return true; } // checks input
+
+/* this should work?
+    friend class appCmnd;
+  protected:
+*/
+    float timestamp;
+    uint32_t nextLoop;
+    float reftime;
+
   protected:
 
     // this must be set to point to a TC defined in the main program
@@ -118,17 +148,15 @@ class appBase {
 
     // variables used for timing
     uint32_t looptime;
-    float timestamp;
     boolean first;
-    uint32_t nextLoop;
-    float reftime;
 
     // pointers to objects defined in main program (set to NULL if not active)
     LCDbase* lcd;
     cButtonPE16* buttons;
 
     // class objects
-    mcEEPROM eeprom;
+    rstCmnd rst;  // base application responds only to the RESET command
+    mcEEPROM eeprm;
     cADC adc;
     ambSensor amb;
     chanList chan;
@@ -150,7 +178,6 @@ class appBase {
     char command[_MAX_COMMAND];
     uint32_t baud;
     uint8_t ambf;
-
 };
 
 #endif /* TC4APP_H_ */

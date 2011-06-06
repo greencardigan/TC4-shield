@@ -40,8 +40,10 @@
 #ifndef CBUTTON_H_
 #define CBUTTON_H_
 
+#include <WProgram.h>
 #include <Wire.h>
 #include <MCP23017.h>
+
 
 #define PERIOD 5  // ms between status checks
 #define NCHECKS 2 // how many raw reads until switch is considered stable

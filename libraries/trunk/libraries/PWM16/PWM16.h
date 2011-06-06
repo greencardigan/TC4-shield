@@ -89,7 +89,7 @@
 //
 // ------------------------------------------------------------------------------
 
-#include "WProgram.h"
+#include <WProgram.h>
 #ifndef PWM16_h
 #define PWM16_h
 

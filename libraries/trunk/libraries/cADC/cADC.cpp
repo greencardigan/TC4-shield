@@ -37,7 +37,7 @@
 // Acknowledgement is given to Bill Welch for his development of the prototype hardware and software 
 // upon which much of this library is based.
 
-#include <cADC.h>
+#include "cADC.h"
 
 // --------------------------------------------------- dFilterRC
 filterRC::filterRC() {

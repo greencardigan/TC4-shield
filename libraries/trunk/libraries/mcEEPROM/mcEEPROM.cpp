@@ -16,7 +16,7 @@
 #define DPRINT(s,var) Serial.print(s);Serial.print(var,DEC);Serial.print(",")
 #endif
 
-#include <mcEEPROM.h>
+#include "mcEEPROM.h"
 
 // --------------------------
 mcEEPROM::mcEEPROM( uint8_t select ) {

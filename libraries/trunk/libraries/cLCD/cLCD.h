@@ -8,8 +8,9 @@
 #ifndef cLCD_h
 #define cLCD_h
 
+#include <WProgram.h>
 #include <inttypes.h>
-#include "Print.h"
+#include <Print.h>
 #include "MCP23017.h"
 
 // commands
@@ -74,7 +75,6 @@ public:
 	void setCursor(uint8_t, uint8_t);
 	virtual void write(uint8_t);
 	void command(uint8_t);
-
       virtual void backlight(){}
       virtual void noBacklight(){}
 
@@ -124,8 +124,8 @@ private:
 class cLCD : public LCDbase {
 public:
 	cLCD( uint8_t addr = MCP23_ADDR );
-	void backlight();
-	void noBacklight();
+	virtual void backlight();
+	virtual void noBacklight();
 protected:
 	virtual void config();
 	virtual void send( uint8_t, uint8_t );
