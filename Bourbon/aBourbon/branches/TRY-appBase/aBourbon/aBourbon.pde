@@ -1,40 +1,117 @@
 // aBourbon.pde
+//
+// N-channel Rise-o-Meter
+// output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2
+// output on LCD : timestamp, channel 2 temperature
+//                 RoR 1,     channel 1 temperature
 
-// demonstration sketch for library class appBase
+// Support for pBourbon.pde and 16 x 2 LCD
 
+// *** BSD License ***
+// ------------------------------------------------------------------------------------------
+// Copyright (c) 2011, MLG Properties, LLC (www.pidkits.com)
+// All rights reserved.
+//
+// Contributor:  Jim Gallt
+//
+// Redistribution and use in source and binary forms, with or without modification, are 
+// permitted provided that the following conditions are met:
+//
+//   Redistributions of source code must retain the above copyright notice, this list of 
+//   conditions and the following disclaimer.
+//
+//   Redistributions in binary form must reproduce the above copyright notice, this list 
+//   of conditions and the following disclaimer in the documentation and/or other materials 
+//   provided with the distribution.
+//
+//   Neither the name of the copyright owner nor the names of its contributors may be 
+//   used to endorse or promote products derived from this software without specific prior 
+//   written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS 
+// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// ------------------------------------------------------------------------------------------
+
+#define BANNER "Bourbon V3.beta"
+// Revision history:
+//   20100922: Added support for I2C LCD interface (optional). 
+//             This program now requires use of cLCD library.
+//   20100927: converted aBourbon to be a roast monitor only
+//   20100928: added EEPROM support (optional)
+//   20110403: moved user configurable compile flags to user.h
+//   20110404: Added support for Celsius operation
+//   20110405: Added support for button pushes
+//   20110406: Added post-filtering for RoR values
+//   20110408: Added code to read RESET code from serial port
+//   20110522: Eliminated the dummy power field in the output stream.  pBourbon now is smart
+//             enough to not require the dummy field.
+//   20110605  Complete rewrite (V3.beta) using TC4app library classes
+
+// Parts of this code are derived from a_logger.pde file by Bill Welch (bvwelch.com)
+// Bill's significant role in this project in gratefully acknowledged.
+
+// Arduino library
 #include <Wire.h>
-#include <TC4app.h>
-#include <cADC.h>
-#include <mcEEPROM.h>
-#include <cLCD.h>
-#include <cButton.h>
-#include <TCbase.h>
 
-#define FTEMP 10 // filtering level on direct temperature readings
-#define FRISE 85 // filtering level on temp values used to compute rise
-#define FROR 80 // post-filtering on stream of RoR values
-#define FAMB 85
-#define BANNER "appBase Demo"
+// TC4 libraries
+#include <TC4app.h>  // base class for application
+#include <cADC.h>  // MCP3424 support
+#include <mcEEPROM.h>  // EEPROM support
+#include <cLCD.h>  // LCD display support (optional)
+#include <cButton.h>  // buttons on the LCDapter (optional)
+#include <TCbase.h> // base class for thermocouples
+#include <cmndproc.h>  // command interpreter
 
-// these must be defined in the main program and passed to the application class
-TypeK tc; // required
-cButtonPE16 buttons; // optional
-cLCD lcd; // optional, or may be LiquidCrystal class
+// user preferences
+#include "user.h"
+
+typeK tc; // thermocouple sensor
+
+// ---------------------------------- LCD interface definition
+#ifdef LCDAPTER
+  cLCD lcd; // I2C LCD interface
+  cButtonPE16 buttons; // class object to manage button presses
+#else // parallel interface, standard LiquidCrystal
+  #define RS 2
+  #define ENABLE 4
+  #define D4 7
+  #define D5 8
+  #define D6 12
+  #define D7 13
+  LiquidCrystal lcd( RS, ENABLE, D4, D5, D6, D7 ); // standard 4-bit parallel interface
+#endif
 
 // the app constructor must identify a sensor that derives from TCbase
 appBase app( &tc );
 
 void setup() {
-  app.setBanner( BANNER ); // optional; limit to 16 characters of text
-  app.setLCD ( &lcd, 16, 2 ); // optional;
-  app.setButtons( &buttons ); // optional;
-  //app.setBaud( 115200 ); // optional; default is 57600 if not set
-  //app.setActiveChannels(1,2,4,3); // optional; use only to override default of 1,2,0,0
-  app.setAmbFilter( FAMB ); // optional; required only if override of default (80) is desired
-  app.initTempFilters(FTEMP,FTEMP,FTEMP,FTEMP); // required; override with non-default values if desired (default 10)
-  app.initRiseFilters(FRISE,FRISE,FRISE,FRISE); // required; override with non-default values if desired (default 85)
-  app.initRoRFilters(FROR,FROR,FROR,FROR); // required; override with non-default values if desired (default 80)
-  app.start(); // required (last); can use this to override (lengthen) the default cycle time
+  app.setBanner( BANNER );
+  
+#ifdef LCDAPTER
+  app.setLCD ( &lcd, 16, 2 );
+  app.setButtons( &buttons );
+#else ifdef LIQUID_CRYSTAL
+  app.setLCD( &lcd, 16, 2 );
+#endif
+  
+#ifdef CELSIUS
+  app.setUnits( 'C' );  // Fahrenheit is default
+#endif
+  
+  app.setBaud( BAUD ); 
+  app.setActiveChannels( 1, 2, 0, 0 ); 
+  app.setAmbFilter( AMB_FILTER ); 
+  app.initTempFilters(BT_FILTER, ET_FILTER, 0, 0 ); 
+  app.initRiseFilters(RISE_FILTER, RISE_FILTER, 0 , 0 ); 
+  app.initRoRFilters(ROR_FILTER, ROR_FILTER, 0, 0 ); 
+  app.start(); 
 }
 
 void loop() {

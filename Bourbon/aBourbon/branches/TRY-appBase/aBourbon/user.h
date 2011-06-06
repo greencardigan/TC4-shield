@@ -9,10 +9,10 @@
 
 // ------------------ optionally, use I2C port expander for LCD interface
 #define LCDAPTER // comment this line out to use the standard parallel LCD 4-bit interface
-#define EEPROM_BRBN // comment this line out if no calibration information stored in 64K EEPROM
 //#define CELSIUS // if defined, output is in Celsius units; otherwise Fahrenheit
 
 #define BAUD 57600  // serial baud rate
+//#define BAUD 115200
 #define BT_FILTER 10 // filtering level (percent) for displayed BT
 #define ET_FILTER 10 // filtering level (percent) for displayed ET
 
@@ -23,12 +23,7 @@
 // will be needed.  Theoretical max. is 99%, but watch out for the lag when
 // you get above 95%.
 #define RISE_FILTER 85 // heavy filtering on non-displayed BT for RoR calculations
-#define ROR_FILTER 80 // post-filtering for the computed RoR values
-
-// default values for systems without calibration values stored in EEPROM
-#define CAL_GAIN 1.00 // you may substitute a known gain adjustment from calibration
-#define UV_OFFSET 0 // you may subsitute a known value for uV offset in ADC
-#define AMB_OFFSET 0.0 // you may substitute a known value for amb temp offset (Celsius)
+#define ROR_FILTER 80 // post-filtering on the computed RoR values for smooth display
 
 // ambient sensor should be stable, so quick variations are probably noise -- filter heavily
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings
