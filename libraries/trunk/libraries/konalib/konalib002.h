@@ -5,22 +5,6 @@
 //set to true to enable temp compensation algorithm in compensate.pde, false to disable is default
 boolean enable_comp = true;
 
-#define MAX_PROFILE 20 // max number of profiles
-
-//compiler options, depending on roaster configuration
-#define LCD4X20  //remove comment on this line if using 4x20 LCD
-#define ALPENROST
-//#define EEROM
-//#define PORTEXPANDER
-
-#ifdef LCD4X20
-#define ROWS 4  //use this for a 4 row display
-#define COLS 20  //use this for a 20 column display
-#else
-#define ROWS 2  //use this for a 2 row display
-#define COLS 16  // use this for a 16 column display
-#endif  //if 4X20
-
 ///////////
 //button wiring
 //On Jim’s board, looking at the display, the rightmost button is bit zero and the leftmost is bit 3
@@ -51,10 +35,20 @@ boolean enable_comp = true;
 #define NAME_SIZE 16 //size of the profile name varibles
 #define NO_PROFILES 10  //max number of profiles
 
+//definitions for roast_mode
 #define AUTO_TEMP   1   //roast method automatic using profile, temperature/time method
 #define AUTO_ROR    2   //roast method automatic using profile, ror method
 #define MANUAL_ROR  3   //roast method manual user controlled, ror method
 #define DELTA_T     4   //roast method automatic using profile, delta temp method
+
+//definitions for serial_type
+#define PKONA       1   //if running pkona on PC
+#define ARTISAN     2   //if running artisan on pc
+
+//definitions for roaster
+#define DEFAULT_ROASTER 1  //if using an air popper
+#define ALPENROST       2   //if using an alpenrost
+#define AIR_POPPER      3   //if using an air popper
 
 #define NO_SEGMENTS 2 // currently support 3 roast segments
 
@@ -62,14 +56,16 @@ boolean enable_comp = true;
 #define PROFILE_ADDR_01 5000 // address in EEprom to store the profile data
 #define PROFILE_ADDR_RX 5000 // address in EEprom to store the profile data, for data sent from PC
 
-//structure for temp storage of the profiles
+#define NAME_LENGTH 20 // 
+#define DATE_LENGTH 16 // 
+
+//structure used for eeprom storage of the profiles
 struct profile {
-  int index;      //0-1
-  char name[16];  //2-17 
-  char date[16];  //format yyyy/mm/dd hh:mm
+  char name[NAME_LENGTH];  // 
+  char date[DATE_LENGTH];  //format yyyy/mm/dd hh:mm
+  int index;      //0-100
   int ror[NMAX];
   int targ_temp[NMAX];
-//	  int temp[NMAX];
   int time[NMAX];
   int offset[NMAX];
   int speed[NMAX];
@@ -84,8 +80,6 @@ struct profile {
 
 profile myprofile;  //structure used to read in a profile from eeprom
 
-//profile myprofile_w;  //structure used to write out a profile to eeprom
-
 //structure for storage of PID info in EEprom
 struct PID_struc {
   int init_pattern;
@@ -95,6 +89,7 @@ struct PID_struc {
   float PID_factor;
   int starttemp;
   int maxtemp;
+  int segment_0;
   int segment_1;
   int segment_2;
   int seg0_bias;
@@ -104,40 +99,33 @@ struct PID_struc {
   int seg1_min;
   int seg2_min;
   int startheat;
+  int serial_type;
+  int roaster;
   };
 
 PID_struc myPID;  //structure used to read/write the PID data
 
-//PID_struc myPID_w;  //structure used to write in PID data
+#define ALP_MOTOR_ON     2
+#define ALP_FLAP_OPEN    5  
+#define ALP_FLAP_CLOSE   6 
 
-
-//#ifdef ALPENROST
-//---------------------------Port Expander Alpenrost control bits
-// bit 3 = flap close, bit 2 = flap open, bit 1 = motor on
-#define ALP_MOTOR_ON            (uint8_t) B00000001
-#define ALP_FLAP_OPEN           (uint8_t) B00000010
-#define ALP_FLAP_OPEN_MOTOR_ON  (uint8_t) B00000011
-#define ALP_FLAP_CLOSE          (uint8_t) B00000100
-#define ALP_FLAP_CLOSE_MOTOR_ON (uint8_t) B00000101
-#define ALL_ON                  (uint8_t) B11111111
-//#endif
 
 /*
 For information, the Arduino Discrete IO pin assignments
-Serial RX			0
-Serial TX			1
-         			2
-  	                3
-				    4
- 	                5  
- 	                6  
-				    7
-		            8
-Heater PWM Out		9
-Fan PWM Out			10
- 	                11 
-				    12
-				    13
+Serial RX			 0
+Serial TX			 1
+ALP motor on	 2
+  	           3
+				       4
+Alp flap open  5  
+Alp flap close 6  
+				       7
+		           8
+Heater PWM Out 9
+Fan PWM Out		10
+ 	            11 
+				      12
+				      13
 
 A0		
 A1		
