@@ -9,6 +9,7 @@
 #include <cLCD.h>
 #include <cButton.h>
 #include <TCbase.h>
+#include <cmndproc.h>
 
 #define FTEMP 10 // filtering level on direct temperature readings
 #define FRISE 85 // filtering level on temp values used to compute rise
@@ -17,7 +18,7 @@
 #define BANNER "appBase Demo"
 
 // these must be defined in the main program and passed to the application class
-TypeK tc; // required
+typeK tc; // required
 cButtonPE16 buttons; // optional
 cLCD lcd; // optional, or may be LiquidCrystal class
 
