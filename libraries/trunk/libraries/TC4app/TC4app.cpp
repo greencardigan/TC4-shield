@@ -61,28 +61,10 @@ void chanList::setMap( uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4 ) {
 
 // ---------------------------------------------------------------
 // class appCmnd
-appCmnd::appCmnd( const char* cname, appBase* ap ) :
-    CmndBase( cname ),
-    app( ap ){
-}
-
-// ------------------------------------------------------------------
-// class rstCmnd
-rstCmnd::rstCmnd( appBase* ap ) : appCmnd ( _RESET, ap ) {
-  app = ap;
-}
-
-// respond to the command
-boolean rstCmnd::doCommand( CmndParser* pars ) {
-  if( app != NULL && ( strcmp( keyword, pars->cmndName() ) == 0 ) ) {
-    Serial.print( "# Reset, " );
-    Serial.println( app->timestamp ); // write message to log
-    app->nextLoop = 10 + millis(); // wait 10 ms and force a sample/log cycle
-    app->reftime = 0.001 * app->nextLoop; // reset the reference point for timestamp
-    return true;
-  }
-  else
-    return false;
+appCmnd::appCmnd( const char* cname, appBase* ap, boolean ak ) :
+  CmndBase( cname ),
+  app( ap ),
+  ack( ak ) {
 }
 
 // --------------------------------------------------------------------
@@ -94,8 +76,8 @@ appBase::appBase( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr )
   adc(ADCaddr),
   amb(ambaddr),
   eeprm(epaddr),
-  chan(1,2,0,0),
-  rst( this ) {
+  chan(1,2,0,0)
+{
 
   TC = tc;
   lcd = NULL;
@@ -105,7 +87,6 @@ appBase::appBase( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr )
   baud = 57600;
   ambf = _AMBF; // default value
   banner[0] = '\0'; // initialize to blank string
-  addCommand( &rst );  // add the reset command to the active commands
 }
 
 // initialize the filters for display temperatures
@@ -154,7 +135,7 @@ void appBase::setActiveChannels( uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4)
   chan.setMap( c1, c2, c3, c4 );
   // increase the looptime if required
   uint32_t mincycle = chan.getNumActv() * 500;
-  looptime = ( looptime >= mincycle ) ? looptime : mincycle;
+  looptime = ( userloop >= mincycle ) ? userloop : mincycle;
 }
 
 // initialize things and start the clock
@@ -184,6 +165,8 @@ void appBase::start( uint32_t cycle ) {
   Serial.println();
 
 
+  userloop = cycle;
+  looptime = chan.getNumActv() * 500;
   looptime = ( cycle > looptime ) ? cycle : looptime;
   timestamp = 0.0;
   delay( 1800 );
@@ -413,3 +396,122 @@ void appBase::updateLCD( float time, float t1, float t2, float RoR, float x5, fl
   lcd->print("B ");
   lcd->print(st1);
 }
+
+// ------------------------------------------------------------------
+// class rstCmnd
+rstCmnd::rstCmnd( appBase* parent, boolean ak ) :
+  appCmnd ( _RESET, parent, ak ) {
+}
+
+// respond to the command
+boolean rstCmnd::doCommand( CmndParser* pars ) {
+  if( app != NULL && ( strcmp( keyword, pars->cmndName() ) == 0 ) ) {
+    if( ack ) {
+      Serial.print( "# Reset, " );
+      Serial.println( app->getTimeStamp() ); // write message to log
+    }
+    uint32_t nloop = 10 + millis();
+    app->setNextLoop( nloop ); // wait 10 ms and force a sample/log cycle
+    app->setRefTime( 0.001 * nloop ); // reset the reference point for timestamp
+    return true;
+  }
+  else
+    return false;
+}
+
+// ------------------------------------------------------------------
+// class readCmnd
+readCmnd::readCmnd( appBase* parent, boolean ak ) :
+  appCmnd ( _READ, parent ) {
+}
+
+// respond to the command
+boolean readCmnd::doCommand( CmndParser* pars ) {
+  if( app != NULL && ( strcmp( keyword, pars->cmndName() ) == 0 ) ) {
+    app->logSamples();
+    return true;
+  }
+  else
+    return false;
+}
+
+// ------------------------------------------
+// class chanCmnd::chanCmnd() :
+// execute the CHAN command
+// CHAN;ijkl\n
+chanCmnd::chanCmnd( appBase* parent, boolean ak ) :
+  appCmnd( _CHAN, parent, ak ) {
+}
+
+// respond to the chan command
+boolean chanCmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
+    char str[2];
+    uint8_t a[4];
+    uint8_t n;
+    uint8_t len = strlen( pars->paramStr(1) );
+    if( len == 4 ) { // must match number of channels or take no action
+      for( int i = 0; i < len; i++ ) {
+        str[0] = pars->paramStr(1)[i]; // next character
+        str[1] = '\0'; // force it to be char[2]
+        n = atoi( str );
+        if( n <= 4 )
+          a[i] = n;
+        else
+          a[i] = 0;
+      }
+      app->setActiveChannels( a[0], a[1], a[2], a[3] );
+      if( ack ) {
+        Serial.print("# Active channels set to ");
+        Serial.println( pars->paramStr(1) );
+      }
+    }
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+// ------------------------------------------------------------------
+// class uintsCmnd
+unitsCmnd::unitsCmnd( appBase* parent, boolean ak ) :
+  appCmnd ( _UNITS, parent, ak ) {
+}
+
+// respond to the command
+boolean unitsCmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
+    if( strcmp( pars->paramStr(1), "F" ) == 0 ) {
+      app->setUnits('F');
+      if( ack )
+        Serial.println("# Changed units to F");
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "C" ) == 0 ) {
+      app->setUnits('C');
+      if( ack )
+        Serial.println("# Changed units to C");
+      return true;
+    }
+  }
+  return false;
+}
+
+// --------------------------------------------------------------------
+// class appSerialComm
+
+// constructor
+appSerialComm::appSerialComm( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr ) :
+  appBase( tc, ADCaddr, ambaddr, epaddr ),
+  rst( this, true ), // ack is sent by TC4
+  chn( this, true ), // ack is sent by TC4
+  rd( this, true ),
+  un( this, true ) // ack is sent by TC4
+{
+  addCommand( &rst );  // add the reset command
+  addCommand( &chn );  // channel command
+  addCommand( &rd );  // read command
+  addCommand( &un );  // units command
+}
+

@@ -51,8 +51,11 @@
 #ifndef TC4APP_H_
 #define TC4APP_H_
 
+// -------------------------------------------------------------------
+// Arduino libraries, licensed under LGPL
 #include <Wire.h>
 #include <WProgram.h>
+// --------------------------------------------------------------------
 
 #include <cADC.h>
 #include <cLCD.h>
@@ -70,6 +73,9 @@
 #define _MAX_COMMAND 40 // length of command string
 #define _DP 1 // decimal places for output string
 #define _RESET "RESET" // reset command keyword
+#define _CHAN "CHAN"
+#define _UNITS "UNITS"
+#define _READ "READ"
 #define _DLMTR_STR ";, "  // default delimiters for commands
 
 
@@ -91,16 +97,11 @@ class chanList {
 // command object that has access to appBase
 class appCmnd : public CmndBase {
   public:
-    appCmnd( const char* cname, appBase* appB );  // pass a pointer to the application in constructor
+    // pass a pointer to the application in constructor
+    appCmnd( const char* cname, appBase* parent, boolean ak = false );
   protected:
     appBase* app;
-};
-
-// appCmnd that responds to RESET
-class rstCmnd : public appCmnd {
-  public:
-    rstCmnd( appBase* );
-    virtual boolean doCommand( CmndParser* pars );
+    boolean ack;  // flag for whether to return an acknowledgment
 };
 
 // base class for TC4 applications
@@ -118,6 +119,9 @@ class appBase : public CmndInterp {
     void setBanner( const char* bnr ){strncpy( banner,bnr,16); banner[16]='\0'; }
     void setActiveChannels( uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
     void setBaud( uint32_t baudrate ){ baud = baudrate; }
+    float getTimeStamp(){ return timestamp; }
+    void setRefTime( float rt ){ reftime = rt; }
+    void setNextLoop( uint32_t nL ){ nextLoop = nL; }
     virtual void activeDelay( uint32_t ms ); // active delay loop
     virtual void readCal(); // try and read info from eeprom
     virtual void start( uint32_t cycle = 1000 ); // start the app
@@ -133,21 +137,17 @@ class appBase : public CmndInterp {
     virtual void initControl(){} // gets called by run() on the first time through
     virtual boolean checkLimits( int32_t &uv, uint8_t &pchan ) { return true; } // checks input
 
-/* this should work?
-    friend class appCmnd;
   protected:
-*/
     float timestamp;
     uint32_t nextLoop;
     float reftime;
-
-  protected:
 
     // this must be set to point to a TC defined in the main program
     TCbase* TC;
 
     // variables used for timing
     uint32_t looptime;
+    uint32_t userloop;
     boolean first;
 
     // pointers to objects defined in main program (set to NULL if not active)
@@ -155,7 +155,6 @@ class appBase : public CmndInterp {
     cButtonPE16* buttons;
 
     // class objects
-    rstCmnd rst;  // base application responds only to the RESET command
     mcEEPROM eeprm;
     cADC adc;
     ambSensor amb;
@@ -178,6 +177,46 @@ class appBase : public CmndInterp {
     char command[_MAX_COMMAND];
     uint32_t baud;
     uint8_t ambf;
+};
+
+// appCmnd that responds to RESET
+class rstCmnd : public appCmnd {
+  public:
+    rstCmnd( appBase* parent, boolean ak );
+    virtual boolean doCommand( CmndParser* pars );
+};
+
+// responds to CHAN command
+class chanCmnd : public appCmnd {
+  public:
+    chanCmnd( appBase* parent, boolean ak );
+    virtual boolean doCommand( CmndParser* pars );
+};
+
+// responds to READ command
+class readCmnd : public appCmnd {
+  public:
+    readCmnd( appBase* parent, boolean ak );
+    virtual boolean doCommand( CmndParser* pars );
+};
+
+// responds to UNITS command
+class unitsCmnd : public appCmnd {
+  public:
+    unitsCmnd( appBase* parent, boolean ak );
+    virtual boolean doCommand( CmndParser* pars );
+};
+
+// extends appBase by adding capability to respond to set of basic commands:
+//   RESET, READ, CHAN, UNITS
+class appSerialComm : public appBase {
+  public:
+    appSerialComm(TCbase*, uint8_t ADCaddr = A_ADC, uint8_t ambaddr = A_AMB, uint8_t epaddr = ADDR_BITS );
+  protected:
+    rstCmnd rst;
+    chanCmnd chn;
+    readCmnd rd;
+    unitsCmnd un;
 };
 
 #endif /* TC4APP_H_ */
