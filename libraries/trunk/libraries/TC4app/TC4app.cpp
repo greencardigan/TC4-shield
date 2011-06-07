@@ -76,7 +76,8 @@ appBase::appBase( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr )
   adc(ADCaddr),
   amb(ambaddr),
   eeprm(epaddr),
-  chan(1,2,0,0)
+  chan(1,2,0,0),
+  rst( this, true )
 {
 
   TC = tc;
@@ -87,6 +88,7 @@ appBase::appBase( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr )
   baud = 57600;
   ambf = _AMBF; // default value
   banner[0] = '\0'; // initialize to blank string
+  addCommand( &rst );
 }
 
 // initialize the filters for display temperatures
@@ -504,12 +506,10 @@ boolean unitsCmnd::doCommand( CmndParser* pars ) {
 // constructor
 appSerialComm::appSerialComm( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr ) :
   appBase( tc, ADCaddr, ambaddr, epaddr ),
-  rst( this, true ), // ack is sent by TC4
   chn( this, true ), // ack is sent by TC4
   rd( this, true ),
   un( this, true ) // ack is sent by TC4
 {
-  addCommand( &rst );  // add the reset command
   addCommand( &chn );  // channel command
   addCommand( &rd );  // read command
   addCommand( &un );  // units command

@@ -104,6 +104,13 @@ class appCmnd : public CmndBase {
     boolean ack;  // flag for whether to return an acknowledgment
 };
 
+// appCmnd that responds to RESET
+class rstCmnd : public appCmnd {
+  public:
+    rstCmnd( appBase* parent, boolean ak );
+    virtual boolean doCommand( CmndParser* pars );
+};
+
 // base class for TC4 applications
 class appBase : public CmndInterp {
   public:
@@ -155,6 +162,7 @@ class appBase : public CmndInterp {
     cButtonPE16* buttons;
 
     // class objects
+    rstCmnd rst;  // base class application should respond to RESET command
     mcEEPROM eeprm;
     cADC adc;
     ambSensor amb;
@@ -177,13 +185,6 @@ class appBase : public CmndInterp {
     char command[_MAX_COMMAND];
     uint32_t baud;
     uint8_t ambf;
-};
-
-// appCmnd that responds to RESET
-class rstCmnd : public appCmnd {
-  public:
-    rstCmnd( appBase* parent, boolean ak );
-    virtual boolean doCommand( CmndParser* pars );
 };
 
 // responds to CHAN command
@@ -213,7 +214,6 @@ class appSerialComm : public appBase {
   public:
     appSerialComm(TCbase*, uint8_t ADCaddr = A_ADC, uint8_t ambaddr = A_AMB, uint8_t epaddr = ADDR_BITS );
   protected:
-    rstCmnd rst;
     chanCmnd chn;
     readCmnd rd;
     unitsCmnd un;
