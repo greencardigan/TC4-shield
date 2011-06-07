@@ -89,7 +89,7 @@ typeK tc; // thermocouple sensor
 #endif
 
 // the app constructor must identify a sensor that derives from TCbase
-appBase app( &tc );
+appSerialComm app( &tc );
 
 void setup() {
   app.setBanner( BANNER );
