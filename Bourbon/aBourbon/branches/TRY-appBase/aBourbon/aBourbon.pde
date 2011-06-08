@@ -53,6 +53,7 @@
 //   20110522: Eliminated the dummy power field in the output stream.  pBourbon now is smart
 //             enough to not require the dummy field.
 //   20110605  Complete rewrite (V3.beta) using TC4app library classes
+//   20110607  Use appSerialRst as base class
 
 // Parts of this code are derived from a_logger.pde file by Bill Welch (bvwelch.com)
 // Bill's significant role in this project in gratefully acknowledged.
@@ -89,7 +90,7 @@ typeK tc; // thermocouple sensor
 #endif
 
 // the app constructor must identify a sensor that derives from TCbase
-appSerialComm app( &tc );
+appSerialRst app( &tc );
 
 void setup() {
   app.setBanner( BANNER );
