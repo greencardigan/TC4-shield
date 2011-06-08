@@ -54,6 +54,7 @@
 //             enough to not require the dummy field.
 //   20110605  Complete rewrite (V3.beta) using TC4app library classes
 //   20110607  Use appSerialRst as base class
+//   20110608  Cleaned up some #ifdef commands for the LCD
 
 // Parts of this code are derived from a_logger.pde file by Bill Welch (bvwelch.com)
 // Bill's significant role in this project in gratefully acknowledged.
@@ -98,8 +99,10 @@ void setup() {
 #ifdef LCDAPTER
   app.setLCD ( &lcd, 16, 2 );
   app.setButtons( &buttons );
-#else ifdef LIQUID_CRYSTAL
+#else 
+#ifdef LIQUID_CRYSTAL
   app.setLCD( &lcd, 16, 2 );
+#endif
 #endif
   
 #ifdef CELSIUS

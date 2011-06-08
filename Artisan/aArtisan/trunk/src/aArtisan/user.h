@@ -11,7 +11,7 @@
 #ifndef USER_H
 #define USER_H
 
-#define EEPROM_ARTISAN // comment this line out if no calibration information stored in 64K EEPROM
+#define USE_TC4_EEPROM // comment this line out if no calibration information stored in 64K EEPROM
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
 //#define CELSIUS // controls only the initial conditions
@@ -34,7 +34,7 @@
 
 // CHAN command always returns "# Active ....."  This is used to confirm communication link.
 // This define turns on the "# xxxxxxx\n" acknowledgements after all other commands, except READ
-//#define ACKS_ON
+#define ACKS_ON
 
 
 // *************************************************************************************

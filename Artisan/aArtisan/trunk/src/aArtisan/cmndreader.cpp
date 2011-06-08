@@ -42,12 +42,48 @@ readCmnd reader;
 awriteCmnd awriter;
 dwriteCmnd dwriter;
 chanCmnd chan;
-ot1Cmnd ot1;
-ot2Cmnd ot2;
-io3Cmnd io3;
+portOT1Cmnd ot1;
+portOT2Cmnd ot2;
+portIO3Cmnd io3;
 unitsCmnd units;
-rf2000Cmnd rf2000;
-rc2000Cmnd rc2000;
+//rf2000Cmnd rf2000;
+//rc2000Cmnd rc2000;
+
+// ----------------------ArtisanInterp class
+// constructor
+ArtisanInterp::ArtisanInterp() :
+  CmndInterp( DELIM ) {
+  hashFlag = false;
+}
+
+// watch the serial port
+const char* ArtisanInterp::checkSerial() {
+  char c;
+  while( Serial.available() > 0 ) {
+    c = Serial.read();
+    if( hashFlag ) { // if the hashflag is already set, then read the command
+      // check for newline, buffer overflow
+      uint8_t len = strlen( cmndstr );
+      if( ( c == '\n' ) || ( len == MAX_CMND_LEN ) ) {
+        // report input back to calling program
+        strncpy( result, cmndstr, MAX_RESULT_LEN );
+        result[MAX_RESULT_LEN] = '\0'; // for safety
+        processCommand();
+        cmndstr[0] = '\0'; // empty the buffer
+        hashFlag = false;  // reset the flag
+        return result;
+      } // end if
+      else { // append character
+        cmndstr[len] = toupper(c);
+        cmndstr[len+1] = '\0';
+      } // end else
+    }
+    else {  // hashFlag not yet set, so see if this character sets it
+      hashFlag = c == HASH;
+    }  
+  } // end while
+  return NULL;
+}
 
 // --------------------- dwriteCmnd
 // constructor
@@ -57,7 +93,7 @@ dwriteCmnd::dwriteCmnd() :
 
 // --------------------------- specify digital output to arbitrary pin
 // WARNING - this action is not really error checked.
-// DWRITE;ppp;ddd\n
+// DWRT;ppp;ddd\n
 
 boolean dwriteCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
@@ -78,7 +114,7 @@ boolean dwriteCmnd::doCommand( CmndParser* pars ) {
           case 5: pinID = A5; break;
           default: return true;
         } // end switch
-        if( strcmp( pars->paramStr(2), "HIGH" ) == 0 ) {
+        if( strcmp( pars->paramStr(2), PIN_HIGH ) == 0 ) {
           pinMode( pinID, OUTPUT );
           digitalWrite( pinID, HIGH );
           #ifdef ACKS_ON
@@ -86,8 +122,8 @@ boolean dwriteCmnd::doCommand( CmndParser* pars ) {
           Serial.print( (int) dpin );
           Serial.println(" set to HIGH");
           #endif
-         }
-        else if( strcmp( pars->paramStr(2), "LOW" ) == 0 ) {
+        }
+        else if( strcmp( pars->paramStr(2), PIN_LOW ) == 0 ) {
           pinMode( pinID, INPUT);
           digitalWrite( pinID, LOW ); // must turn off pull-up on A pins
           pinMode( pinID, OUTPUT );
@@ -100,14 +136,15 @@ boolean dwriteCmnd::doCommand( CmndParser* pars ) {
         }
         return true;
       } // end if analog
-      else {
-        // not analog pin, so assume digital
+      else {  // not analog pin, so assume digital
         if( pars->paramStr(1)[0] == 'D' )  // permit pin ID to be D01, D13, etc
           dpin = atoi( pars->paramStr(1) + 1 );
         else
           dpin = atoi( pars->paramStr(1) ); // or if no leading character, assume digital
+        if( dpin == 0 || dpin == 1 ) // don't mess with the RX, TX pins !!
+          return true;
         pinMode( dpin, OUTPUT );
-        if( strcmp( pars->paramStr(2), "HIGH" ) == 0 ) {
+        if( strcmp( pars->paramStr(2), PIN_HIGH ) == 0 ) {
           digitalWrite( dpin, HIGH );
           #ifdef ACKS_ON
           Serial.print("# Pin D");
@@ -115,7 +152,7 @@ boolean dwriteCmnd::doCommand( CmndParser* pars ) {
           Serial.println(" set to HIGH");
           #endif
          }
-        else if( strcmp( pars->paramStr(2), "LOW" ) == 0 ) {
+        else if( strcmp( pars->paramStr(2), PIN_LOW ) == 0 ) {
           digitalWrite( dpin, LOW );
           #ifdef ACKS_ON
           Serial.print("# Pin D");
@@ -123,8 +160,31 @@ boolean dwriteCmnd::doCommand( CmndParser* pars ) {
           Serial.println(" set to LOW");
           #endif
         }
-      }
-    }
+        /*
+        else if( strcmp( pars->paramStr(2), PIN_TOGL ) == 0 ) {
+          pinMode( dpin, INPUT );  // set up to read signal on pin
+          if( digitalRead( dpin ) == HIGH ) {
+            pinMode( dpin, OUTPUT );
+            digitalWrite( dpin, LOW );
+            #ifdef ACKS_ON
+            Serial.print("# Pin D");
+            Serial.print( (int) dpin );
+            Serial.println(" set to LOW");
+            #endif
+          } // end if pin is HIGH
+          else { // if pin is LOW
+            pinMode( dpin, OUTPUT );
+            digitalWrite( dpin, HIGH );
+            #ifdef ACKS_ON
+            Serial.print("# Pin D");
+            Serial.print( (int) dpin );
+            Serial.println(" set to HIGH");
+            #endif
+          } // end else if pin LOW
+        } // end if action is TOGL
+        */
+      } // end if digital pin
+    } // end if parameters are OK
     return true;
   }
   else {
@@ -140,7 +200,7 @@ awriteCmnd::awriteCmnd() :
 
 // --------------------------- specify analog output to arbitrary pin
 // WARNING - this action is not really error checked.
-// AWRITE;ppp;ddd\n
+// AWRT;ppp;ddd\n
 
 boolean awriteCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
@@ -227,21 +287,21 @@ boolean chanCmnd::doCommand( CmndParser* pars ) {
 
 // ----------------------------- ot1Cmnd
 // constructor
-ot1Cmnd::ot1Cmnd() :
-  CmndBase( OT1_CMD ) {
+portOT1Cmnd::portOT1Cmnd() :
+  CmndBase( PORT_CMD ) {
 }
 
 // execute the OT1 command
-// OT1;ddd\n
+// PORT;OT1;ddd\n
 
-boolean ot1Cmnd::doCommand( CmndParser* pars ) {
-  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-    uint8_t len = strlen( pars->paramStr(1) );
+boolean portOT1Cmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 && strcmp( OT1_CMD, pars->paramStr(1) ) == 0  ) {
+    uint8_t len = strlen( pars->paramStr(2) );
     if( len > 0 ) {
-      levelOT1 = atoi( pars->paramStr(1) );
+      levelOT1 = atoi( pars->paramStr(2) );
       ssr.Out( levelOT1, levelOT2 );
       #ifdef ACKS_ON
-      Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
+      Serial.print("# Port OT1 level set to "); Serial.println( levelOT1 );
       #endif
     }
     return true;
@@ -253,21 +313,21 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
 
 // ----------------------------- ot2Cmnd
 // constructor
-ot2Cmnd::ot2Cmnd() :
-  CmndBase( OT2_CMD ) {
+portOT2Cmnd::portOT2Cmnd() :
+  CmndBase( PORT_CMD ) {
 }
 
 // execute the OT2 command
-// OT2;ddd\n
+// PORT;OT2;ddd\n
 
-boolean ot2Cmnd::doCommand( CmndParser* pars ) {
-  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-    uint8_t len = strlen( pars->paramStr(1) );
+boolean portOT2Cmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 && strcmp( OT2_CMD, pars->paramStr(1) ) == 0 ) {
+    uint8_t len = strlen( pars->paramStr(2) );
     if( len > 0 ) {
-      levelOT2 = atoi( pars->paramStr(1) );
+      levelOT2 = atoi( pars->paramStr(2) );
       ssr.Out( levelOT1, levelOT2 );
       #ifdef ACKS_ON
-      Serial.print("# OT2 level set to "); Serial.println( levelOT1 );
+      Serial.print("# Port OT2 level set to "); Serial.println( levelOT2 );
       #endif
     }
     return true;
@@ -279,19 +339,19 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
 
 // ----------------------------- io3Cmnd
 // constructor
-io3Cmnd::io3Cmnd() :
-  CmndBase( IO3_CMD ) {
+portIO3Cmnd::portIO3Cmnd() :
+  CmndBase( PORT_CMD ) {
 }
 
 // execute the IO3 command
 // IO3;ddd\n
 
-boolean io3Cmnd::doCommand( CmndParser* pars ) {
-  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-    uint8_t len = strlen( pars->paramStr(1) );
+boolean portIO3Cmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 && strcmp( IO3_CMD, pars->paramStr(1) ) == 0 ) {
+    uint8_t len = strlen( pars->paramStr(2) );
     int levelIO3;
     if( len > 0 ) {
-      levelIO3 = atoi( pars->paramStr(1) );
+      levelIO3 = atoi( pars->paramStr(2) );
       float pow = 2.55 * levelIO3;
       analogWrite( IO3, round( pow ) );
       #ifdef ACKS_ON
@@ -312,7 +372,7 @@ unitsCmnd::unitsCmnd() :
 }
 
 // execute the UNITS command
-// UNITS;F\n or UNITS;C\n
+// UNIT;F\n or UNITS;C\n
 
 boolean unitsCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
@@ -336,6 +396,7 @@ boolean unitsCmnd::doCommand( CmndParser* pars ) {
   }
 }
 
+/*
 // ----------------------------- rf2000Cmnd (legacy)
 // constructor
 rf2000Cmnd::rf2000Cmnd() :
@@ -377,4 +438,4 @@ boolean rc2000Cmnd::doCommand( CmndParser* pars ) {
     return false;
   }
 }
-
+*/

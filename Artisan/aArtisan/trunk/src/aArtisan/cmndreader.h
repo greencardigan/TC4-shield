@@ -45,40 +45,47 @@
 
 // ----------------------- commands (only first 4 characters are significant)
 #define READ_CMD "READ" // triggers the TC4 to output current temps on serial line
-#define RF2000_CMD "RF2000" // legacy code
-#define RC2000_CMD "RC2000" // legacy code
-#define UNITS_CMD "UNITS" // changes units, F or C
+//#define RF2000_CMD "RF20" // legacy code
+//#define RC2000_CMD "RC20" // legacy code
+#define UNITS_CMD "UNIT" // changes units, F or C
 #define CHAN_CMD "CHAN" // maps logical channels to physical channels
 #define OT1_CMD "OT1" // 0 to 100 percent output on SSR drive OT1
 #define OT2_CMD "OT2" // 0 to 100 percent output on SSR drive OT2
 #define IO3_CMD "IO3" // 0 to 100 percent PWM 5V output on IO3
-#define DIGITAL_WRITE_CMD "DWRITE" // turn digital pin LOW or HIGH
-#define ANALOG_WRITE_CMD "AWRITE" // write a value 0 to 255 to PWM pin
+#define PORT_CMD "PORT" // added 6/8/2011 per conv. with Lee, Sebastien
+#define DIGITAL_WRITE_CMD "DWRT" // turn digital pin LOW or HIGH
+#define ANALOG_WRITE_CMD "AWRT" // write a value 0 to 255 to PWM pin
 #define IO3 3 // use DIO3 for PWM output
+#define HASH '#' // precedes every command 6/8/2011
+#define DELIM "; ," // command line parameter delimiters
 
+#define PIN_HIGH "HIGH"  // states used in DWRT
+#define PIN_LOW "LOW"
+#define PIN_TOGL "TOGL"
 
 // forward declarations
+class ArtisanInterp;
 class dwriteCmnd;
 class awriteCmnd;
 class readCmnd;
 class chanCmnd;
-class ot1Cmnd;
-class ot2Cmnd;
-class io3Cmnd;
+class portOT1Cmnd;
+class portOT2Cmnd;
+class portIO3Cmnd;
 class unitsCmnd;
-class rf2000Cmnd;
-class rc2000Cmnd;
+//class rf2000Cmnd;
+//class rc2000Cmnd;
 
 // external declarations of class objects
 extern readCmnd reader;
 extern awriteCmnd awriter;
 extern dwriteCmnd dwriter;
 extern chanCmnd chan;
-extern ot1Cmnd ot1;
-extern ot2Cmnd ot2;
-extern io3Cmnd io3;
-extern rf2000Cmnd rf2000;
-extern rc2000Cmnd rc2000;
+extern portOT1Cmnd ot1;
+extern portOT2Cmnd ot2;
+extern portIO3Cmnd io3;
+//extern rf2000Cmnd rf2000;
+//extern rc2000Cmnd rc2000;
 extern unitsCmnd units;
 
 // extern declarations for functions, variables in the main program
@@ -88,6 +95,15 @@ extern int levelOT2;
 extern void logger();
 extern boolean Cscale;
 extern uint8_t actv[NC];
+
+// class declaration for ArtisanInterp
+class ArtisanInterp : public CmndInterp {
+  public:
+  ArtisanInterp();
+  virtual const char* checkSerial();  // override so we can watch for the HASH
+  protected:
+  boolean hashFlag;
+};
 
 // class declarations for commands
 
@@ -115,21 +131,21 @@ class chanCmnd : public CmndBase {
     virtual boolean doCommand( CmndParser* pars );
 };
 
-class ot1Cmnd : public CmndBase {
+class portOT1Cmnd : public CmndBase {
   public:
-    ot1Cmnd();
+    portOT1Cmnd();
     virtual boolean doCommand( CmndParser* pars );
 };
 
-class ot2Cmnd : public CmndBase {
+class portOT2Cmnd : public CmndBase {
   public:
-    ot2Cmnd();
+    portOT2Cmnd();
     virtual boolean doCommand( CmndParser* pars );
 };
 
-class io3Cmnd : public CmndBase {
+class portIO3Cmnd : public CmndBase {
   public:
-    io3Cmnd();
+    portIO3Cmnd();
     virtual boolean doCommand( CmndParser* pars );
 };
 
@@ -139,6 +155,7 @@ class unitsCmnd : public CmndBase {
     virtual boolean doCommand( CmndParser* pars );
 };
 
+/*
 class rf2000Cmnd : public CmndBase {
   public:
     rf2000Cmnd();
@@ -150,6 +167,7 @@ class rc2000Cmnd : public CmndBase {
     rc2000Cmnd();
     virtual boolean doCommand( CmndParser* pars );
 };
+*/
 
 #endif
 

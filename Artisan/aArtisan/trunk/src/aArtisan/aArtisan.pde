@@ -35,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V1.05"
+#define BANNER_ARTISAN "aARTISAN V1.06beta"
 
 // Revision history:
 // 20110408 Created.
@@ -57,6 +57,7 @@
 // 20110601 Major rewrite to use cmndproc.h library
 //          RF2000 and RC2000 set channel mapping to 1200
 // 20110602 Added ACKS_ON to control verbose output
+// 20110608 Various revisions for compatibility with Artisan
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -87,9 +88,8 @@
 #define TC_TYPE TypeK  // thermocouple type / library
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
-#define DELIM "; ," // command line parameter delimiters
 
-#ifdef EEPROM_ARTISAN // optional code if EEPROM flag is active
+#ifdef USE_TC4_EEPROM
 #include <mcEEPROM.h>
 // eeprom calibration data structure
 struct infoBlock {
@@ -100,8 +100,6 @@ struct infoBlock {
   float T_offset; // temperature offset (Celsius) at 0.0C (type T)
   float K_offset; // same for type K
 };
-mcEEPROM eeprom;
-infoBlock caldata;
 #endif
 
 float AT; // ambient temp
@@ -121,7 +119,8 @@ cADC adc( A_ADC ); // MCP3424
 ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NC]; // filter for logged ET, BT
 PWM16 ssr;  // object for SSR output on OT1, OT2
-CmndInterp ci( DELIM ); // command interpreter object
+
+ArtisanInterp ci; // command interpreter object
 
 // ---------------------------------- LCD interface definition
 #ifdef LCD
@@ -282,19 +281,25 @@ void setup()
   Serial.println(freeMemory());
 #endif
 
-#ifdef EEPROM_ARTISAN
-  // read calibration and identification data from eeprom
-  if( eeprom.read( 0, (uint8_t*) &caldata, sizeof( caldata) ) == sizeof( caldata ) ) {
+#ifdef USE_TC4_EEPROM
+// read calibration and identification data from eeprom
+// this is not real strong error checking, but should be OK in most situations
+// even when there is no EEPROM on board
+  infoBlock caldata;
+  mcEEPROM eeprm;
+  uint16_t len;
+  len = eeprm.read( 0, (uint8_t*) &caldata, sizeof( caldata) );
+  if( (len == sizeof( caldata )) && (strncmp( "TC4", caldata.PCB, 3 ) == 0 ) ) {
     adc.setCal( caldata.cal_gain, caldata.cal_offset );
     amb.setOffset( caldata.K_offset );
   }
   else { // if there was a problem with EEPROM read, then use default values
-    adc.setCal( CAL_GAIN, UV_OFFSET );
-    amb.setOffset( AMB_OFFSET );
-  }   
+    adc.setCal( 1.00, 0.0 );
+    amb.setOffset( 0.0 );
+  }
 #else
-  adc.setCal( CAL_GAIN, UV_OFFSET );
-  amb.setOffset( AMB_OFFSET );
+  adc.setCal( 1.00, 0.0 );
+  amb.setOffset( 0.0 );
 #endif
 
   // initialize filters on all channels
@@ -321,8 +326,8 @@ void setup()
   ci.addCommand( &io3 );
   ci.addCommand( &ot2 );
   ci.addCommand( &ot1 );
-  ci.addCommand( &rf2000 );
-  ci.addCommand( &rc2000 );
+//  ci.addCommand( &rf2000 );
+//  ci.addCommand( &rc2000 );
   ci.addCommand( &reader );
 
 #ifdef LCD
