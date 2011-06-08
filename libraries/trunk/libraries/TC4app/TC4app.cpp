@@ -52,11 +52,12 @@ chanList::chanList( uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4) {
 
 // fill the clist mapping array
 void chanList::setMap( uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4 ) {
+  uint8_t i = 0;
   nc = 0;
-  clist[0] = c1; if( c1 != 0 ) ++nc;
-  clist[1] = c2; if( c2 != 0 ) ++nc;
-  clist[2] = c3; if( c3 != 0 ) ++nc;
-  clist[3] = c4; if( c4 != 0 ) ++nc;
+  if( i < _NCHAN ) { clist[i++] = c1; if( c1 != 0 ) ++nc; }
+  if( i < _NCHAN ) { clist[i++] = c2; if( c2 != 0 ) ++nc; }
+  if( i < _NCHAN ) { clist[i++] = c3; if( c3 != 0 ) ++nc; }
+  if( i < _NCHAN ) { clist[i++] = c4; if( c4 != 0 ) ++nc; }
 }
 
 // ---------------------------------------------------------------
@@ -76,43 +77,43 @@ appBase::appBase( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr )
   adc(ADCaddr),
   amb(ambaddr),
   eeprm(epaddr),
-  chan(1,2,0,0),
-  rst( this, true )
+  chan(1,2,0,0)
 {
-
   TC = tc;
   lcd = NULL;
   buttons = NULL;
   celsius = false;
-  looptime = 1000; // 500 msec per channel
-  baud = 57600;
+  looptime = 2 * _LOOP_INCR; // initialize based on 2 active channels
+  baud = _DEFAULT_BAUD;
   ambf = _AMBF; // default value
   banner[0] = '\0'; // initialize to blank string
-  addCommand( &rst );
 }
 
 // initialize the filters for display temperatures
 void appBase::initTempFilters( uint8_t f1, uint8_t f2, uint8_t f3, uint8_t f4 ) {
-  fT[0].init( f1 );
-  fT[1].init( f2 );
-  fT[2].init( f3 );
-  fT[3].init( f4 );
+  uint8_t i = 0;
+  if( i < _NCHAN ) fT[i++].init( f1 );
+  if( i < _NCHAN ) fT[i++].init( f2 );
+  if( i < _NCHAN ) fT[i++].init( f3 );
+  if( i < _NCHAN ) fT[i++].init( f4 );
 }
 
 // initialize the filters used to smooth temps prior to rise calculation
 void appBase::initRiseFilters( uint8_t f1, uint8_t f2, uint8_t f3, uint8_t f4 ) {
-  fRise[0].init( f1 );
-  fRise[1].init( f2 );
-  fRise[2].init( f3 );
-  fRise[3].init( f4 );
+  uint8_t i = 0;
+  if( i < _NCHAN ) fRise[i++].init( f1 );
+  if( i < _NCHAN ) fRise[i++].init( f2 );
+  if( i < _NCHAN ) fRise[i++].init( f3 );
+  if( i < _NCHAN ) fRise[i++].init( f4 );
 }
 
 // initialize the filters used post-filter computed RoR values
 void appBase::initRoRFilters( uint8_t f1, uint8_t f2, uint8_t f3, uint8_t f4 ) {
-  fRoR[0].init( f1 );
-  fRoR[1].init( f2 );
-  fRoR[2].init( f3 );
-  fRoR[3].init( f4 );
+  uint8_t i = 0;
+  if( i < _NCHAN ) fRoR[i++].init( f1 );
+  if( i < _NCHAN ) fRoR[i++].init( f2 );
+  if( i < _NCHAN ) fRoR[i++].init( f3 );
+  if( i < _NCHAN ) fRoR[i++].init( f4 );
 }
 
 // try and read info from eeprom
@@ -136,12 +137,12 @@ void appBase::readCal(){
 void appBase::setActiveChannels( uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4) {
   chan.setMap( c1, c2, c3, c4 );
   // increase the looptime if required
-  uint32_t mincycle = chan.getNumActv() * 500;
+  uint32_t mincycle = chan.getNumActv() * _LOOP_INCR;
   looptime = ( userloop >= mincycle ) ? userloop : mincycle;
 }
 
 // initialize things and start the clock
-void appBase::start( uint32_t cycle ) {
+void appBase::start( uint32_t cycle ) { // cycle == 0, program calculates loop time
   delay( 100 );
   Wire.begin();
   Serial.begin( baud );
@@ -166,13 +167,14 @@ void appBase::start( uint32_t cycle ) {
   if( chan.getNumActv() >= 4 ) Serial.print(",T4,rate4");
   Serial.println();
 
-
   userloop = cycle;
-  looptime = chan.getNumActv() * 500;
+  looptime = chan.getNumActv() * _LOOP_INCR;
   looptime = ( cycle > looptime ) ? cycle : looptime;
   timestamp = 0.0;
-  delay( 1800 );
-  nextLoop = 1000 + looptime;
+//  delay( 1800 );
+//  nextLoop = 1000 + looptime;
+  delay( 500 ); // to show banner
+  nextLoop = millis() + 100; // allow 100ms float
   reftime = 0.001 * nextLoop; // initialize reftime to the time of first sample
   first = true;
   if( lcd != NULL ) lcd->clear();
@@ -185,11 +187,9 @@ void appBase::run() {
 
   // delay loop to force update on even looptime boundaries
   while ( millis() < nextLoop ) { // delay until time for next loop
-    if( !first ) { // do not want to check the buttons on the first time through
-      if( lcd != NULL && buttons != NULL ) // check for button press
-        checkInput();
-      checkSerial(); // Has a command been received?
-    } // end if not first
+    if( /* lcd != NULL && */ buttons != NULL ) // check for button press
+      checkInput();
+    checkSerial(); // Has a command been received?
   }
 
   thisLoop = millis(); // actual time marker for this loop
@@ -205,18 +205,19 @@ void appBase::run() {
     doControl(); // perform control operations, if required
   }
 
-  for( int j = 0; j < 4; j++ ) {
+  // save values for RoR calculation in next loop
+  for( int j = 0; j < _NCHAN; j++ ) {
    int k = chan.getChan( j );
    if( k != 0 ) {
      --k;
-     flast[k] = ftemps[k]; // use previous values for calculating RoR
+     flast[k] = ftemps[k];
      lasttimes[k] = ftimes[k];
    }
   }
 
   idletime = looptime - ( millis() - thisLoop );
-  // arbitrary: complain if we don't have at least 50mS left
-  if (idletime < 50 ) {
+  // complain if we don't have some time left
+  if (idletime < _IDLE_TIME_ALARM ) {
     Serial.print("# idle: ");
     Serial.println(idletime);
   }
@@ -231,7 +232,7 @@ boolean appBase::getSamples()
   float tempC;
   boolean isOK = true;
 
-  for( uint8_t j = 0; j < 4; j++ ) { // one-shot conversions on both chips
+  for( uint8_t j = 0; j < _NCHAN; j++ ) { // one-shot conversions on both chips
     uint8_t k = chan.getChan( j );
     if( k != 0 ) {
       --k; // now k = physical ADC channel number
@@ -262,6 +263,8 @@ void appBase::activeDelay( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
     checkInput();
+    // don't check serial here because we don't want to be caught between samples
+    // when a command is executed
   }
 }
 
@@ -311,7 +314,7 @@ void appBase::logSamples() { // log one set of samples to the serial port
     Serial.print( amb.getAmbF(), _DP );
 
   // print temperature, rate for each active channel
-  for( uint8_t i = 0; i < 4; i++ ) {
+  for( uint8_t i = 0; i < _NCHAN; i++ ) {
     uint8_t k = chan.getChan( i );
     if( k != 0 ) {  // if zero, then channel not active
       --k; // now k will contain the physical ADC channel ID, 0 to 3
@@ -449,15 +452,15 @@ chanCmnd::chanCmnd( appBase* parent, boolean ak ) :
 boolean chanCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     char str[2];
-    uint8_t a[4];
+    uint8_t a[_NCHAN];
     uint8_t n;
     uint8_t len = strlen( pars->paramStr(1) );
-    if( len == 4 ) { // must match number of channels or take no action
+    if( len == _NCHAN ) { // must match number of channels or take no action
       for( int i = 0; i < len; i++ ) {
         str[0] = pars->paramStr(1)[i]; // next character
         str[1] = '\0'; // force it to be char[2]
         n = atoi( str );
-        if( n <= 4 )
+        if( n <= _NCHAN )
           a[i] = n;
         else
           a[i] = 0;
@@ -500,12 +503,22 @@ boolean unitsCmnd::doCommand( CmndParser* pars ) {
   return false;
 }
 
+// --------------------------------------------------------
+// class appSerialRst
+
+// constructor
+appSerialRst::appSerialRst( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr ) :
+  appBase( tc, ADCaddr, ambaddr, epaddr ),
+  rst( this, true ) {
+  addCommand( &rst ); // reset command supported
+}
+
 // --------------------------------------------------------------------
 // class appSerialComm
 
 // constructor
 appSerialComm::appSerialComm( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr ) :
-  appBase( tc, ADCaddr, ambaddr, epaddr ),
+  appSerialRst( tc, ADCaddr, ambaddr, epaddr ),
   chn( this, true ), // ack is sent by TC4
   rd( this, true ),
   un( this, true ) // ack is sent by TC4

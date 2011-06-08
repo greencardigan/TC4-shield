@@ -77,6 +77,10 @@
 #define _UNITS "UNITS"
 #define _READ "READ"
 #define _DLMTR_STR ";, "  // default delimiters for commands
+#define _LOOP_INCR 500 // incremental loop time for each channel
+#define _NCHAN 4 // max number of ADC channels
+#define _DEFAULT_BAUD 57600
+#define _IDLE_TIME_ALARM 50
 
 
 // forward declaration
@@ -90,7 +94,7 @@ class chanList {
     void setMap( uint8_t chan1, uint8_t chan2, uint8_t chan3, uint8_t chan4 );
     uint8_t getNumActv(){ return nc; }
   protected:
-    uint8_t clist[4]; // inactive = 0; active = 1-based physical channel
+    uint8_t clist[_NCHAN]; // inactive = 0; active = 1-based physical channel
     uint8_t nc; // number of active channels
 };
 
@@ -131,7 +135,7 @@ class appBase : public CmndInterp {
     void setNextLoop( uint32_t nL ){ nextLoop = nL; }
     virtual void activeDelay( uint32_t ms ); // active delay loop
     virtual void readCal(); // try and read info from eeprom
-    virtual void start( uint32_t cycle = 1000 ); // start the app
+    virtual void start( uint32_t cycle = 0 ); // set loop time and start the app
     virtual void run(); // main loop
     virtual void logSamples(); // logs one set of samples to serial port
     virtual boolean getSamples(); // retrieves samples from ADC
@@ -162,21 +166,20 @@ class appBase : public CmndInterp {
     cButtonPE16* buttons;
 
     // class objects
-    rstCmnd rst;  // base class application should respond to RESET command
     mcEEPROM eeprm;
     cADC adc;
     ambSensor amb;
     chanList chan;
-    filterRC fT[4];
-    filterRC fRise[4];
-    filterRC fRoR[4];
+    filterRC fT[_NCHAN];
+    filterRC fRise[_NCHAN];
+    filterRC fRoR[_NCHAN];
 
     // arrays to store temperatures, times for each channel
-    int32_t temps[4]; //  stored temperatures are divided by D_MULT
-    int32_t ftemps[4]; // heavily filtered temps
-    int32_t ftimes[4]; // filtered sample timestamps
-    int32_t flast[4]; // for calculating derivative
-    int32_t lasttimes[4]; // for calculating derivative
+    int32_t temps[_NCHAN]; //  stored temperatures are divided by D_MULT
+    int32_t ftemps[_NCHAN]; // heavily filtered temps
+    int32_t ftimes[_NCHAN]; // filtered sample timestamps
+    int32_t flast[_NCHAN]; // for calculating derivative
+    int32_t lasttimes[_NCHAN]; // for calculating derivative
 
     // misc variables
     boolean celsius;
@@ -208,9 +211,17 @@ class unitsCmnd : public appCmnd {
     virtual boolean doCommand( CmndParser* pars );
 };
 
-// extends appBase by adding capability to respond to set of basic commands:
-//   RESET, READ, CHAN, UNITS
-class appSerialComm : public appBase {
+// extend appBase by adding response to RESET command
+class appSerialRst : public appBase {
+  public:
+    appSerialRst( TCbase*, uint8_t ADCaddr = A_ADC, uint8_t ambaddr = A_AMB, uint8_t epaddr = ADDR_BITS );
+  protected:
+    rstCmnd rst;
+};
+
+// extends appSerialReset by adding capability to respond to set of basic commands:
+//   READ, CHAN, UNITS
+class appSerialComm : public appSerialRst {
   public:
     appSerialComm(TCbase*, uint8_t ADCaddr = A_ADC, uint8_t ambaddr = A_AMB, uint8_t epaddr = ADDR_BITS );
   protected:
