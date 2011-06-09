@@ -147,6 +147,8 @@ void appBase::start( uint32_t cycle ) { // cycle == 0, program calculates loop t
   Wire.begin();
   Serial.begin( baud );
   initAmb(); // initialize the ambient sensor
+  setAmbCfg(); // set to default values
+  setADCcfg(); // set to default values
   if( lcd != NULL ) {
     lcd->begin( lcd_ncol, lcd_nrow );
     lcd->backlight();
@@ -168,12 +170,14 @@ void appBase::start( uint32_t cycle ) { // cycle == 0, program calculates loop t
   Serial.println();
 
   userloop = cycle;
-  looptime = chan.getNumActv() * _LOOP_INCR;
+  uint16_t dADC = adc.getConvTime();
+  uint16_t tconv = amb.getConvTime();
+  tconv = tconv > dADC ? tconv : dADC;
+  uint16_t n = ( chan.getNumActv() * tconv + 50 ) / _LOOP_INCR + 1;
+  looptime = _LOOP_INCR * n;
   looptime = ( cycle > looptime ) ? cycle : looptime;
   timestamp = 0.0;
-//  delay( 1800 );
-//  nextLoop = 1000 + looptime;
-  delay( 500 ); // to show banner
+  delay( 800 ); // to show banner
   nextLoop = millis() + 100; // allow 100ms float
   reftime = 0.001 * nextLoop; // initialize reftime to the time of first sample
   first = true;
@@ -223,6 +227,9 @@ void appBase::run() {
   }
 
   nextLoop += looptime; // time mark for start of next update
+//  Serial.print("nextLoop="); Serial.print( nextLoop );
+//  Serial.print("   looptime="); Serial.print( looptime );
+//  Serial.println();
 }
 
 // retrieves samples from each active channel; returns true if values in limits
@@ -231,6 +238,9 @@ boolean appBase::getSamples()
   int32_t v,vt;
   float tempC;
   boolean isOK = true;
+  uint16_t dly = amb.getConvTime(); // use delay based on slowest conversion
+  uint16_t dADC = adc.getConvTime();
+  dly = dly > dADC ? dly : dADC;
 
   for( uint8_t j = 0; j < _NCHAN; j++ ) { // one-shot conversions on both chips
     uint8_t k = chan.getChan( j );
@@ -238,7 +248,7 @@ boolean appBase::getSamples()
       --k; // now k = physical ADC channel number
       adc.nextConversion( k ); // start ADC conversion on channel k
       amb.nextConversion(); // start ambient sensor conversion
-      activeDelay( _MIN_DELAY ); // give the chips time to perform the conversions
+      activeDelay( dly ); // give the chips time to perform the conversions
       ftimes[k] = millis(); // record timestamp for RoR calculations
       amb.readSensor(); // retrieve value from ambient temp register
       v = adc.readuV(); // retrieve microvolt sample from MCP3424

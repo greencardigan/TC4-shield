@@ -77,10 +77,10 @@
 #define _UNITS "UNITS"
 #define _READ "READ"
 #define _DLMTR_STR ";, "  // default delimiters for commands
-#define _LOOP_INCR 500 // incremental loop time for each channel
+#define _LOOP_INCR 100 // ms  use to keep loop times on even increments
 #define _NCHAN 4 // max number of ADC channels
 #define _DEFAULT_BAUD 57600
-#define _IDLE_TIME_ALARM 50
+#define _IDLE_TIME_ALARM 20
 
 
 // forward declaration
@@ -122,7 +122,6 @@ class appBase : public CmndInterp {
     void initTempFilters( uint8_t f1 = _TF, uint8_t f2 = _TF, uint8_t f3 = _TF, uint8_t f4 = _TF );
     void initRiseFilters( uint8_t f1 = _RF, uint8_t f2 = _RF, uint8_t f3 = _RF, uint8_t f4 = _RF );
     void initRoRFilters( uint8_t f1=_RORF, uint8_t f2=_RORF, uint8_t f3=_RORF, uint8_t f4=_RORF );
-    void initAmb(){ amb.init(ambf) ;}
     void setAmbFilter( uint8_t filt ) { ambf = filt; }
     void setLCD( LCDbase* lc, uint8_t c = 16, uint8_t r = 2 ){lcd=lc;lcd_ncol=c;lcd_nrow=r;}
     void setButtons( cButtonPE16* btn ) { buttons = btn; }
@@ -130,25 +129,30 @@ class appBase : public CmndInterp {
     void setBanner( const char* bnr ){strncpy( banner,bnr,16); banner[16]='\0'; }
     void setActiveChannels( uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4);
     void setBaud( uint32_t baudrate ){ baud = baudrate; }
+    virtual void start( uint32_t cycle = 0 ); // set loop time and start the app
+    virtual void run(); // main loop
+
+    // these are exposed so commands can get to them
     float getTimeStamp(){ return timestamp; }
     void setRefTime( float rt ){ reftime = rt; }
     void setNextLoop( uint32_t nL ){ nextLoop = nL; }
+    virtual void logSamples(); // logs one set of samples to serial port
+
+  protected:
+    virtual void initAmb( uint8_t cmode = AMB_CONV_1SHOT ){ amb.init( ambf, cmode ) ;}
+    virtual void setAmbCfg(){amb.setCfg( AMB_BITS_12 );}
+    virtual void setADCcfg(){adc.setCfg( ADC_BITS_18, ADC_GAIN_8, ADC_CONV_1SHOT );}
     virtual void activeDelay( uint32_t ms ); // active delay loop
     virtual void readCal(); // try and read info from eeprom
-    virtual void start( uint32_t cycle = 0 ); // set loop time and start the app
-    virtual void run(); // main loop
-    virtual void logSamples(); // logs one set of samples to serial port
     virtual boolean getSamples(); // retrieves samples from ADC
     virtual void checkInput(); // checks for user input
     virtual float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ); // derivative
     virtual void updateLCD( float, float, float, float, float=0.0, float=0.0 );  // probably only use 4 values
-
     // some placeholders for future use
     virtual void doControl(){} // gets called by run() each time after first time
     virtual void initControl(){} // gets called by run() on the first time through
     virtual boolean checkLimits( int32_t &uv, uint8_t &pchan ) { return true; } // checks input
 
-  protected:
     float timestamp;
     uint32_t nextLoop;
     float reftime;
