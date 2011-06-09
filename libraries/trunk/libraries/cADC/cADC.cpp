@@ -37,6 +37,8 @@
 // Acknowledgement is given to Bill Welch for his development of the prototype hardware and software 
 // upon which much of this library is based.
 
+// 20110609  Significant revision for flexibility in selecting modes of operation
+
 #include "cADC.h"
 
 // --------------------------------------------------- dFilterRC
@@ -55,9 +57,9 @@ void filterRC::init( int32_t percent ) {
 // ------------------------------------
 int32_t filterRC::doFilter ( int32_t xi ) {
    if( first) {
-      y = xi;
-  first = false;
-      return y;
+     y = xi;
+     first = false;
+     return y;
    }
    float yy = (float)(100 - level) * (float)xi * 0.01;
    float yyy = (float)level * (float)y * 0.01;
@@ -67,11 +69,42 @@ int32_t filterRC::doFilter ( int32_t xi ) {
 
 // ----------------------------------------------------------
 cADC::cADC( uint8_t addr ) {
-  cfg = CFG8;  // select gain = 8 as default
-//  cfg = B10001111;
   a_adc = addr; // address of ADC chip
   cal_gain = CAL_GAIN;
   cal_offset = CAL_OFFSET;
+  setCfg( ADC_BITS_18, ADC_GAIN_8, ADC_CONV_1SHOT ); // 18 bit, 8X, 1 shot
+}
+
+// --------------------------------------------------setCfg
+void cADC::setCfg( uint8_t res, uint8_t gain, uint8_t conv  ){
+  cfg = res | gain | conv;
+  // set uV value of the LSB for conversions to uV
+  switch ( res ){
+    case ADC_BITS_12 :
+      convTime = _CONV_TIME_12;
+      xLSB = BITS_TO_uV * 64.0;
+      break;
+    case ADC_BITS_14 :
+      convTime = _CONV_TIME_14;
+      xLSB = BITS_TO_uV * 16.0;
+      break;
+    case ADC_BITS_16 :
+      convTime = _CONV_TIME_16;
+      xLSB = BITS_TO_uV * 4.0;
+      break;
+    case ADC_BITS_18 :
+      convTime = _CONV_TIME_18;
+      xLSB = BITS_TO_uV;
+      break;
+    default :
+      convTime = _CONV_TIME_18;
+      xLSB = 0.0;  // will draw attention to config error
+  }
+}
+
+// -------------------------------------------------- getConvTime
+uint16_t cADC::getConvTime() {
+  return convTime;
 }
 
 // --------------------------------------------------setCal
@@ -82,61 +115,113 @@ void cADC::setCal( float gain, int8_t offs ) {
 
 // -----------------------------------------------------------
 int32_t cADC::readuV() {
-  uint8_t stat;
-  uint8_t a, b, c, gain;
-  int32_t v;
+//  Serial.print("cfg=");Serial.println( cfg, BIN );
   float xv;
-  
-  Wire.requestFrom( a_adc, (uint8_t)4 );
-  a = Wire.receive();
-  b = Wire.receive();
-  c = Wire.receive();
-  stat = Wire.receive();
-  gain = stat & B11;
+  // resolution determines number of bytes requested
+  if( ( cfg & ADC_RES_MASK ) == ADC_BITS_18 ) { // 3 data bytes
+    Wire.requestFrom( a_adc, (uint8_t) 4 );
+    uint8_t a = Wire.receive(); // first data byte
+    uint8_t b = Wire.receive(); // second data byte
+    uint8_t c = Wire.receive(); // 3rd data byte
+//    Serial.print( "a="); Serial.print(a, BIN);
+//    Serial.print( "  b="); Serial.print(b, BIN);
+//    Serial.print( "  c="); Serial.println(c, BIN);
+    int32_t v = a;
+    v <<= 24; // v = a : 0 : 0 : 0
+    v >>= 16; // v = s : s : a : 0
+    v |= b; //   v = s : s : a : b
+    v <<= 8; //  v = s : a : b : 0
+    v |= c; //   v = s : a : b : c
+    xv = v;
+//    Serial.print("xv="); Serial.println(xv, 4);
+  }
+  else { // 2 data bytes
+    Wire.requestFrom( a_adc, (uint8_t) 3 );
+    uint8_t a = Wire.receive(); // first data byte
+    uint8_t b = Wire.receive(); // second data byte
+    int32_t v = a;
+    v <<= 24; // v = a : 0 : 0 : 0
+    v >>= 16; // v = s : s : a : 0
+    v |= b; //   v = s : s : a : b
+    xv = v;
+  }
+  uint8_t stat = Wire.receive();
+  float gainX = 1 << (stat & ADC_GAIN_MASK);
+//  Serial.print("xLSB="); Serial.print(xLSB, 5 );
+//  Serial.print("   gainX="); Serial.println(gainX, 2);
 
-  v = a;
-  v <<= 24;
-  v >>= 16;
-  v |= b;
-  v <<= 8;
-  v |= c;
-
-// convert to microvolts
-  xv = v;
-  v = round( xv * BITS_TO_uV );
-  // divide by gain
-  v >>= gain;
-  v *= cal_gain;    // calibration of gain
-  v += cal_offset;  // adjust calibration offset
-  return v;
+// apply gain and corrections
+  xv = xv * xLSB / gainX * cal_gain + cal_offset;
+  return round( xv );
 };
 
 // -------------------------------------
 void cADC::nextConversion( uint8_t chan ) {
   Wire.beginTransmission( a_adc );
-  Wire.send( cfg | ( chan << 5 ) );
+  Wire.send( cfg | ( ( chan & B00000011 ) << ADC_C0 ) );
   Wire.endTransmission();
 };
 
 // ----------------------------------------------------------- ambSensor
 ambSensor::ambSensor( uint8_t addr ) {
  a_amb = addr; // I2C address
-};
+ filter.init( 0 );
+ setCfg( AMB_BITS_12 ); // default is 12 bits
+}
+
+// -----------------------------------------
+// sets up the configuration byte
+void ambSensor::setCfg( uint8_t res ) {
+  cfg = res | convMode;
+  switch ( res ) {
+    case AMB_BITS_9 :
+      convTime = _AMB_CONV_TIME_9;
+      nLSB = 7;  // shift count
+      break;
+    case AMB_BITS_10 :
+      convTime = _AMB_CONV_TIME_10;
+      nLSB = 6;  // shift count
+      break;
+    case AMB_BITS_11 :
+      convTime = _AMB_CONV_TIME_11;
+      nLSB = 5;  // shift count
+      break;
+    case AMB_BITS_12 :
+      convTime = _AMB_CONV_TIME_12;
+      nLSB = 4;  // shift count
+      break;
+  }
+}
+
+// -----------------------------------------
+// returns minimum time required for a conversion
+uint16_t ambSensor::getConvTime() {
+  return convTime;
+}
+
+// -----------------------------------------
+// puts the 9800 in shutdown.  Required for one-shot mode
+void ambSensor::ambShutdown() {
+  Wire.beginTransmission( a_amb );
+  Wire.send( AMB_REGSEL_CFG ); // point to config reg
+  Wire.send( (uint8_t)AMB_SHUTDOWN );
+  Wire.endTransmission();
+  // delay needed here?
+}
 
 // ------------------------------------------------
-void ambSensor::init( int fpercent ) {
+void ambSensor::init( int fpercent, uint8_t cmode ) {
   filter.init( fpercent );
-  Wire.beginTransmission( a_amb );
-  Wire.send(1); // point to config reg
-  Wire.send( (uint8_t)SHUTDOWN );  // have to start in shutdown mode for one-shot conversions
-  Wire.endTransmission();
-};
+  convMode = cmode;
+  if( cmode == AMB_CONV_1SHOT )
+    ambShutdown();
+}
 
 // -----------------------------------------
 void ambSensor::nextConversion() {
   Wire.beginTransmission( a_amb );
-  Wire.send( 1 ); // configuration register
-  Wire.send( A_BITS ); // request a one-shot conversion
+  Wire.send( AMB_REGSEL_CFG ); // configuration register
+  Wire.send( cfg ); // request a conversion
   Wire.endTransmission();
 }
 
@@ -146,32 +231,18 @@ int32_t ambSensor::readSensor() {
   int32_t va, vb;
 
   Wire.beginTransmission( a_amb );
-  Wire.send(0); // point to temperature reg.
+  Wire.send( AMB_REGSEL_TMP ); // point to temperature reg.
   Wire.endTransmission();
   Wire.requestFrom( a_amb, (uint8_t)2 );
   va = a = Wire.receive();
   vb = b = Wire.receive();
-  
-#ifdef RES_12
-// 12-bit code
-  raw = ( ( va << 8 ) +  vb ) >> 4; // LSB = 0.0625C
-#endif
-#ifdef RES_11
-// 11-bit code
-  raw = ( ( va << 8 ) +  vb ) >> 5; // LSB = 0.125C
-  raw <<= 1;
-#endif
-#ifdef RES_10
-// 10-bit code
-  raw = ( ( va << 8 ) +  vb ) >> 6; // LSB = 0.25C
-  raw <<= 2;
-#endif
-#ifdef RES_9
-// 9-bit code
-  raw = ( ( va << 8 ) +  vb ) >> 7; // LSB = 0.5C
-  raw <<= 3;
-#endif
-
+  // convert value held in bytes a and b
+  // 12-bit, nLSB = 4
+  // 11-bit, nLSB = 5
+  // 10-bit, nLSB = 6
+  // 9-bit, nLSB = 7
+  raw = ( ( va << 8 ) +  vb ) >> nLSB;  // push insignificant bytes off
+  raw <<= ( nLSB - 4 );
   filtered = filter.doFilter( raw );
   ambC = (float)filtered * AMB_LSB + temp_offset;
   ambF = 1.8 * ambC + 32.0;
