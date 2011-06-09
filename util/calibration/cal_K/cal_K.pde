@@ -10,7 +10,7 @@
 #define CHAN 1 // use TC2
 #define CALPT 200.0
 #define DEFAULT_OFFS 0.0
-#define DEFAULT_CAL 1.000
+#define DEFAULT_CAL 1.0000
 
 cADC adc;
 ambSensor amb;
@@ -23,6 +23,7 @@ float stored_offs = DEFAULT_OFFS;
 float stored_cal = DEFAULT_CAL;
 
 long i = 0;
+int dly;
 
 void setup() {
   Serial.begin(57600);
@@ -33,9 +34,15 @@ void setup() {
   lcd.print( BANNER_K ); // display version banner
 
   adc.setCal ( stored_cal, 0 );
+//  adc.setCfg( ADC_BITS_18 );
   f.init( 70 );
   amb.init( 70 );
+//  amb.init( 70, AMB_CONV_1SHOT );
+//  amb.setCfg( AMB_BITS_12 );
   amb.setOffset( stored_offs );
+//  int d = amb.getConvTime();
+//  dly = adc.getConvTime();
+//  dly = dly > d ? dly : d;
   
   delay( 3000 ); // display banner for a while
   lcd.clear();
@@ -48,6 +55,7 @@ void loop() {
   amb.nextConversion();  
   adc.nextConversion( CHAN );
   delay( 300 );
+  //delay( dly );
   int32_t v = adc.readuV();
   Serial.print( v ); Serial.print( "," );
   

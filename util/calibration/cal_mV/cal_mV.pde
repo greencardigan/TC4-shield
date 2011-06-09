@@ -29,6 +29,7 @@ void setup() {
   lcd.print( BANNER_CALMV ); // display version banner
 
   uv_cal = stored_cal;
+//  adc.setCfg( ADC_BITS_18 );
   adc.setCal (stored_cal, 0 );
   f.init( 50 );
 
@@ -40,6 +41,7 @@ void setup() {
 void loop() {
   adc.nextConversion( CHAN );
   delay( 300 );
+//  delay( adc.getConvTime() );
   uv = f.doFilter( adc.readuV() );
   Serial.print( i++ ); Serial.print( "," );
   Serial.print( (float)uv * 0.001, 3 ); Serial.print( "," );

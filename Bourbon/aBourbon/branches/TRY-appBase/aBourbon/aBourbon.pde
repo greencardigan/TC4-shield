@@ -55,6 +55,7 @@
 //   20110605  Complete rewrite (V3.beta) using TC4app library classes
 //   20110607  Use appSerialRst as base class
 //   20110608  Cleaned up some #ifdef commands for the LCD
+//   20110609  Linked with revised TCapp classes.  Selectable ADC configuration.
 
 // Parts of this code are derived from a_logger.pde file by Bill Welch (bvwelch.com)
 // Bill's significant role in this project in gratefully acknowledged.
@@ -90,8 +91,18 @@ typeK tc; // thermocouple sensor
   LiquidCrystal lcd( RS, ENABLE, D4, D5, D6, D7 ); // standard 4-bit parallel interface
 #endif
 
+// define a new class to get control of ADC and ambient chip configs
+class appBourbon : public appSerialRst {
+  public:
+    appBourbon( TCbase* tc ) : appSerialRst( tc ){}
+  protected:
+    // these will be called by the start() method
+    virtual void setAmbCfg(){amb.setCfg( AMB_BITS_12 );}
+    virtual void setADCcfg(){adc.setCfg( ADC_BITS_18, ADC_GAIN_8, ADC_CONV_1SHOT );}
+};
+  
 // the app constructor must identify a sensor that derives from TCbase
-appSerialRst app( &tc );
+appBourbon app( &tc );
 
 void setup() {
   app.setBanner( BANNER );
@@ -115,7 +126,7 @@ void setup() {
   app.initTempFilters(BT_FILTER, ET_FILTER, 0, 0 ); 
   app.initRiseFilters(RISE_FILTER, RISE_FILTER, 0 , 0 ); 
   app.initRoRFilters(ROR_FILTER, ROR_FILTER, 0, 0 ); 
-  app.start(); 
+  app.start(1000); // minimum loop time (will be extended automatically if needed)
 }
 
 void loop() {
