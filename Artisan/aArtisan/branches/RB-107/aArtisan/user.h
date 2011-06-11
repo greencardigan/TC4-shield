@@ -11,15 +11,14 @@
 #ifndef USER_H
 #define USER_H
 
-#define EEPROM_ARTISAN // comment this line out if no calibration information stored in 64K EEPROM
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
 //#define CELSIUS // controls only the initial conditions
 
-#define BAUD 19200  // serial baud rate
-#define BT_FILTER 10 // filtering level (percent) for BT
-#define ET_FILTER 10 // filtering level (percent) for ET
-#define AMB_FILTER 70 // 70% filtering on ambient sensor readings
+#define BAUD 57600  // serial baud rate
+#define BT_FILTER 80 // filtering level (percent) for BT
+#define ET_FILTER 80 // filtering level (percent) for ET
+#define AMB_FILTER 90 // 90% filtering on ambient sensor readings
 
 // default values for systems without calibration values stored in EEPROM
 #define CAL_GAIN 1.00 // you may substitute a known gain adjustment from calibration

@@ -35,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V1.05"
+#define BANNER_ARTISAN "aARTISAN V1.07"
 
 // Revision history:
 // 20110408 Created.
@@ -57,6 +57,11 @@
 // 20110601 Major rewrite to use cmndproc.h library
 //          RF2000 and RC2000 set channel mapping to 1200
 // 20110602 Added ACKS_ON to control verbose output
+// 20110610 Revised to use updated cADC library
+//          Improved EEPROM support.  Should work now for non-initialized EEPROMS
+//          Changed resolution and cycle time for ADC, ambSensor
+//          Switched from TypeK library to TCbase library
+//          Put temperature filtering on ADC uV values instead of computed temperatures
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -75,34 +80,20 @@
 
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <cmndproc.h> // for command interpreter
-#include <TypeK.h>
+#include <TCbase.h>
 #include <cADC.h> // MCP3424
 #include <PWM16.h> // for SSR output
+#include <mcEEPROM.h> // required so that program can try and read EEPROM
 #ifdef LCD
 #include <cLCD.h> // required only if LCD is used
 #endif
 
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
-#define TC_TYPE TypeK  // thermocouple type / library
+#define TC_TYPE typeK  // thermocouple type / library
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 #define DELIM "; ," // command line parameter delimiters
-
-#ifdef EEPROM_ARTISAN // optional code if EEPROM flag is active
-#include <mcEEPROM.h>
-// eeprom calibration data structure
-struct infoBlock {
-  char PCB[40]; // identifying information for the board
-  char version[16];
-  float cal_gain;  // calibration factor of ADC at 50000 uV
-  int16_t cal_offset; // uV, probably small in most cases
-  float T_offset; // temperature offset (Celsius) at 0.0C (type T)
-  float K_offset; // same for type K
-};
-mcEEPROM eeprom;
-infoBlock caldata;
-#endif
 
 float AT; // ambient temp
 float T[NC];  // final output values referenced to physical channels 0-3
@@ -114,7 +105,7 @@ boolean Cscale = false;
 #endif
 
 int levelOT1, levelOT2;  // parameters to control output levels
-//int levelIO3;
+uint32_t lcd_count;
 
 // class objects
 cADC adc( A_ADC ); // MCP3424
@@ -148,8 +139,11 @@ void checkSerial() {
   const char* result = ci.checkSerial();
   if( result != NULL ) { // some things we might want to do after a command is executed
     #ifdef LCD
+    lcd.setCursor( 0, 1 );
+    lcd.print( "         ");
     lcd.setCursor( 0, 1 ); // echo all commands to the LCD
     lcd.print( result );
+    lcd_count = millis();
     #endif
     #ifdef MEMORY_CHK
     Serial.print("# freeMemory()=");
@@ -184,7 +178,7 @@ void logger()
     if( k > 0 ) {
       --k;
       Serial.print(",");
-      Serial.print( convertUnits( T[k] ) );
+      Serial.print( convertUnits( T[k] ), 1 );
     }
   }
   Serial.println();
@@ -197,6 +191,10 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   TC_TYPE tc;
   float tempF;
   int32_t itemp;
+
+  uint16_t dly = amb.getConvTime(); // use delay based on slowest conversion
+  uint16_t dADC = adc.getConvTime();
+  dly = dly > dADC ? dly : dADC;
   
   for( uint8_t jj = 0; jj < NC; jj++ ) { // one-shot conversions on both chips
     uint8_t k = actv[jj]; // map logical channels to physical ADC channels
@@ -204,14 +202,14 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
       --k;
       adc.nextConversion( k ); // start ADC conversion on physical channel k
       amb.nextConversion(); // start ambient sensor conversion
-      checkStatus( MIN_DELAY ); // give the chips time to perform the conversions
+      checkStatus( dly );
       amb.readSensor(); // retrieve value from ambient temp register
       v = adc.readuV(); // retrieve microvolt sample from MCP3424
-      tempF = tc.Temp_F( 0.001 * v, amb.getAmbF() ); // convert uV to Celsius
-      v = round( tempF / D_MULT ); // store results as integers
+      // filter on direct ADC readings, not computed temperatures
+      v = fT[k].doFilter( v << 10 );  // multiply by 1024 to create some resolution for filter
+      v >>= 10;  // v is now uV, must divide by 1000 to get to mV
       AT = amb.getAmbF();
-      itemp = fT[k].doFilter( v ); // apply digital filtering for display/logging
-      T[k] = 0.001 * itemp;
+      T[k] = tc.Temp_F( 0.001 * v, AT ); // convert uV to Fahrenheit;
     }
   }
 };
@@ -255,8 +253,11 @@ void updateLCD() {
       lcd.print(st1);  
     }
   }
-  lcd.setCursor( 0, 1 );
-  lcd.print( "         ");
+  if( millis() - lcd_count >= 400 ) { // display for 400 ms only
+    lcd.setCursor( 0, 1 );
+    lcd.print( "         " );
+    lcd_count = 0;
+  }
 }
 #endif
 
@@ -268,7 +269,9 @@ void setup()
   delay(100);
   Wire.begin(); 
   Serial.begin(BAUD);
-  amb.init( AMB_FILTER );  // initialize ambient temp filtering
+  amb.init( AMB_FILTER, AMB_CONV_1SHOT );
+  amb.setCfg( AMB_BITS_10 );
+  adc.setCfg( ADC_BITS_16, ADC_GAIN_8, ADC_CONV_1SHOT );
 
 #ifdef LCD
   lcd.begin(16, 2);
@@ -282,20 +285,25 @@ void setup()
   Serial.println(freeMemory());
 #endif
 
-#ifdef EEPROM_ARTISAN
   // read calibration and identification data from eeprom
-  if( eeprom.read( 0, (uint8_t*) &caldata, sizeof( caldata) ) == sizeof( caldata ) ) {
+  // this is not real strong error checking, but should be OK in most situations
+  calBlock caldata;
+  uint16_t len;
+  mcEEPROM eeprom;
+  len = eeprom.read( 0, (uint8_t*) &caldata, sizeof( caldata) );
+  if( (len == sizeof( caldata )) && (strncmp( "TC4", caldata.PCB, 3 ) == 0 ) ) {
     adc.setCal( caldata.cal_gain, caldata.cal_offset );
     amb.setOffset( caldata.K_offset );
+    #ifdef LCD
+    lcd.setCursor( 0, 1 );
+    lcd.print( caldata.cal_gain, 5 ); lcd.print(" ");
+    lcd.print( caldata.K_offset );
+    #endif
   }
   else { // if there was a problem with EEPROM read, then use default values
     adc.setCal( CAL_GAIN, UV_OFFSET );
     amb.setOffset( AMB_OFFSET );
-  }   
-#else
-  adc.setCal( CAL_GAIN, UV_OFFSET );
-  amb.setOffset( AMB_OFFSET );
-#endif
+  }
 
   // initialize filters on all channels
   fT[0].init( ET_FILTER ); // digital filtering on ET
@@ -334,10 +342,11 @@ void setup()
 // -----------------------------------------------------------------
 void loop()
 {
-  checkSerial();  // Has a command been received?
+//  checkSerial();  // Has a command been received?
   get_samples();
   #ifdef LCD
   updateLCD();
   #endif
+  checkSerial();
 }
 
