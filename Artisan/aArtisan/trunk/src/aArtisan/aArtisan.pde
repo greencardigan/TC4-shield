@@ -35,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V1.06beta"
+#define BANNER_ARTISAN "aARTISAN V2.00beta"
 
 // Revision history:
 // 20110408 Created.
@@ -58,6 +58,7 @@
 //          RF2000 and RC2000 set channel mapping to 1200
 // 20110602 Added ACKS_ON to control verbose output
 // 20110608 Various revisions for compatibility with Artisan
+// 20110610 Changed release version to 2.00beta
 
 // this library included with the arduino distribution
 #include <Wire.h>
