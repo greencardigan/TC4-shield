@@ -5,12 +5,20 @@
 #include <TypeK.h>
 #include <cLCD.h>
 
-#define BANNER_K "Cal_K 20110530" // version
+#define BANNER_K "Cal_K 20110610" // version
 #define BACKLIGHT lcd.backlight();
 #define CHAN 1 // use TC2
 #define CALPT 200.0
-#define DEFAULT_OFFS 0.0
-#define DEFAULT_CAL 1.0000
+#define TEMP_OFFS -0.0
+#define GAIN_CAL 1.000
+#define AMB_FILT 90
+#define ADC_FILT 75
+
+//#define REFINED
+#define ADC_BITS ADC_BITS_18
+#define ADC_GAIN ADC_GAIN_8
+#define AMB_BITS AMB_BITS_12
+
 
 cADC adc;
 ambSensor amb;
@@ -18,9 +26,6 @@ filterRC f;
 TypeK tc;
 float ctemp;
 cLCD lcd; // I2C LCD interface
-
-float stored_offs = DEFAULT_OFFS;
-float stored_cal = DEFAULT_CAL;
 
 long i = 0;
 int dly;
@@ -32,62 +37,61 @@ void setup() {
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_K ); // display version banner
+  adc.setCal ( GAIN_CAL, 0 );
+  f.init( ADC_FILT );
 
-  adc.setCal ( stored_cal, 0 );
-//  adc.setCfg( ADC_BITS_18 );
-  f.init( 70 );
-  amb.init( 70 );
-//  amb.init( 70, AMB_CONV_1SHOT );
-//  amb.setCfg( AMB_BITS_12 );
-  amb.setOffset( stored_offs );
-//  int d = amb.getConvTime();
-//  dly = adc.getConvTime();
-//  dly = dly > d ? dly : d;
-  
+#ifdef REFINED
+  amb.init( AMB_FILT, AMB_CONV_1SHOT );
+  amb.setCfg( AMB_BITS );
+  adc.setCfg( ADC_BITS, ADC_GAIN );
+  int d = amb.getConvTime();
+  dly = adc.getConvTime();
+  dly = dly > d ? dly : d;
+#else
+  amb.init( AMB_FILT );
+#endif
+
+  amb.setOffset( TEMP_OFFS );
   delay( 3000 ); // display banner for a while
   lcd.clear();
-
 }
 
 void loop() {
   Serial.print( i++ ); Serial.print( "," );
-
   amb.nextConversion();  
   adc.nextConversion( CHAN );
+
+#ifdef REFINED
+  delay( dly );
+#else
   delay( 300 );
-  //delay( dly );
+#endif
+
   int32_t v = adc.readuV();
-  Serial.print( v ); Serial.print( "," );
+  int32_t fv = f.doFilter( v << 10 );
+  fv >>= 10;
+  Serial.print( fv ); Serial.print( "," );
   
   amb.readSensor();
   ctemp = amb.getAmbC();
   Serial.print( ctemp ); Serial.print( "," );
-  
-  float tempC = tc.Temp_C( 0.001 * v, ctemp ) ;
+  float tempC = tc.Temp_C( 0.001 * fv, ctemp ) ;
   Serial.print( tempC ); Serial.print( "," );
-  
-  v = round( C_TO_F( tempC ) * 100 );
-  
-  v = f.doFilter( v );
-  
-  Serial.print( v ); Serial.print( "," );
+  Serial.print( fv ); Serial.print( "," );
   Serial.println( CHAN, DEC );
 
   lcd.setCursor( 0, 0 );
   lcd.print( "                ");
   lcd.setCursor( 0, 1 );
   lcd.print( "                ");
-  
   lcd.setCursor( 0, 0 );
   lcd.print( tempC, 1 );
   lcd.setCursor( 8, 0 );
-  lcd.print( stored_offs, 2 );
+  lcd.print( TEMP_OFFS, 2 );
   lcd.setCursor( 0, 1 );
-  lcd.print( CALPT - tempC + stored_offs, 2 );
+  lcd.print( CALPT - tempC + TEMP_OFFS, 2 );
   lcd.setCursor( 8, 1 );
   lcd.print( "CHAN " );
   lcd.print( CHAN );
-  
-
 }
 
