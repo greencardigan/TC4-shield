@@ -82,23 +82,23 @@ void cADC::setCfg( uint8_t res, uint8_t gain, uint8_t conv  ){
   switch ( res ){
     case ADC_BITS_12 :
       convTime = _CONV_TIME_12;
-      xLSB = BITS_TO_uV * 64.0;
+      nLSB = 0;  // bit shift count = ADC_BITS - 12
       break;
     case ADC_BITS_14 :
       convTime = _CONV_TIME_14;
-      xLSB = BITS_TO_uV * 16.0;
+      nLSB = 2;  // bit shift count = ADC_BITS - 12
       break;
     case ADC_BITS_16 :
       convTime = _CONV_TIME_16;
-      xLSB = BITS_TO_uV * 4.0;
+      nLSB = 4;  // bit shift count = ADC_BITS - 12
       break;
     case ADC_BITS_18 :
       convTime = _CONV_TIME_18;
-      xLSB = BITS_TO_uV;
+      nLSB = 6;  // bit shift count = ADC_BITS - 12
       break;
     default :
       convTime = _CONV_TIME_18;
-      xLSB = 0.0;  // will draw attention to config error
+      nLSB = 6;  // bit shift count = ADC_BITS - 12
   }
 }
 
@@ -109,50 +109,44 @@ uint16_t cADC::getConvTime() {
 
 // --------------------------------------------------setCal
 void cADC::setCal( float gain, int8_t offs ) {
-  cal_gain = gain;
+  cal_gain = gain - 1.0;  // to reduce loss of significance
   cal_offset = offs;
 };
 
 // -----------------------------------------------------------
 int32_t cADC::readuV() {
-//  Serial.print("cfg=");Serial.println( cfg, BIN );
-  float xv;
+  int32_t v;
   // resolution determines number of bytes requested
   if( ( cfg & ADC_RES_MASK ) == ADC_BITS_18 ) { // 3 data bytes
     Wire.requestFrom( a_adc, (uint8_t) 4 );
     uint8_t a = Wire.receive(); // first data byte
     uint8_t b = Wire.receive(); // second data byte
     uint8_t c = Wire.receive(); // 3rd data byte
-//    Serial.print( "a="); Serial.print(a, BIN);
-//    Serial.print( "  b="); Serial.print(b, BIN);
-//    Serial.print( "  c="); Serial.println(c, BIN);
-    int32_t v = a;
+    v = a;
     v <<= 24; // v = a : 0 : 0 : 0
     v >>= 16; // v = s : s : a : 0
     v |= b; //   v = s : s : a : b
     v <<= 8; //  v = s : a : b : 0
     v |= c; //   v = s : a : b : c
-    xv = v;
-//    Serial.print("xv="); Serial.println(xv, 4);
   }
   else { // 2 data bytes
     Wire.requestFrom( a_adc, (uint8_t) 3 );
     uint8_t a = Wire.receive(); // first data byte
     uint8_t b = Wire.receive(); // second data byte
-    int32_t v = a;
+    v = a;
     v <<= 24; // v = a : 0 : 0 : 0
     v >>= 16; // v = s : s : a : 0
     v |= b; //   v = s : s : a : b
-    xv = v;
   }
-  uint8_t stat = Wire.receive();
-  float gainX = 1 << (stat & ADC_GAIN_MASK);
-//  Serial.print("xLSB="); Serial.print(xLSB, 5 );
-//  Serial.print("   gainX="); Serial.println(gainX, 2);
-
-// apply gain and corrections
-  xv = xv * xLSB / gainX * cal_gain + cal_offset;
-  return round( xv );
+  uint8_t stat = Wire.receive(); // read the status byte returned from the ADC
+  v *= 1000;  // convert to uV.  This cannot overflow ( 10 bits + 18 bits < 31 bits )
+  // bit shift count for ADC gain
+  uint8_t gn = stat & ADC_GAIN_MASK;
+  // shift based on ADC resolution plus ADC gain
+  v >>= ( nLSB + gn ); // v = raw reading, uV
+  // calculate effect of external calibration gain; minimize loss of significance
+  int32_t deltaV = round( (float)v * cal_gain );
+  return v + deltaV;  // returns corrected, unfiltered value of uV
 };
 
 // -------------------------------------
@@ -227,24 +221,28 @@ void ambSensor::nextConversion() {
 
 // -----------------------------------------
 int32_t ambSensor::readSensor() {
-  byte a, b;
-  int32_t va, vb;
-
+  uint8_t a, b;
   Wire.beginTransmission( a_amb );
   Wire.send( AMB_REGSEL_TMP ); // point to temperature reg.
   Wire.endTransmission();
   Wire.requestFrom( a_amb, (uint8_t)2 );
-  va = a = Wire.receive();
-  vb = b = Wire.receive();
-  // convert value held in bytes a and b
+  a = Wire.receive();
+  b = Wire.receive();
+  raw = a;     //  0 : 0 : 0 : a
+  raw <<= 24;   // a : 0 : 0 : 0
+  raw >>= 16;  //  s : s : a : 0
+  raw |= b;    //  s : s : a : b
   // 12-bit, nLSB = 4
   // 11-bit, nLSB = 5
   // 10-bit, nLSB = 6
-  // 9-bit, nLSB = 7
-  raw = ( ( va << 8 ) +  vb ) >> nLSB;  // push insignificant bytes off
-  raw <<= ( nLSB - 4 );
-  filtered = filter.doFilter( raw );
-  ambC = (float)filtered * AMB_LSB + temp_offset;
+  //  9-bit, nLSB = 7
+  raw >>= nLSB;  // first nLSB bits in b are undefined
+  raw <<= nLSB;  // they are gone now, replaced by zero
+  raw >>= 4;  // move bits to right to form raw code
+  filtered = filter.doFilter( raw << AMB_FACTOR ); // create more resolution for filter
+  ambC = (float)filtered;
+  ambC += temp_offset * AMB_LSB_INV;  // calibration correction
+  ambC *= AMB_LSB;  // Ta = code / 16 per MCP9800 datasheet
   ambF = 1.8 * ambC + 32.0;
   return filtered;
 };

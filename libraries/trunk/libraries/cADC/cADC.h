@@ -1,5 +1,5 @@
 // cADC library
-// Version date: Aug 20, 2010
+// Version date: 9-June-2011
 // interface with MCP3424 18-bit ADC
 
 // *** BSD License ***
@@ -113,10 +113,12 @@ class cADC {
  protected:
   uint8_t cfg; // resolution, gain, and conversion mode settings
   uint8_t a_adc;
-  float cal_gain;
+  float cal_gain; // = calibration factor minus 1.0000
   int8_t cal_offset;
   uint16_t convTime;  // milliseconds
-  float xLSB;  // microvolt value of LSB
+//  float xLSB;  // microvolt value of LSB
+  // LSB uV = 1,000 * 2^12 / 2^n, where n = ADC resolution bits
+  uint8_t nLSB; // shift count = resolution bits minus 12
 };
 
 // -------------------- MCP9800 configuration
@@ -151,7 +153,9 @@ class cADC {
 #define A_AMB 0x48 // I2C address for MCP9800
 //#define MCP9800_DELAY _AMB_CONV_TIME_12 // minimum sample period for MCP9800
 #define TEMP_OFFSET ( 0.0 )  // Celsius offset
-#define AMB_LSB 0.0625 // value of MCP9800 LSB in 12-bit mode
+#define AMB_FACTOR 10 // n << 10 = 1024 use to create some additional resolution
+#define AMB_LSB (0.0625/1024) // value of MCP9800 LSB in 12-bit mode, div. by 1000
+#define AMB_LSB_INV (16.0*1024) // reciprocal of AMB_LSB
 
 // ----------------------------------------------------------
 // this class communicates with MCP9800 ambient sensor and optionally performs filtering
@@ -177,8 +181,8 @@ class ambSensor {
   filterRC filter;
   float temp_offset;  // calibration offset (Celsius)
   float ambF, ambC; // most recent filtered readings
-  uint32_t filtered; // up to date filtered raw reading
-  uint32_t raw; // most recent raw sensor reading
+  int32_t filtered; // up to date filtered raw reading
+  int32_t raw; // most recent raw sensor reading
 };
 
 #endif
