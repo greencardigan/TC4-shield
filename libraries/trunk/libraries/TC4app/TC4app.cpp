@@ -72,7 +72,7 @@ appCmnd::appCmnd( const char* cname, appBase* ap, boolean ak ) :
 // class appBase
 
 // constructor
-appBase::appBase( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr ) :
+appBase::appBase( tcBase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr ) :
   CmndInterp( _DLMTR_STR ),
   adc(ADCaddr),
   amb(ambaddr),
@@ -517,7 +517,7 @@ boolean unitsCmnd::doCommand( CmndParser* pars ) {
 // class appSerialRst
 
 // constructor
-appSerialRst::appSerialRst( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr ) :
+appSerialRst::appSerialRst( tcBase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr ) :
   appBase( tc, ADCaddr, ambaddr, epaddr ),
   rst( this, true ) {
   addCommand( &rst ); // reset command supported
@@ -527,7 +527,7 @@ appSerialRst::appSerialRst( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_
 // class appSerialComm
 
 // constructor
-appSerialComm::appSerialComm( TCbase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr ) :
+appSerialComm::appSerialComm( tcBase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr ) :
   appSerialRst( tc, ADCaddr, ambaddr, epaddr ),
   chn( this, true ), // ack is sent by TC4
   rd( this, true ),

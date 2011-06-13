@@ -61,7 +61,8 @@
 #include <cLCD.h>
 #include <cButton.h>
 #include <mcEEPROM.h>
-#include <TCbase.h>
+//#include <TCbase.h>
+#include <thermocouple.h>
 #include <cmndproc.h>
 
 #define _TF 10 // default value for filtering of display temperatures
@@ -118,7 +119,7 @@ class rstCmnd : public appCmnd {
 // base class for TC4 applications
 class appBase : public CmndInterp {
   public:
-    appBase( TCbase*, uint8_t ADCaddr = A_ADC, uint8_t ambaddr = A_AMB, uint8_t epaddr = ADDR_BITS );
+    appBase( tcBase*, uint8_t ADCaddr = A_ADC, uint8_t ambaddr = A_AMB, uint8_t epaddr = ADDR_BITS );
     void initTempFilters( uint8_t f1 = _TF, uint8_t f2 = _TF, uint8_t f3 = _TF, uint8_t f4 = _TF );
     void initRiseFilters( uint8_t f1 = _RF, uint8_t f2 = _RF, uint8_t f3 = _RF, uint8_t f4 = _RF );
     void initRoRFilters( uint8_t f1=_RORF, uint8_t f2=_RORF, uint8_t f3=_RORF, uint8_t f4=_RORF );
@@ -158,7 +159,7 @@ class appBase : public CmndInterp {
     float reftime;
 
     // this must be set to point to a TC defined in the main program
-    TCbase* TC;
+    tcBase* TC;
 
     // variables used for timing
     uint32_t looptime;
@@ -218,7 +219,7 @@ class unitsCmnd : public appCmnd {
 // extend appBase by adding response to RESET command
 class appSerialRst : public appBase {
   public:
-    appSerialRst( TCbase*, uint8_t ADCaddr = A_ADC, uint8_t ambaddr = A_AMB, uint8_t epaddr = ADDR_BITS );
+    appSerialRst( tcBase*, uint8_t ADCaddr = A_ADC, uint8_t ambaddr = A_AMB, uint8_t epaddr = ADDR_BITS );
   protected:
     rstCmnd rst;
 };
@@ -227,7 +228,7 @@ class appSerialRst : public appBase {
 //   READ, CHAN, UNITS
 class appSerialComm : public appSerialRst {
   public:
-    appSerialComm(TCbase*, uint8_t ADCaddr = A_ADC, uint8_t ambaddr = A_AMB, uint8_t epaddr = ADDR_BITS );
+    appSerialComm(tcBase*, uint8_t ADCaddr = A_ADC, uint8_t ambaddr = A_AMB, uint8_t epaddr = ADDR_BITS );
   protected:
     chanCmnd chn;
     readCmnd rd;
