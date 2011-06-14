@@ -77,9 +77,13 @@
 // user preferences
 #include "user.h"
 
-typeK tc; // thermocouple sensor
-//typeT tc;
-//typeJ tc;
+// memory checker
+#include "MemoryFree.h"
+
+// thermocouple sensor
+typeK tc; // uses 252 bytes RAM
+//typeT tc; // uses 220 bytes RAM
+//typeJ tc; // uses 220 bytes RAM
 
 // ---------------------------------- LCD interface definition
 #ifdef LCDAPTER
@@ -129,8 +133,10 @@ void setup() {
   app.setAmbFilter( AMB_FILTER ); 
   app.initTempFilters(BT_FILTER, ET_FILTER, 0, 0 ); 
   app.initRiseFilters(RISE_FILTER, RISE_FILTER, 0 , 0 ); 
-  app.initRoRFilters(ROR_FILTER, ROR_FILTER, 0, 0 ); 
+  app.initRoRFilters(ROR_FILTER, ROR_FILTER, 0, 0 );   
   app.start(1000); // minimum loop time (will be extended automatically if needed)
+
+  Serial.print("# Free RAM = ");Serial.println( freeMemory() );
 }
 
 void loop() {
