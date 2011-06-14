@@ -56,6 +56,7 @@
 //   20110607  Use appSerialRst as base class
 //   20110608  Cleaned up some #ifdef commands for the LCD
 //   20110609  Linked with revised TCapp classes.  Selectable ADC configuration.
+//   20110613  Linked with new thermocouple library
 
 // Parts of this code are derived from a_logger.pde file by Bill Welch (bvwelch.com)
 // Bill's significant role in this project in gratefully acknowledged.
@@ -69,13 +70,16 @@
 #include <mcEEPROM.h>  // EEPROM support
 #include <cLCD.h>  // LCD display support (optional)
 #include <cButton.h>  // buttons on the LCDapter (optional)
-#include <TCbase.h> // base class for thermocouples
+//#include <TCbase.h> // base class for thermocouples
+#include <thermocouple.h>
 #include <cmndproc.h>  // command interpreter
 
 // user preferences
 #include "user.h"
 
 typeK tc; // thermocouple sensor
+//typeT tc;
+//typeJ tc;
 
 // ---------------------------------- LCD interface definition
 #ifdef LCDAPTER
@@ -94,7 +98,7 @@ typeK tc; // thermocouple sensor
 // define a new class to get control of ADC and ambient chip configs
 class appBourbon : public appSerialRst {
   public:
-    appBourbon( TCbase* tc ) : appSerialRst( tc ){}
+    appBourbon( tcBase* tc ) : appSerialRst( tc ){}
   protected:
     // these will be called by the start() method
     virtual void setAmbCfg(){amb.setCfg( AMB_BITS_12 );}
