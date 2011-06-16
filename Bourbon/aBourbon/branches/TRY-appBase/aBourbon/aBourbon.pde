@@ -81,9 +81,11 @@
 #include "MemoryFree.h"
 
 // thermocouple sensor
-typeK tc; // uses 252 bytes RAM
-//typeT tc; // uses 220 bytes RAM
-//typeJ tc; // uses 220 bytes RAM
+typeK tcK; // uses addl 20 bytes RAM  743
+typeT tcT; // uses addl 20 bytes RAM  723
+typeJ tcJ; // uses  addl 20 bytes RAM 703
+
+#define TC tcK
 
 // ---------------------------------- LCD interface definition
 #ifdef LCDAPTER
@@ -110,7 +112,7 @@ class appBourbon : public appSerialRst {
 };
   
 // the app constructor must identify a sensor that derives from TCbase
-appBourbon app( &tc );
+appBourbon app( &TC );
 
 void setup() {
   app.setBanner( BANNER );
