@@ -9,6 +9,8 @@
 //
 // Version 1.00
 // 20110602  Created
+// 20110618  Added code to allow selection of TCbase.h or thermocouple.h
+//           Fixed a few minor things that were causing compiler warnings
 //
 //
 // ------------------------------------------------
@@ -61,9 +63,14 @@
 #include <cLCD.h>
 #include <cButton.h>
 #include <mcEEPROM.h>
-//#include <TCbase.h>
-#include <thermocouple.h>
 #include <cmndproc.h>
+
+// --------------------- to use TCbase library
+//#include <TCbase.h>
+//#define tcBase TCbase
+// ---------- or to use thermocouple library
+#include <thermocouple.h>
+// --------------------------------------------
 
 #define _TF 10 // default value for filtering of display temperatures
 #define _RF 85 // default value for filtering T prior to rise calc

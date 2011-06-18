@@ -4,7 +4,15 @@
  *  Created on: Jun 2, 2011
  *      Author: Jim
  */
-
+//-------------------------------------------
+// Revision history
+//
+// Version 1.00
+// 20110602  Created
+// 20110618  Added code to allow selection of TCbase.h or thermocouple.h
+//           Fixed a few minor things that were causing compiler warnings
+//
+//
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
 // Copyright (c) 2011, MLG Properties, LLC
@@ -74,9 +82,9 @@ appCmnd::appCmnd( const char* cname, appBase* ap, boolean ak ) :
 // constructor
 appBase::appBase( tcBase* tc, uint8_t ADCaddr, uint8_t ambaddr, uint8_t epaddr ) :
   CmndInterp( _DLMTR_STR ),
+  eeprm(epaddr),
   adc(ADCaddr),
   amb(ambaddr),
-  eeprm(epaddr),
   chan(1,2,0,0)
 {
   TC = tc;
@@ -307,8 +315,10 @@ void appBase::checkInput() { // take action if a button is pressed
 
 // ------------------------------------------------------------------
 void appBase::logSamples() { // log one set of samples to the serial port
-  float t1, t2; // first two active channels
-  float rx, RoR;
+  float t1 = 0.0; // first two active channels
+  float t2 = 0.0;
+  float rx;
+  float RoR = 0.0;
   float t;
   boolean frst = false;
   boolean scnd = false;
