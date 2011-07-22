@@ -1,5 +1,5 @@
-// Timer1 PWM control
-// Version date: June 19, 2010
+// Timer1 and timer2 PWM control
+// Version date: July 22, 2011
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
@@ -115,4 +115,12 @@ void PWM16::Out( unsigned int dutyA, unsigned int dutyB ){
 
 unsigned int PWM16::GetTOP () {
   return _pwmF;
+}
+
+// -------------------------------------------
+// IO3 PWM setup
+void setupIO3( uint8_t pwm_mode, uint8_t prescale ) {
+	pinMode( IO3_PIN, OUTPUT );
+	TCCR2A = pwm_mode;
+	TCCR2B = prescale;
 }

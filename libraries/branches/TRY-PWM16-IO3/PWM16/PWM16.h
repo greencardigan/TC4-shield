@@ -1,5 +1,5 @@
-// Timer1 PWM control
-// Version date: June 27, 2010
+// Timer1 and timer2 PWM control
+// Version date: July 22, 2011
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
@@ -132,5 +132,25 @@ class PWM16 {
     unsigned int _pwmF;
 
 };
+
+
+// definitions for PWM frequency selection on IO3
+
+#define IO3_PIN 9 // pin DIO9 for IO3
+
+#define IO3_FASTPWM _BV(COM2A1) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20) // fast PWM
+#define IO3_PCPWM _BV(COM2A1) | _BV(COM2B1) | _BV(WGM20) // phase correct PWM
+
+#define IO3_PRESCALE_1 _BV(CS20) // 0x01, divide by 1
+#define IO3_PRESCALE_8 _BV(CS21) // 0x02, divide by 8
+#define IO3_PRESCALE_32 _BV(CS21) | _BV(CS20) // 0x03, divide by 32
+#define IO3_PRESCALE_64 _BV(CS22) // 0x04, divide by 64
+#define IO3_PRESCALE_128 _BV(CS22) | _BV(CS20) // 0x05, divide by 128
+#define IO3_PRESCALE_256 _BV(CS22) | _BV(CS21) // 0x06, divide by 256
+#define IO3_PRESCALE_1024 _BV(CS22) | _BV(CS21) | _BV(CS20) // 0x07, divide by 1024
+
+void setupIO3( uint8_t pwm = IO3_FASTPWM, uint8_t prescale = IO3_PRESCALE_1024 );
+
+
 
 #endif
