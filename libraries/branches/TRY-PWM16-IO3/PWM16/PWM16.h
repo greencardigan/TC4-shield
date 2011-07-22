@@ -70,7 +70,7 @@
 
 // set prescale to N = 1024
 //
-// f = 16,777,216 / [ 1024 * ( 1 + TOP ) ] for fast PWM mode
+// f = 16,777,216 / [ 1024 * ( 1 + TOP ) ] for fast PWM mode   FIXME f = 16,000,000
 // TOP  in ICR1      f
 // 255   0x00FF   64.000 Hz 
 // 511   0x01FF   32.000 Hz
@@ -148,6 +148,32 @@ class PWM16 {
 #define IO3_PRESCALE_128 _BV(CS22) | _BV(CS20) // 0x05, divide by 128
 #define IO3_PRESCALE_256 _BV(CS22) | _BV(CS21) // 0x06, divide by 256
 #define IO3_PRESCALE_1024 _BV(CS22) | _BV(CS21) | _BV(CS20) // 0x07, divide by 1024
+
+/*
+PWM Frequencies
+
+fast = 16,000,000 / prescale / 256
+pcor = 16,000,000 / prescale / 2 / 255
+
+Mode        Prescale              Frequency
+----        --------              --------- 
+fast            1                  62.5kHz
+fast            8                  7.8125kHz
+fast           32                  1.953125kHz
+fast           64                  976.5625Hz
+fast          128                  488.28125Hz
+fast          256                  244.140625Hz
+fast         1024                  61.03515625Hz (PWM16 library default)
+
+pcor            1                  31.37kHz
+pcor            8                  3.922kHz
+pcor           32                  980.4Hz
+pcor           64                  490.2Hz (arduino default)
+pcor          128                  245.1Hz
+pcor          256                  122.5Hz
+pcor         1024                  30.64Hz
+
+*/
 
 void setupIO3( uint8_t pwm = IO3_FASTPWM, uint8_t prescale = IO3_PRESCALE_1024 );
 
