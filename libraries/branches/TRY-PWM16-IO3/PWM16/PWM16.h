@@ -70,17 +70,18 @@
 
 // set prescale to N = 1024
 //
-// f = 16,777,216 / [ 1024 * ( 1 + TOP ) ] for fast PWM mode   FIXME f = 16,000,000
+// f = 16,000,000 / [ 1024 * ( 1 + TOP ) ] for fast PWM mode
 // TOP  in ICR1      f
-// 255   0x00FF   64.000 Hz 
-// 511   0x01FF   32.000 Hz
-// 1023  0x03FF   16.000 Hz
-// 2047  0x07FF    8.000 Hz 
-// 4095  0x0FFF    4.000 Hz
-// 8191  0x1FFF    2.000 Hz
-// 16383 0x3FFF    1.000 Hz  1 sec period
-// 32767 0x7FFF    0.500 Hz  2 sec period
-// 65535 0xFFFF    0.250 Hz  4 sec period
+// 127   0x007F  122.070 Hz 
+// 255   0x00FF   61.035 Hz 
+// 511   0x01FF   30.518 Hz
+// 1023  0x03FF   15.259 Hz
+// 2047  0x07FF    7.629 Hz 
+// 4095  0x0FFF    3.815 Hz
+// 8191  0x1FFF    1.907 Hz
+// 16383 0x3FFF    0.954 Hz  approx. 1 sec period
+// 32767 0x7FFF    0.477 Hz  approx. 2 sec period
+// 65535 0xFFFF    0.238 Hz  approx. 4 sec period
 //
 // My preferred settings for heater control application
 //
@@ -93,20 +94,20 @@
 #ifndef PWM16_h
 #define PWM16_h
 
-#define pwmN128Hz 127    // TOP values for various frequencies
-#define pwmN64Hz  255
-#define pwmN60Hz  272  // approx.; exact = 272.0667
-#define pwmN50Hz  327  // approx.; exact = 326.68
-#define pwmN32Hz  511
-#define pwmN30Hz  545  // approx.; exact = 545.1333
-#define pwmN16Hz  1023
-#define pwmN8Hz   2047
-#define pwmN4Hz   4095
-#define pwmN2Hz   8191
-#define pwmN1Hz   16383
-#define pwmN1sec  16383
-#define pwmN2sec  32767
-#define pwmN4sec  65535
+#define pwmN128Hz 122    // TOP values for various frequencies
+#define pwmN64Hz  244
+#define pwmN60Hz  260  // approx.; exact = 260.4
+#define pwmN50Hz  313  // approx.; exact = 312.5
+#define pwmN32Hz  488
+#define pwmN30Hz  521  // approx.; exact = 520.8
+#define pwmN16Hz  977
+#define pwmN8Hz   1953
+#define pwmN4Hz   3906
+#define pwmN2Hz   7813
+#define pwmN1Hz   15625
+#define pwmN1sec  15625
+#define pwmN2sec  31250
+#define pwmN4sec  62500
 
 #define pwmOff   0       // zero period effectively turns off timer
 #define pwmDutyMax  100  // maximum duty cycle is 100%
@@ -133,13 +134,12 @@ class PWM16 {
 
 };
 
-
 // definitions for PWM frequency selection on IO3
 
-#define IO3_PIN 9 // pin DIO9 for IO3
+#define IO3_PIN 3 // pin DIO3 for IO3
 
 #define IO3_FASTPWM _BV(COM2A1) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20) // fast PWM
-#define IO3_PCPWM _BV(COM2A1) | _BV(COM2B1) | _BV(WGM20) // phase correct PWM
+#define IO3_PCORPWM _BV(COM2A1) | _BV(COM2B1) | _BV(WGM20) // phase correct PWM
 
 #define IO3_PRESCALE_1 _BV(CS20) // 0x01, divide by 1
 #define IO3_PRESCALE_8 _BV(CS21) // 0x02, divide by 8
@@ -148,6 +148,17 @@ class PWM16 {
 #define IO3_PRESCALE_128 _BV(CS22) | _BV(CS20) // 0x05, divide by 128
 #define IO3_PRESCALE_256 _BV(CS22) | _BV(CS21) // 0x06, divide by 256
 #define IO3_PRESCALE_1024 _BV(CS22) | _BV(CS21) | _BV(CS20) // 0x07, divide by 1024
+
+class PWM_IO3 {
+  public:
+    void Setup( uint8_t pwm = IO3_FASTPWM, uint8_t prescale = IO3_PRESCALE_1024 );
+    void Out( uint8_t duty );
+  private:
+    uint8_t _prescale;
+    uint8_t _pwm_mode;
+};
+
+// void setupIO3( uint8_t pwm = IO3_FASTPWM, uint8_t prescale = IO3_PRESCALE_1024 );
 
 /*
 PWM Frequencies
@@ -174,9 +185,5 @@ pcor          256                  122.5Hz
 pcor         1024                  30.64Hz
 
 */
-
-void setupIO3( uint8_t pwm = IO3_FASTPWM, uint8_t prescale = IO3_PRESCALE_1024 );
-
-
 
 #endif

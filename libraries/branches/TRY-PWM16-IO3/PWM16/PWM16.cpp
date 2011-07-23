@@ -117,10 +117,19 @@ unsigned int PWM16::GetTOP () {
   return _pwmF;
 }
 
-// -------------------------------------------
-// IO3 PWM setup
-void setupIO3( uint8_t pwm_mode, uint8_t prescale ) {
-	pinMode( IO3_PIN, OUTPUT );
-	TCCR2A = pwm_mode;
-	TCCR2B = prescale;
+// ------------------------------------------- PWM_IO3 methods
+
+// setup timer parameters
+void PWM_IO3::Setup( uint8_t pwm_mode, uint8_t prescale ) {
+  pinMode( IO3_PIN, OUTPUT );
+  _pwm_mode = pwm_mode;
+  _prescale = prescale;
+  TCCR2A = _pwm_mode;
+  TCCR2B = _prescale;  
 }
+
+// output
+void PWM_IO3::Out( uint8_t duty ) {
+  analogWrite( IO3_PIN, duty );
+}
+
