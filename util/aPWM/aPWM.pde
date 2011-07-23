@@ -5,6 +5,8 @@
 // By default, time base is 1 second for OT1 (1Hz)
 // PWM frequency is 490Hz for IO3 (2.04 ms)
 
+// revised 22-July-2011 to allow variable frequency PWM on IO3
+
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
 // Copyright (c) 2011, MLG Properties, LLC
@@ -41,16 +43,17 @@
 #include <cLCD.h>
 #include <PWM16.h>
 
-#define BANNER_PWM "PWM V1.00" // version
+#define BANNER_PWM "PWM V2.00" // version
 #define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1
+//#define TIME_BASE 8191
 #define BAUD 57600  // serial baud rate
-#define IO3 3 // using pin 3 for PWM output
 
 uint8_t anlg1 = 0; // analog input pins
 uint8_t anlg2 = 1;
 int32_t power1 = 0; // power outputs
 int32_t power2 = 0;
 PWM16 output1; // uses 16-bit timer for Ot1 and Ot2
+PWM_IO3 io3; // uses 8-bit timer2 for IO3
 
 // ---------------------------------- LCD interface definition
 #define BACKLIGHT lcd.backlight();
@@ -94,7 +97,7 @@ void readPort2() { // read analog port2 and adjust IO3 output
     power2 = reading;
     Serial.print( "ANLG2," ); Serial.println( power2 );
     float pow = 2.55 * power2; // output values are 0 to 255
-    analogWrite( IO3, round( pow ) );
+    io3.Out( round( pow ) );
     sprintf( pstr, "%3d", (int)power2 );
     lcd.setCursor( 6, 1 );
     lcd.print( pstr ); lcd.print("%");
@@ -114,12 +117,12 @@ void setup()
   lcd.print( BANNER_PWM ); // display version banner
 
 // set up the outputs
-  pinMode( IO3, OUTPUT );
   output1.Setup( TIME_BASE );
+  io3.Setup( IO3_FASTPWM, IO3_PRESCALE_1024 );
   power1 = -50;  // initialize to impossible value to force immediate update
   power2 = -50;
   output1.Out( 0, 0 ); // start with zero output
-  analogWrite( IO3, 0 );
+  io3.Out( 0 );
 
   delay( 3000 ); // display banner for a while
 

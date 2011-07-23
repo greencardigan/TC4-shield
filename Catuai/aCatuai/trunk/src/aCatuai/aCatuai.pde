@@ -46,9 +46,10 @@
 // Revision history
 // May 22, 2011 : Revisions to respond to RESET command from host, aBourbon-style
 //                Added PWM fan control code for IO3
+// July 22, 2011: Revised for compatibility with class PWM_IO3 in the PWM16 library
 
 // -----------------------------------------------------------------------------------------------
-#define BANNER_CAT "Catuai V1.00" // version
+#define BANNER_CAT "Catuai V1.10" // version
 
 // The user.h file contains user-definable compiler options
 // It must be located in the same folder as aCatuai.pde
@@ -72,7 +73,8 @@
 #define ANALOG_IN
 #ifdef ANALOG_IN
 #define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1 (if used)
-#define IO3 3 // using pin 3 for PWM output
+#define PWM_MODE IO3_FASTPWM
+#define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz PWM output for fan
 #endif
 
 // ------------------------ other compile directives
@@ -122,6 +124,7 @@ uint8_t anlg2 = 1;
 int32_t power1 = 0; // power for 1st output (heater)
 int32_t power2 = 0; // power for 2nd output (fan)
 PWM16 output1; // 16-bit timer for SSR output on Ot1 and Ot2
+PWM_IO3 io3; // 8-bit timer for fan control on IO3
 #endif
 
 // LCD output strings
@@ -318,7 +321,7 @@ void readAnlg2() { // read analog port 2 and adjust IO3 output
   if( reading <= 100 && reading != power2 ) { // did it change?
     power2 = reading;
     float pow = 2.55 * power2;  // output values are 0 to 255
-    analogWrite( IO3, round( pow ) );
+    io3.Out( round( pow ) );
     sprintf( pstr, "%3d", (int)power2 );
     lcd.setCursor( 6, 1 );
     lcd.print( pstr ); lcd.print("%");
@@ -495,6 +498,7 @@ void setup()
 
 #ifdef ANALOG_IN
   output1.Setup( TIME_BASE );
+  io3.Setup( PWM_MODE, PWM_PRESCALE );
   power1 = power2 = -50;  // initialize to force display of initial power setting
 #endif
   
