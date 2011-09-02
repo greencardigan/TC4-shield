@@ -12,5 +12,10 @@ that use 8-bit timer0.
 This library uses 16-bit timer1.  When using this library,
 both pins, DIO9 and DIO10 are dedicated for PWM use.
 
+July 22, 2011
+-------------
+Added support for selection of PWM mode and frequency on
+IO3.
+
 
 See PWM16.h for details.
