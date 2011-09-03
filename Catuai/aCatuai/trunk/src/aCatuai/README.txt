@@ -54,3 +54,17 @@ Jim Gallt
 5/23/2011
 
 
+
+Version 1.10
+------------
+More robust error checking when reading EEPROM calibration information.
+
+Uses revised PWM16 library that supports selectable PWM frequency on IO3.  This
+improves performance of DC fans.
+
+Added support for type J and type T thermocouples.  Previous versions supported
+only type K.
+
+
+Jim Gallt
+3-Sept-2011
