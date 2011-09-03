@@ -6,8 +6,45 @@
  *      Copyright (C) 2010 MLG Properties, LLC
  *      All rights reserved.
  *
- *      Version 20100731
  */
+//-------------------------------------------
+// Revision history
+//
+// 20100731  Version 1.00
+// 20110903  Support for calibration block for TC4
+//
+// ------------------------------------------------
+// *** BSD License ***
+// ------------------------------------------------------------------------------------------
+// Copyright (c) 2011, MLG Properties, LLC
+// All rights reserved.
+//
+// Contributor:  Jim Gallt
+//
+// Redistribution and use in source and binary forms, with or without modification, are
+// permitted provided that the following conditions are met:
+//
+//   Redistributions of source code must retain the above copyright notice, this list of
+//   conditions and the following disclaimer.
+//
+//   Redistributions in binary form must reproduce the above copyright notice, this list
+//   of conditions and the following disclaimer in the documentation and/or other materials
+//   provided with the distribution.
+//
+//   Neither the name of the copyright holder nor the names of its contributors may be
+//   used to endorse or promote products derived from this software without specific prior
+//   written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
+// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// ------------------------------------------------------------------------------------------
 
 //#define DEBUG
 
@@ -219,4 +256,11 @@ uint16_t mcEEPROM::write( uint16_t ptr, uint32_t m[] ) {
 	return write( ptr, (uint8_t*)m, sizeof( uint32_t ) );
 }
 
-
+// reads calibration information from EEPROM.  Returns FALSE on error.
+bool readCalBlock( mcEEPROM& eeprm, calBlock& caldata ){
+  // read calibration and identification data from eeprom
+  // this is not real strong error checking, but should be OK in most situations
+  uint16_t len;
+  len = eeprm.read( TC4_CAL_ADDR, (uint8_t*) &caldata, sizeof( caldata) );
+  return( (len == sizeof( caldata )) && (strncmp( "TC4", caldata.PCB, 3 ) == 0 ) );
+}
