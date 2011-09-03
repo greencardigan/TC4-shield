@@ -47,6 +47,8 @@
 // May 22, 2011 : Revisions to respond to RESET command from host, aBourbon-style
 //                Added PWM fan control code for IO3
 // July 22, 2011: Revised for compatibility with class PWM_IO3 in the PWM16 library
+// Sept. 3, 2011: Now uses readCalBlock() from mcEEPROM library for better error checking.
+//                Uses thermocouple.h.  Support for type K, type J, and type T
 
 // -----------------------------------------------------------------------------------------------
 #define BANNER_CAT "Catuai V1.10" // version
@@ -59,7 +61,7 @@
 #include <Wire.h>
 
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
-#include <TypeK.h>
+#include <thermocouple.h>
 #include <cADC.h>
 #include <PWM16.h>
 #include <cLCD.h>
@@ -69,8 +71,6 @@
 #include <cButton.h>
 #endif
 
-// ------ connect a potentiomenter to ANLG1 for manual heater control using Ot1
-#define ANALOG_IN
 #ifdef ANALOG_IN
 #define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1 (if used)
 #define PWM_MODE IO3_FASTPWM
@@ -80,7 +80,6 @@
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
 #define NCHAN 2   // number of TC input channels
-#define TC_TYPE TypeK  // thermocouple type / library
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 #define RESET "RESET" // text string command for resetting the timer
@@ -90,22 +89,11 @@
 // --------------------------------------------------------------
 // global variables
 
-#ifdef EEPROM_CAT // optional code if EEPROM flag is active
-#include <mcEEPROM.h>
 // eeprom calibration data structure
-struct infoBlock {
-  char PCB[40]; // identifying information for the board
-  char version[16];
-  float cal_gain;  // calibration factor of ADC at 50000 uV
-  int16_t cal_offset; // uV, probably small in most cases
-  float T_offset; // temperature offset (Celsius) at 0.0C (type T)
-  float K_offset; // same for type K
-};
-mcEEPROM eeprom;
-infoBlock caldata;
-#endif
+calBlock caldata;
 
 // class objects
+mcEEPROM eeprom;
 cADC adc( A_ADC ); // MCP3424
 ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NCHAN]; // filter for displayed/logged ET, BT
@@ -454,9 +442,8 @@ void setup()
   Serial.begin(BAUD);
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
-#ifdef EEPROM_CAT
-   // read calibration and identification data from eeprom
-  if( eeprom.read( 0, (uint8_t*) &caldata, sizeof( caldata) ) == sizeof( caldata ) ) {
+  // read calibration and identification data from eeprom
+  if( readCalBlock( eeprom, caldata ) ) {
     Serial.println("# EEPROM data read: ");
     Serial.print("# ");
     Serial.print( caldata.PCB); Serial.print("  ");
@@ -476,10 +463,6 @@ void setup()
     adc.setCal( CAL_GAIN, UV_OFFSET );
     amb.setOffset( AMB_OFFSET );
   }   
-#else
-  adc.setCal( CAL_GAIN, UV_OFFSET );
-  amb.setOffset( AMB_OFFSET );
-#endif
 
   // write header to serial port
   Serial.print("# time,ambient,T0,rate0");

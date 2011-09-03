@@ -7,9 +7,16 @@
 // First, load and edit this sketch in the Arduino IDE.
 // Next compile the sketch and upload it to the Arduino.
 
+// select one of the following thermocouple types
+#define TC_TYPE typeK  // thermocouple type / library
+//#define TC_TYPE typeJ
+//#define TC_TYPE typeT
+
+// ------ connect a potentiomenter to ANLG1 for manual heater control using Ot1
+#define ANALOG_IN
+
 // ------------------ optionally, use I2C port expander for LCD interface
 #define LCDAPTER // comment this line out to use the standard parallel LCD 4-bit interface
-#define EEPROM_CAT // comment this line out if no calibration information stored in 64K EEPROM
 //#define CELSIUS // if defined, output is in Celsius units; otherwise Fahrenheit
 
 #define BAUD 57600  // serial baud rate
