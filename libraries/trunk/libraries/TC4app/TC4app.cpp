@@ -11,6 +11,7 @@
 // 20110602  Created
 // 20110618  Added code to allow selection of TCbase.h or thermocouple.h
 //           Fixed a few minor things that were causing compiler warnings
+// 20110903  readCal now uses mcEEPROM routine readCalBlock
 //
 //
 // *** BSD License ***
@@ -128,10 +129,7 @@ void appBase::initRoRFilters( uint8_t f1, uint8_t f2, uint8_t f3, uint8_t f4 ) {
 void appBase::readCal(){
   calBlock caldata;
   // read calibration and identification data from eeprom
-  // this is not real strong error checking, but should be OK in most situations
-  uint16_t len;
-  len = eeprm.read( 0, (uint8_t*) &caldata, sizeof( caldata) );
-  if( (len == sizeof( caldata )) && (strncmp( "TC4", caldata.PCB, 3 ) == 0 ) ) {
+  if( readCalBlock( eeprm, caldata )) {  // mcEEPROM library function
     adc.setCal( caldata.cal_gain, caldata.cal_offset );
     amb.setOffset( caldata.K_offset );
   }
