@@ -57,3 +57,13 @@ Jim Gallt
 5/23/2011
 
 
+Version 2.30
+------------
+Added stronger error checking for reading calibration data from EEPROM.  Added
+support for type J and type T thermocouples.
+
+Jim Gallt
+9/3/2011
+
+
+

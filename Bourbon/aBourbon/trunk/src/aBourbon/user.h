@@ -7,9 +7,13 @@
 // First, load and edit this sketch in the Arduino IDE.
 // Next compile the sketch and upload it to the Arduino.
 
+// thermocouple type / library : choose one
+#define TC_TYPE typeK  
+//#define TC_TYPE typeJ
+//#define TC_TYPE typeT
+
 // ------------------ optionally, use I2C port expander for LCD interface
 #define LCDAPTER // comment this line out to use the standard parallel LCD 4-bit interface
-#define EEPROM_BRBN // comment this line out if no calibration information stored in 64K EEPROM
 //#define CELSIUS // if defined, output is in Celsius units; otherwise Fahrenheit
 
 #define BAUD 57600  // serial baud rate

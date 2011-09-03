@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_BRBN "Bourbon V2.20"
+#define BANNER_BRBN "Bourbon V2.30"
 // Revision history:
 //   20100922: Added support for I2C LCD interface (optional). 
 //             This program now requires use of cLCD library.
@@ -52,6 +52,8 @@
 //   20110408: Added code to read RESET code from serial port
 //   20110522: Eliminated the dummy power field in the output stream.  pBourbon now is smart
 //             enough to not require the dummy field.
+//   20110903: Improved error checking when reading cal block from EEPROM
+//             Added support for typeJ, typeT thermocouples
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -64,9 +66,10 @@
 #include <Wire.h>
 
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
-#include <TypeK.h>
+#include <thermocouple.h>
 #include <cADC.h>
 #include <cLCD.h>
+#include <mcEEPROM.h>
 
 #ifdef LCDAPTER  // implement buttons only if the LCDAPTER option is selected in user.h
 #include <cButton.h>
@@ -75,7 +78,6 @@
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
 #define NCHAN 2   // number of TC input channels
-#define TC_TYPE TypeK  // thermocouple type / library
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 #define RESET "RESET" // text string command for resetting the timer
@@ -85,20 +87,8 @@
 // --------------------------------------------------------------
 // global variables
 
-#ifdef EEPROM_BRBN // optional code if EEPROM flag is active
-#include <mcEEPROM.h>
-// eeprom calibration data structure
-struct infoBlock {
-  char PCB[40]; // identifying information for the board
-  char version[16];
-  float cal_gain;  // calibration factor of ADC at 50000 uV
-  int16_t cal_offset; // uV, probably small in most cases
-  float T_offset; // temperature offset (Celsius) at 0.0C (type T)
-  float K_offset; // same for type K
-};
 mcEEPROM eeprom;
-infoBlock caldata;
-#endif
+calBlock caldata;
 
 // class objects
 cADC adc( A_ADC ); // MCP3424
@@ -386,9 +376,8 @@ void setup()
   Serial.begin(BAUD);
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
-#ifdef EEPROM_BRBN
   // read calibration and identification data from eeprom
-  if( eeprom.read( 0, (uint8_t*) &caldata, sizeof( caldata) ) == sizeof( caldata ) ) {
+  if( readCalBlock( eeprom, caldata ) ) {
     Serial.println("# EEPROM data read: ");
     Serial.print("# ");
     Serial.print( caldata.PCB); Serial.print("  ");
@@ -405,10 +394,6 @@ void setup()
     adc.setCal( CAL_GAIN, UV_OFFSET );
     amb.setOffset( AMB_OFFSET );
   }   
-#else
-  adc.setCal( CAL_GAIN, UV_OFFSET );
-  amb.setOffset( AMB_OFFSET );
-#endif
 
   // write header to serial port
   Serial.print("# time,ambient,T0,rate0");
