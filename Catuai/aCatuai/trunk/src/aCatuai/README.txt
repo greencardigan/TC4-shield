@@ -65,6 +65,8 @@ improves performance of DC fans.
 Added support for type J and type T thermocouples.  Previous versions supported
 only type K.
 
+Redefined buttons for standalone mode.  Left button (STRT) now resets the timer.
+
 
 Jim Gallt
 3-Sept-2011

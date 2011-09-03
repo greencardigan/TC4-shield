@@ -48,7 +48,8 @@
 //                Added PWM fan control code for IO3
 // July 22, 2011: Revised for compatibility with class PWM_IO3 in the PWM16 library
 // Sept. 3, 2011: Now uses readCalBlock() from mcEEPROM library for better error checking.
-//                Uses thermocouple.h.  Support for type K, type J, and type T
+//                Now uses thermocouple.h.  Support for type K, type J, and type T
+//                In standalone mode, STRT button now resets the timer.  LED's not used in standalone.
 
 // -----------------------------------------------------------------------------------------------
 #define BANNER_CAT "Catuai V1.10" // version
@@ -139,6 +140,7 @@ float timestamp = 0;
 boolean first;
 uint32_t nextLoop;
 float reftime; // reference for measuring elapsed time
+boolean standAlone = true; // default is standalone mode
 
 char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
 
@@ -322,24 +324,41 @@ void readAnlg2() { // read analog port 2 and adjust IO3 output
 void checkButtons() { // take action if a button is pressed
   if( buttons.readButtons() ) {
     if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) {// left button = start the roast
-      Serial.print( "# STRT,");
-      Serial.println( timestamp, DP );
-      buttons.ledOn ( 2 ); // turn on leftmost LED when start button is pushed
+      if( standAlone ) { // reset the timer
+        resetTimer();
+      }
+      else {
+        Serial.print( "# STRT,");
+        Serial.println( timestamp, DP );
+        buttons.ledOn ( 2 ); // turn on leftmost LED when start button is pushed
+      }
     }
     else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // 2nd button marks first crack
-      Serial.print( "# FC,");
-      Serial.println( timestamp, DP );
-      buttons.ledOn ( 1 ); // turn on middle LED at first crack
+      if( standAlone ) {
+      }
+      else {
+        Serial.print( "# FC,");
+        Serial.println( timestamp, DP );
+        buttons.ledOn ( 1 ); // turn on middle LED at first crack
+      }
     }
     else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // 3rd button marks second crack
-      Serial.print( "# SC,");
-      Serial.println( timestamp, DP );
-      buttons.ledOn ( 0 ); // turn on rightmost LED at second crack
+      if( standAlone ) {
+      }
+      else {
+        Serial.print( "# SC,");
+        Serial.println( timestamp, DP );
+        buttons.ledOn ( 0 ); // turn on rightmost LED at second crack
+      }
     }
     else if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // 4th button marks eject
-      Serial.print( "# EJCT,");
-      Serial.println( timestamp, DP );
-      buttons.ledAllOff(); // turn off all LED's when beans are ejected
+      if( standAlone ) {
+      }
+      else {
+        Serial.print( "# EJCT,");
+        Serial.println( timestamp, DP );
+        buttons.ledAllOff(); // turn off all LED's when beans are ejected
+      }
     }
   }
 }
@@ -352,14 +371,21 @@ void append( char* str, char c ) { // reinventing the wheel
   str[len+1] = '\0';
 }
 
+// ----------------------------
+void resetTimer() {
+  Serial.print( "# Reset, " ); Serial.println( timestamp ); // write message to log
+  nextLoop = 10 + millis(); // wait 10 ms and force a sample/log cycle
+  reftime = 0.001 * nextLoop; // reset the reference point for timestamp
+  return;
+}
+
 // -------------------------------------
 void processCommand() {  // a newline character has been received, so process the command
   if( ! strcmp( command, RESET ) ) { // RESET command received, so reset the timer
-    Serial.print( "# Reset, " ); Serial.println( timestamp ); // write message to log
-    nextLoop = 10 + millis(); // wait 10 ms and force a sample/log cycle
-    reftime = 0.001 * nextLoop; // reset the reference point for timestamp
-    return;
+    resetTimer();
+    standAlone = false;
   }
+  return;
 }
 
 // -------------------------------------
