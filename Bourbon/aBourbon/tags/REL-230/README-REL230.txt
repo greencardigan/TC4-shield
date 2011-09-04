@@ -1,5 +1,5 @@
-This is release 2.20 of the Bourbon application.
-------------------------------------------------
+Bourbon release notes
+---------------------
 
 This application suite requires an Arduino board and
 TC4 shield.  Most of the testing has been done on
