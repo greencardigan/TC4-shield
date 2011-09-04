@@ -1,5 +1,5 @@
 // Timer1 and timer2 PWM control
-// Version date: July 22, 2011
+// Version date: September 4, 2011
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
@@ -94,20 +94,27 @@
 #ifndef PWM16_h
 #define PWM16_h
 
-#define pwmN128Hz 122    // TOP values for various frequencies
-#define pwmN64Hz  244
-#define pwmN60Hz  260  // approx.; exact = 260.4
-#define pwmN50Hz  313  // approx.; exact = 312.5
-#define pwmN32Hz  488
-#define pwmN30Hz  521  // approx.; exact = 520.8
-#define pwmN16Hz  977
-#define pwmN8Hz   1953
-#define pwmN4Hz   3906
-#define pwmN2Hz   7813
-#define pwmN1Hz   15625
-#define pwmN1sec  15625
-#define pwmN2sec  31250
-#define pwmN4sec  62500
+// values below courtesy of Bhante (BM)
+// TOP values for various frequencies
+// f = 16,000,000 / [ 1024 * ( 1 + TOP ) ] for fast PWM mode
+#define pwmN128Hz 121  // 128.074 Hz
+#define pwmN64Hz 243   // 64.037 Hz
+#define pwmN60Hz 259   // 60.096 Hz
+#define pwmN50Hz 312   // 49.920 Hz (BM)
+#define pwmN32Hz 487   // 32.018 Hz
+#define pwmN30Hz 520   // 29.990 Hz
+#define pwmN25Hz 624   // 25.000 Hz (BM)
+#define pwmN20Hz 780   // 20.006 Hz (BM)
+#define pwmN16Hz 976   // 15.993 Hz (BM)
+#define pwmN10Hz 1562  // 9.9968 Hz (BM)
+#define pwmN8Hz 1952   // 8.0005 Hz
+#define pwmN5Hz 3124   // 5.0000 Hz (BM)
+#define pwmN4Hz 3905   // 4.0003 Hz
+#define pwmN2Hz 7812   // 1.9999 Hz
+#define pwmN1Hz 15624  // 1.0000 Hz
+#define pwmN1sec 15624 // 1.0000 sec
+#define pwmN2sec 31249 // 2.0000 sec
+#define pwmN4sec 62499 // 4.0000 sec
 
 #define pwmOff   0       // zero period effectively turns off timer
 #define pwmDutyMax  100  // maximum duty cycle is 100%
