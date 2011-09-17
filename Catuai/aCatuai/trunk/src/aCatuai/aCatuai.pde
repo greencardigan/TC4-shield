@@ -50,6 +50,7 @@
 // Sept. 3, 2011: Now uses readCalBlock() from mcEEPROM library for better error checking.
 //                Now uses thermocouple.h.  Support for type K, type J, and type T
 //                In standalone mode, STRT button now resets the timer.  LED's not used in standalone.
+// Sept. 17, 2011:Moved io3.Out to main loop
 
 // -----------------------------------------------------------------------------------------------
 #define BANNER_CAT "Catuai V1.10" // version
@@ -73,7 +74,7 @@
 #endif
 
 #ifdef ANALOG_IN
-#define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1 (if used)
+#define TIME_BASE pwmN4Hz // cycle time for PWM output to SSR on Ot1 (if used)
 #define PWM_MODE IO3_FASTPWM
 #define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz PWM output for fan
 #endif
@@ -310,8 +311,8 @@ void readAnlg2() { // read analog port 2 and adjust IO3 output
   reading = getAnalogValue( anlg2 );
   if( reading <= 100 && reading != power2 ) { // did it change?
     power2 = reading;
-    float pow = 2.55 * power2;  // output values are 0 to 255
-    io3.Out( round( pow ) );
+//    float pow = 2.55 * power2;  // output values are 0 to 255
+//    io3.Out( round( pow ) );
     sprintf( pstr, "%3d", (int)power2 );
     lcd.setCursor( 6, 1 );
     lcd.print( pstr ); lcd.print("%");
@@ -545,7 +546,11 @@ void loop() {
   else {
     logger(); // output results to serial port
  #ifdef ANALOG_IN
+ // update output level for ANLG1
     output1.Out( power1, 0 ); // update the power output on the SSR drive Ot1
+ // update output level ofr ANLG2   
+    float pow = 2.55 * power2;  // output values are 0 to 255
+    io3.Out( round( pow ) );   
  #endif
   }
 
