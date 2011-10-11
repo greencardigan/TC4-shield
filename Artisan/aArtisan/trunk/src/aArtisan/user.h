@@ -11,6 +11,10 @@
 #ifndef USER_H
 #define USER_H
 
+#define TC_TYPE typeK // keep only one of these lines, comment out the others
+//#define TC_TYPE typeJ
+//#define TC_TYPE typeT
+
 #define USE_TC4_EEPROM // comment this line out if no calibration information stored in 64K EEPROM
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used

@@ -59,6 +59,8 @@
 // 20110602 Added ACKS_ON to control verbose output
 // 20110608 Various revisions for compatibility with Artisan
 // 20110610 Changed release version to 2.00beta
+// 20111011 Uses the new thermocouple library, supports type K, type J, type T
+//          Uses the new mcEEPROM library (better error checking on EEPROM)
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -77,7 +79,7 @@
 
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <cmndproc.h> // for command interpreter
-#include <TypeK.h>
+#include <thermocouple.h>
 #include <cADC.h> // MCP3424
 #include <PWM16.h> // for SSR output
 #ifdef LCD
@@ -86,21 +88,11 @@
 
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
-#define TC_TYPE TypeK  // thermocouple type / library
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 
 #ifdef USE_TC4_EEPROM
 #include <mcEEPROM.h>
-// eeprom calibration data structure
-struct infoBlock {
-  char PCB[40]; // identifying information for the board
-  char version[16];
-  float cal_gain;  // calibration factor of ADC at 50000 uV
-  int16_t cal_offset; // uV, probably small in most cases
-  float T_offset; // temperature offset (Celsius) at 0.0C (type T)
-  float K_offset; // same for type K
-};
 #endif
 
 float AT; // ambient temp
@@ -282,25 +274,17 @@ void setup()
   Serial.println(freeMemory());
 #endif
 
+  adc.setCal( 1.00, 0.0 );
+  amb.setOffset( 0.0 );
+
 #ifdef USE_TC4_EEPROM
-// read calibration and identification data from eeprom
-// this is not real strong error checking, but should be OK in most situations
-// even when there is no EEPROM on board
-  infoBlock caldata;
+// try to read calibration and identification data from eeprom
+  calBlock caldata;
   mcEEPROM eeprm;
-  uint16_t len;
-  len = eeprm.read( 0, (uint8_t*) &caldata, sizeof( caldata) );
-  if( (len == sizeof( caldata )) && (strncmp( "TC4", caldata.PCB, 3 ) == 0 ) ) {
+  if ( readCalBlock( eeprm, caldata ) ) {
     adc.setCal( caldata.cal_gain, caldata.cal_offset );
     amb.setOffset( caldata.K_offset );
   }
-  else { // if there was a problem with EEPROM read, then use default values
-    adc.setCal( 1.00, 0.0 );
-    amb.setOffset( 0.0 );
-  }
-#else
-  adc.setCal( 1.00, 0.0 );
-  amb.setOffset( 0.0 );
 #endif
 
   // initialize filters on all channels
@@ -327,8 +311,6 @@ void setup()
   ci.addCommand( &io3 );
   ci.addCommand( &ot2 );
   ci.addCommand( &ot1 );
-//  ci.addCommand( &rf2000 );
-//  ci.addCommand( &rc2000 );
   ci.addCommand( &reader );
 
 #ifdef LCD
