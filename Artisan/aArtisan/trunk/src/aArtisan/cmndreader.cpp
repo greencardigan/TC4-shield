@@ -35,6 +35,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
+// Version 1.10
+
 #include "cmndreader.h"
 
 // define command objects (all are derived from CmndBase)
