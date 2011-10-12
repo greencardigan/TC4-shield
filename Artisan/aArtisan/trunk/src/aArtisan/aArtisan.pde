@@ -35,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V2.00beta"
+#define BANNER_ARTISAN "aARTISAN V1.10"
 
 // Revision history:
 // 20110408 Created.
@@ -57,10 +57,9 @@
 // 20110601 Major rewrite to use cmndproc.h library
 //          RF2000 and RC2000 set channel mapping to 1200
 // 20110602 Added ACKS_ON to control verbose output
-// 20110608 Various revisions for compatibility with Artisan
-// 20110610 Changed release version to 2.00beta
-// 20111011 Uses the new thermocouple library, supports type K, type J, type T
-//          Uses the new mcEEPROM library (better error checking on EEPROM)
+// ----------- Version 1.10
+// 20111011 Added support for type J and type T thermocouples
+//          Better error checking on EEPROM reads
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -79,7 +78,7 @@
 
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <cmndproc.h> // for command interpreter
-#include <thermocouple.h>
+#include <thermocouple.h> // type K, type J, and type T thermocouple support
 #include <cADC.h> // MCP3424
 #include <PWM16.h> // for SSR output
 #ifdef LCD
@@ -90,9 +89,12 @@
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
+#define DELIM "; ," // command line parameter delimiters
 
-#ifdef USE_TC4_EEPROM
+#ifdef EEPROM_ARTISAN // optional code if EEPROM flag is active
 #include <mcEEPROM.h>
+mcEEPROM eeprom;
+calBlock caldata;
 #endif
 
 float AT; // ambient temp
@@ -112,8 +114,7 @@ cADC adc( A_ADC ); // MCP3424
 ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NC]; // filter for logged ET, BT
 PWM16 ssr;  // object for SSR output on OT1, OT2
-
-ArtisanInterp ci; // command interpreter object
+CmndInterp ci( DELIM ); // command interpreter object
 
 // ---------------------------------- LCD interface definition
 #ifdef LCD
@@ -274,14 +275,12 @@ void setup()
   Serial.println(freeMemory());
 #endif
 
-  adc.setCal( 1.00, 0.0 );
-  amb.setOffset( 0.0 );
+  adc.setCal( CAL_GAIN, UV_OFFSET );
+  amb.setOffset( AMB_OFFSET );
 
-#ifdef USE_TC4_EEPROM
-// try to read calibration and identification data from eeprom
-  calBlock caldata;
-  mcEEPROM eeprm;
-  if ( readCalBlock( eeprm, caldata ) ) {
+#ifdef EEPROM_ARTISAN
+  // read calibration and identification data from eeprom
+  if( readCalBlock( eeprom, caldata ) ) {
     adc.setCal( caldata.cal_gain, caldata.cal_offset );
     amb.setOffset( caldata.K_offset );
   }
@@ -311,6 +310,8 @@ void setup()
   ci.addCommand( &io3 );
   ci.addCommand( &ot2 );
   ci.addCommand( &ot1 );
+  ci.addCommand( &rf2000 );
+  ci.addCommand( &rc2000 );
   ci.addCommand( &reader );
 
 #ifdef LCD

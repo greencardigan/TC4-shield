@@ -11,11 +11,11 @@
 #ifndef USER_H
 #define USER_H
 
-#define TC_TYPE typeK // keep only one of these lines, comment out the others
+#define TC_TYPE typeK  // use one of these 3 options; comment out the other 2
 //#define TC_TYPE typeJ
 //#define TC_TYPE typeT
 
-#define USE_TC4_EEPROM // comment this line out if no calibration information stored in 64K EEPROM
+#define EEPROM_ARTISAN // comment this line out if no calibration information stored in 64K EEPROM
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
 //#define CELSIUS // controls only the initial conditions
@@ -36,9 +36,8 @@
 // Useful for debugging only -- leave inactive otherwise
 //#define MEMORY_CHK
 
-// CHAN command always returns "# Active ....."  This is used to confirm communication link.
-// This define turns on the "# xxxxxxx\n" acknowledgements after all other commands, except READ
-#define ACKS_ON
+// This turns on the "# xxxxxxx\n" acknowledgements after commands
+//#define ACKS_ON
 
 
 // *************************************************************************************
