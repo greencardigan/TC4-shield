@@ -51,9 +51,12 @@
 //                Now uses thermocouple.h.  Support for type K, type J, and type T
 //                In standalone mode, STRT button now resets the timer.  LED's not used in standalone.
 // Sept. 17, 2011:Moved io3.Out to main loop
+// Oct. 14, 2011 :Try version for support of Quest roaster
+//                Integral cycle control on OT1 for heater
+//                Phase angle control on OT2 for fan
 
 // -----------------------------------------------------------------------------------------------
-#define BANNER_CAT "Catuai V1.10" // version
+#define BANNER_CAT "Catuai M3 beta" // version
 
 // The user.h file contains user-definable compiler options
 // It must be located in the same folder as aCatuai.pde
@@ -65,7 +68,7 @@
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <thermocouple.h>
 #include <cADC.h>
-#include <PWM16.h>
+//#include <PWM16.h>
 #include <cLCD.h>
 #include <mcEEPROM.h>
 
@@ -74,9 +77,9 @@
 #endif
 
 #ifdef ANALOG_IN
-#define TIME_BASE pwmN4Hz // cycle time for PWM output to SSR on Ot1 (if used)
-#define PWM_MODE IO3_FASTPWM
-#define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz PWM output for fan
+//#define TIME_BASE pwmN4Hz // cycle time for PWM output to SSR on Ot1 (if used)
+//#define PWM_MODE IO3_FASTPWM
+//#define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz PWM output for fan
 #endif
 
 // ------------------------ other compile directives
@@ -113,8 +116,8 @@ uint8_t anlg1 = 0; // analog input pins
 uint8_t anlg2 = 1;
 int32_t power1 = 0; // power for 1st output (heater)
 int32_t power2 = 0; // power for 2nd output (fan)
-PWM16 output1; // 16-bit timer for SSR output on Ot1 and Ot2
-PWM_IO3 io3; // 8-bit timer for fan control on IO3
+//PWM16 output1; // 16-bit timer for SSR output on Ot1 and Ot2
+//PWM_IO3 io3; // 8-bit timer for fan control on IO3
 #endif
 
 // LCD output strings

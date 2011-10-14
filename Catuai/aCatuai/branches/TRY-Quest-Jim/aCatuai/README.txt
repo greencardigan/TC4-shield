@@ -70,3 +70,13 @@ Redefined buttons for standalone mode.  Left button (STRT) now resets the timer.
 
 Jim Gallt
 3-Sept-2011
+
+
+
+version try-Quest
+-----------------
+Integral cycle control on OT1 for heater
+Phase angle control on OT2 for fan
+Work in progress
+
+
