@@ -23,7 +23,7 @@ struct infoBlock {
 
 infoBlock infotx = {
   "TC4_SHIELD",
-  "4.00",
+  "5.20",  // edit this field to comply with the version of your TC4 board
   1.000, // gain
   0, // uV offset
   0.0, // type T offset temp
@@ -33,10 +33,10 @@ infoBlock infotx = {
 infoBlock inforx = {
   "",
   "",
-  0.0,
-  0,
-  0.0,
-  0.0
+  -99.0,
+  -99,
+  -99.0,
+  -99.0
 };
 
 mcEEPROM ep;
