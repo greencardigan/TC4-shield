@@ -1,9 +1,13 @@
-// aCatuai.pde
+// aCatuaiQ.pde
 //
 // 2-channel Rise-o-Meter and manual roast controller
 // output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, [power1], [power2]
 // output on LCD : timestamp, power(%), channel 2 temperature
 //                 RoR 1,               channel 1 temperature
+
+// OT1 goes to zero cross SSR for controlling the Quest heater, integral cycle control
+// OT2 goes to random fire SSR for controlling the fan via phase angle control
+// I/O2 connected to external zero cross detector (logic low on zero cross)
 
 // Support for pBourbon.pde and 16 x 2 LCD
 
@@ -44,23 +48,16 @@
 
 // --------------------------------------------------------------------------------------------
 // Revision history
-// May 22, 2011 : Revisions to respond to RESET command from host, aBourbon-style
-//                Added PWM fan control code for IO3
-// July 22, 2011: Revised for compatibility with class PWM_IO3 in the PWM16 library
-// Sept. 3, 2011: Now uses readCalBlock() from mcEEPROM library for better error checking.
-//                Now uses thermocouple.h.  Support for type K, type J, and type T
-//                In standalone mode, STRT button now resets the timer.  LED's not used in standalone.
-// Sept. 17, 2011:Moved io3.Out to main loop
-// Oct. 14, 2011 :Try version for support of Quest roaster
-//                Integral cycle control on OT1 for heater
-//                Phase angle control on OT2 for fan
+// 14-Oct-2011  : Created
 
 // -----------------------------------------------------------------------------------------------
-#define BANNER_CAT "Catuai M3 beta" // version
+#define BANNER_CAT "CatuaiQ 0.00" // version
 
 // The user.h file contains user-definable compiler options
 // It must be located in the same folder as aCatuai.pde
 #include "user.h"
+// code for integral cycle control and phase angle control
+#include "phase_ctrl.h"
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -68,18 +65,11 @@
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <thermocouple.h>
 #include <cADC.h>
-//#include <PWM16.h>
 #include <cLCD.h>
 #include <mcEEPROM.h>
 
 #ifdef LCDAPTER  // implement buttons only if the LCDAPTER option is selected in user.h
 #include <cButton.h>
-#endif
-
-#ifdef ANALOG_IN
-//#define TIME_BASE pwmN4Hz // cycle time for PWM output to SSR on Ot1 (if used)
-//#define PWM_MODE IO3_FASTPWM
-//#define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz PWM output for fan
 #endif
 
 // ------------------------ other compile directives
@@ -116,8 +106,7 @@ uint8_t anlg1 = 0; // analog input pins
 uint8_t anlg2 = 1;
 int32_t power1 = 0; // power for 1st output (heater)
 int32_t power2 = 0; // power for 2nd output (fan)
-//PWM16 output1; // 16-bit timer for SSR output on Ot1 and Ot2
-//PWM_IO3 io3; // 8-bit timer for fan control on IO3
+boolean change_p1, change_p2;
 #endif
 
 // LCD output strings
@@ -295,12 +284,13 @@ int32_t getAnalogValue( uint8_t port ) {
 }
 
 // ---------------------------------
-void readAnlg1() { // read analog port 1 and adjust Ot1 output
+void readAnlg1() { // read analog port 1 and adjust power1
   char pstr[5];
   int32_t reading;
   reading = getAnalogValue( anlg1 );
   if( reading <= 100 && reading != power1 ) { // did it change?
     power1 = reading;
+    change_p1 = true;
     sprintf( pstr, "%3d", (int)power1 );
     lcd.setCursor( 6, 0 );
     lcd.print( pstr ); lcd.print("%");
@@ -308,14 +298,13 @@ void readAnlg1() { // read analog port 1 and adjust Ot1 output
 }
 
 // ---------------------------------
-void readAnlg2() { // read analog port 2 and adjust IO3 output
+void readAnlg2() { // read analog port 2 and adjust power2
   char pstr[5];
   int32_t reading;
   reading = getAnalogValue( anlg2 );
   if( reading <= 100 && reading != power2 ) { // did it change?
     power2 = reading;
-//    float pow = 2.55 * power2;  // output values are 0 to 255
-//    io3.Out( round( pow ) );
+    change_p2 = true;
     sprintf( pstr, "%3d", (int)power2 );
     lcd.setCursor( 6, 1 );
     lcd.print( pstr ); lcd.print("%");
@@ -510,9 +499,12 @@ void setup()
   fRoR[1].init( ROR_FILTER ); // post-filtering on RoR values
 
 #ifdef ANALOG_IN
-  output1.Setup( TIME_BASE );
-  io3.Setup( PWM_MODE, PWM_PRESCALE );
-  power1 = power2 = -50;  // initialize to force display of initial power setting
+  power1 = power2 = 0;
+  change_p1 = true;
+  change_p2 = true;
+  readAnlg1();
+  readAnlg2();
+  init_control();
 #endif
   
   delay( 1800 );
@@ -548,13 +540,18 @@ void loop() {
     first = false;
   else {
     logger(); // output results to serial port
- #ifdef ANALOG_IN
- // update output level for ANLG1
-    output1.Out( power1, 0 ); // update the power output on the SSR drive Ot1
- // update output level ofr ANLG2   
-    float pow = 2.55 * power2;  // output values are 0 to 255
-    io3.Out( round( pow ) );   
- #endif
+#ifdef ANALOG_IN
+ // update output level for ANLG1 (icc control)
+  if( change_p1 ) {
+    output_level_icc( power1 );
+    change_p1 = false;
+  }
+ // update output level ofr ANLG2 (pac control)  
+  if( change_p2 ) {
+    output_level_pac ( power2 );
+    change_p2 = false;
+  }
+#endif
   }
 
   for( int j = 0; j < NCHAN; j++ ) {

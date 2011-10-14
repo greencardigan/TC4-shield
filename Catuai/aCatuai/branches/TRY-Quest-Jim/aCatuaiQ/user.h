@@ -1,7 +1,10 @@
 // user.h
-// This file contains user definable compiler directives
 
-// *************************************************************************************
+#ifndef _user_h_
+#define _user_h_
+
+// This file contains user definable compiler directives for aCatuaiQ
+
 // NOTE TO USERS: the following parameters should be
 // be reviewed to suit your preferences and hardware setup.  
 // First, load and edit this sketch in the Arduino IDE.
@@ -12,10 +15,10 @@
 //#define TC_TYPE typeJ
 //#define TC_TYPE typeT
 
-// ------ connect a potentiomenter to ANLG1 for manual heater control using Ot1
+// define this if you connect a potentiomenter to ANLG1 for manual heater, fan control
 #define ANALOG_IN
 
-// ------------------ optionally, use I2C port expander for LCD interface
+// optionally, use I2C port expander for LCD interface
 #define LCDAPTER // comment this line out to use the standard parallel LCD 4-bit interface
 //#define CELSIUS // if defined, output is in Celsius units; otherwise Fahrenheit
 
@@ -40,5 +43,12 @@
 // ambient sensor should be stable, so quick variations are probably noise -- filter heavily
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings
 
-// *************************************************************************************
+// phase angle control and integral cycle control outputs
+#define OT1 9 // OT1 is on pin D9
+#define OT2 10 // OT2 is on pin D10
+#define OT_PAC OT2 // phase angle control on OT2 (AC fan, usually)
+#define OT_ICC OT1 // integral cycle control on OT1 (AC heater, usually)
+#define EXT_INT 0 // interrupt 0
+#define INT_PIN 2 // pin 2
 
+#endif // _user_h_

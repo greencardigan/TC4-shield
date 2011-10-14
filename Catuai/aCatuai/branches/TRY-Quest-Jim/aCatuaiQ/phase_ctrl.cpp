@@ -1,11 +1,10 @@
 // phase_ctrl.cpp
 //
-// Digital phase angle control on OT1 (SSR drive)
-// Connect 10K pot to ANLG1 to control output
+// Digital phase angle control on OT1 or OT2 (SSR drive)
 // Connect zero cross detector to D2 (logic low indicates zero cross)
-// Connect OT1 to random fire SSR
+// Connect OT1 or OT2 to random fire SSR
 
-// created 2-October-2011
+// created 14-October-2011
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
@@ -39,19 +38,21 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-// pulse width seems to need 4000 min for popper motor control at 100% output
-// use 1000 for heater applications
-#define TRIAC_PULSE_WIDTH 100 // keep the gate current on long enough to trigger
-#define ZC_LEAD 800 // zero cross signal leads the actual crossing by approx 400us
-#define INT_PIN 2 // pin tied to external interrupt
-#define EXT_INT 0 // which external interrup?
+#include "phase_ctrl.h"
 
-
+// for phase angle control
 enum output_state {delaying, pulse_on, disabled};
 volatile output_state triac_state = disabled;
+uint8_t pac_output; // output level, 0 to 100, for phase angle control
+
+// for N:M quantization used by ICC control
+int16_t ratioN; // ICC output level, 0 to 100
+volatile boolean newN = true; // singles that output level has changed
+volatile int16_t curr; // current value in N:M sequence
 
 // lookup table (index = rounded % output, 0 to 100)
 // based on 0.5 uS per count
+// FIXME: put this in PROGMEM
 #ifdef FREQ60
 uint16_t phase_delay[101] = { // 60Hz values based on linearizing power output
 	/* 0      1      2      3      4      5      6     7      8       9 */
@@ -84,6 +85,7 @@ uint16_t phase_delay[101] = { // 50Hz values based on linearizing power output
 };
 #endif
 
+// timer1 is used for both phase delay and for TRIAC pulse width timing
 void setupTimer1() {
   TIMSK1 = 0; // disable all interrupts 
   TCCR1A =  0; // put timer1 in normal mode; output pins under sketch control
@@ -93,13 +95,31 @@ void setupTimer1() {
   TCNT1 = 0; // set the timer to zero
 }
 
-// ------------------------- ISR for zero cross detect
+// ------------------------- ISR for external zero cross detect
 void ISR_ZCD() {
+  // first, handle the phase angle control output
   TCNT1 = 0;  // reset timer1 counter
   triac_state = delaying;
-  digitalWrite( OT1, LOW ); // force output off
+  digitalWrite( OT_PAC, LOW ); // force output off
   // set output compare register A for delay time
-  OCR1A = phase_delay[outpt] + uint16_t(ZC_LEAD);
+  OCR1A = phase_delay[pac_output] + uint16_t(ZC_LEAD);
+  
+  // next, handle the integral cycle control output
+  if( newN ) {
+    curr = -( ratioN + RATIO_M ) / 2; // restart sequence if new output level
+    newN = false;
+  }
+  curr += ratioN;
+  if( curr >= 0 ) {
+    curr -= RATIO_M;
+    digitalWrite( OT_ICC, HIGH );
+  }
+  else
+    digitalWrite( OT_ICC, LOW );
+
+  #ifdef DEBUG_ICC
+  digitalWrite( DEBUG_PIN, state );
+  #endif
 }
 
 // ------------------------ ISR for comparator A match
@@ -107,14 +127,42 @@ ISR( TIMER1_COMPA_vect ) { // this gets called every time there is a match on A
   // if triac output is delaying, then
   if( triac_state == delaying ) {  
     triac_state = pulse_on; // indicate output pulse is active
-    digitalWrite( OT1, HIGH );
+    digitalWrite( OT_PAC, HIGH );
     TCNT1 = 0; // reset timer count
     OCR1A = TRIAC_PULSE_WIDTH; // start counting for pulse
   }
   else if( triac_state == pulse_on ){  // if triac output is on, turn it off because pulse is done
     triac_state = disabled;
-    digitalWrite( OT1, LOW );
+    digitalWrite( OT_PAC, LOW );
     TCNT1 = 0;  // reset timer count
     OCR1A = 0xFFFF; // keep triac output off until next zero cross
   }
 }
+
+// initialize ICC and PAC control
+void init_control() {
+  output_level_icc( 0 );
+  output_level_pac( 0 );
+  pinMode( OT_ICC, OUTPUT );
+  pinMode( OT_PAC, OUTPUT );
+  pinMode( INT_PIN, INPUT ); // enable input on the interrupt pin
+  digitalWrite( INT_PIN, HIGH );  // enable internal pullup on the int pin
+  triac_state = disabled;
+  setupTimer1();
+  attachInterrupt( EXT_INT, ISR_ZCD, FALLING );
+  #ifdef DEBUG_PSKIP
+  pinMode( DEBUG_PIN, OUTPUT ); // debugging code
+  #endif
+}
+
+// call this to set phase angle control output levels, 0 to 100 
+void output_level_pac( uint8_t pac_level ) {
+  pac_output = pac_level;
+}
+
+// call this to set integral cycle control output levels, 0 to 100 
+void output_level_icc( uint8_t icc_level ) {
+  ratioN = icc_level;
+  newN = true;  // tell the interrupt routine to restart sequence
+}
+

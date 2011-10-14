@@ -1,0 +1,73 @@
+// phase_ctrl.h
+//
+// Digital phase angle control on OT1 or OT2 (SSR drive)
+// Connect zero cross detector to D2 (logic low indicates zero cross)
+// Connect OT1 or OT2 to random fire SSR
+//
+// Period skipping (a.k.a. integral cycle control) method of AC
+// control using zero crossing SSR's.  Most suitable for control
+// of resistive loads, like heaters.
+// inspired by post on arduino.cc forum by jwatte on 10-12-2011 -- Thanks!
+
+// created 14-October-2011
+
+// *** BSD License ***
+// ------------------------------------------------------------------------------------------
+// Copyright (c) 2011, MLG Properties, LLC
+// All rights reserved.
+//
+// Contributor:  Jim Gallt
+//
+// Redistribution and use in source and binary forms, with or without modification, are 
+// permitted provided that the following conditions are met:
+//
+//   Redistributions of source code must retain the above copyright notice, this list of 
+//   conditions and the following disclaimer.
+//
+//   Redistributions in binary form must reproduce the above copyright notice, this list 
+//   of conditions and the following disclaimer in the documentation and/or other materials 
+//   provided with the distribution.
+//
+//   Neither the name of the copyright holder nor the names of the contributors may be 
+//   used to endorse or promote products derived from this software without specific prior 
+//   written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS 
+// OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// ------------------------------------------------------------------------------------------
+
+
+#ifndef _phase_ctrl_h
+#define _phase_ctrl_h
+
+#include <WProgram.h>
+#include "timer1defs.h"
+#include "user.h"
+
+// pulse width seems to need 4000 min for popper motor control at 100% output
+// use 1000 for heater applications
+#define TRIAC_PULSE_WIDTH 1000 // keep the gate current on long enough to trigger
+#define ZC_LEAD 800 // zero cross signal leads the actual crossing by approx 400us
+
+// for integral cycle control
+#define RATIO_M 100 // resolution of quantization of output levels
+
+// call when output levels need to change
+void output_level_icc( uint8_t icc_level ); // call this to set output level, 0 to 255 
+void output_level_pac( uint8_t pac_level ); // call this to set output level, 0 to 255 
+
+// call to initialize integral cycle control
+void init_control();
+
+// called at each zero cross by interrupt handler
+void ISR_ZCD();
+
+#endif
+
