@@ -499,11 +499,11 @@ void setup()
   fRoR[1].init( ROR_FILTER ); // post-filtering on RoR values
 
 #ifdef ANALOG_IN
-  power1 = power2 = 0;
-  change_p1 = true;
-  change_p2 = true;
-  readAnlg1();
-  readAnlg2();
+  power1 = power2 = -10; // impossible value will force a display update
+  change_p1 = false;
+  change_p2 = false;
+//  readAnlg1();
+//  readAnlg2();
   init_control();
 #endif
   

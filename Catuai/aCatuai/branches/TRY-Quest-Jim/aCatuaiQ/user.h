@@ -48,7 +48,18 @@
 #define OT2 10 // OT2 is on pin D10
 #define OT_PAC OT2 // phase angle control on OT2 (AC fan, usually)
 #define OT_ICC OT1 // integral cycle control on OT1 (AC heater, usually)
-#define EXT_INT 0 // interrupt 0
-#define INT_PIN 2 // pin 2
+
+// use these if zero cross detector connected to I/O2
+//#define EXT_INT 0 // interrupt 0
+//#define INT_PIN 2 // pin 2
+
+// use these for I/O3
+#define EXT_INT 1 // interrupt 1
+#define INT_PIN 3
+
+#define FREQ60 // 60Hz
+//#define FREQ50 // 50Hz
+#define TRIAC_MOTOR // inductive loads need a longer pulse width to fire at 100%
+//#define TRIAC_HEATER // enable this for resistive loads, like heaters
 
 #endif // _user_h_

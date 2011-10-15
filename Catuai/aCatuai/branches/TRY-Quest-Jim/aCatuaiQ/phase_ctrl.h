@@ -43,7 +43,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-
 #ifndef _phase_ctrl_h
 #define _phase_ctrl_h
 
@@ -51,10 +50,17 @@
 #include "timer1defs.h"
 #include "user.h"
 
-// pulse width seems to need 4000 min for popper motor control at 100% output
-// use 1000 for heater applications
-#define TRIAC_PULSE_WIDTH 1000 // keep the gate current on long enough to trigger
-#define ZC_LEAD 800 // zero cross signal leads the actual crossing by approx 400us
+// define the pulse width for firing TRIAC (phase angle control)
+#define TRIAC_PULSE_WIDTH 1000 // 500 uS default
+#ifdef TRIAC_MOTOR
+ #undef TRIAC_PULSE_WIDTH
+ #define TRIAC_PULSE_WIDTH 4000 // 2000 uS needed for popper motor -- why?
+#else ifdef TRIAC_HEATER
+ #undef TRIAC_PULSE_WIDTH
+ #define TRIAC_PULSE_WIDTH 1000 // 500 uS works for heaters
+#endif
+
+#define ZC_LEAD 1000 // zero cross signal leads the actual crossing by approx 500us
 
 // for integral cycle control
 #define RATIO_M 100 // resolution of quantization of output levels
