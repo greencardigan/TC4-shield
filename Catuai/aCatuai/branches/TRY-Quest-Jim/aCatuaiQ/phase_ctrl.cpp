@@ -46,9 +46,9 @@ volatile output_state triac_state = disabled;
 uint8_t pac_output; // output level, 0 to 100, for phase angle control
 
 // for N:M quantization used by ICC control
-int16_t ratioN; // ICC output level, 0 to 100
+int8_t ratioN; // ICC output level, 0 to 100
 volatile boolean newN = true; // singles that output level has changed
-volatile int16_t curr; // current value in N:M sequence
+volatile int8_t curr; // current value in N:M sequence
 
 // lookup table (index = rounded % output, 0 to 100)
 // based on 0.5 uS per count
@@ -105,21 +105,26 @@ void ISR_ZCD() {
   OCR1A = phase_delay[pac_output] + uint16_t(ZC_LEAD);
   
   // next, handle the integral cycle control output
+  // (inspired by post on arduino.cc forum by jwatte on 10-12-2011 -- Thanks!)
   if( newN ) {
-    curr = -( ratioN + RATIO_M ) / 2; // restart sequence if new output level
+    // restart sequence if new output level    
+    curr = int8_t ( - ( int16_t( int16_t(ratioN) + int16_t(RATIO_M) ) ) / 2 );
     newN = false;
   }
   curr += ratioN;
   if( curr >= 0 ) {
     curr -= RATIO_M;
     digitalWrite( OT_ICC, HIGH );
+    #ifdef DEBUG_ICC
+    digitalWrite( DEBUG_PIN, HIGH );
+    #endif
   }
-  else
+  else {
     digitalWrite( OT_ICC, LOW );
-
-  #ifdef DEBUG_ICC
-  digitalWrite( DEBUG_PIN, state );
-  #endif
+    #ifdef DEBUG_ICC
+    digitalWrite( DEBUG_PIN, LOW );
+    #endif
+  }
 }
 
 // ------------------------ ISR for comparator A match
@@ -150,7 +155,7 @@ void init_control() {
   triac_state = disabled;
   setupTimer1();
   attachInterrupt( EXT_INT, ISR_ZCD, FALLING );
-  #ifdef DEBUG_PSKIP
+  #ifdef DEBUG_ICC
   pinMode( DEBUG_PIN, OUTPUT ); // debugging code
   #endif
 }

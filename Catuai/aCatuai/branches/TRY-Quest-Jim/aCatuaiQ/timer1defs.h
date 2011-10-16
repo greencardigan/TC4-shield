@@ -1,5 +1,4 @@
 // timer1defs.h
-// Copyright (c) 2011 MLG Properties, LLC
 
 #ifndef _timer1defs_h
 #define _timer1defs_h

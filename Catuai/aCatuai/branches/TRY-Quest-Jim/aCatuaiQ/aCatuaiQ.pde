@@ -7,7 +7,7 @@
 
 // OT1 goes to zero cross SSR for controlling the Quest heater, integral cycle control
 // OT2 goes to random fire SSR for controlling the fan via phase angle control
-// I/O2 connected to external zero cross detector (logic low on zero cross)
+// I/O2 or I/O3 connected to external zero cross detector (logic low on zero cross)
 
 // Support for pBourbon.pde and 16 x 2 LCD
 
@@ -49,9 +49,13 @@
 // --------------------------------------------------------------------------------------------
 // Revision history
 // 14-Oct-2011  : Created
+// 15-Oct-2011  : Revised trying to fix lock ups when reading ANLG
 
 // -----------------------------------------------------------------------------------------------
 #define BANNER_CAT "CatuaiQ 0.00" // version
+
+#define ANLG_DELAY delay( 10 ); // delay in ms
+//#define ANLG_DELAY ;
 
 // The user.h file contains user-definable compiler options
 // It must be located in the same folder as aCatuai.pde
@@ -287,6 +291,7 @@ int32_t getAnalogValue( uint8_t port ) {
 void readAnlg1() { // read analog port 1 and adjust power1
   char pstr[5];
   int32_t reading;
+  ANLG_DELAY;
   reading = getAnalogValue( anlg1 );
   if( reading <= 100 && reading != power1 ) { // did it change?
     power1 = reading;
@@ -301,6 +306,7 @@ void readAnlg1() { // read analog port 1 and adjust power1
 void readAnlg2() { // read analog port 2 and adjust power2
   char pstr[5];
   int32_t reading;
+  ANLG_DELAY;
   reading = getAnalogValue( anlg2 );
   if( reading <= 100 && reading != power2 ) { // did it change?
     power2 = reading;

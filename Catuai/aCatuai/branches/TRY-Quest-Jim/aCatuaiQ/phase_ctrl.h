@@ -66,8 +66,8 @@
 #define RATIO_M 100 // resolution of quantization of output levels
 
 // call when output levels need to change
-void output_level_icc( uint8_t icc_level ); // call this to set output level, 0 to 255 
-void output_level_pac( uint8_t pac_level ); // call this to set output level, 0 to 255 
+void output_level_icc( uint8_t icc_level ); // call this to set output level, 0 to 100
+void output_level_pac( uint8_t pac_level ); // call this to set output level, 0 to 100 
 
 // call to initialize integral cycle control
 void init_control();

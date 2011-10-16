@@ -49,6 +49,9 @@
 #define OT_PAC OT2 // phase angle control on OT2 (AC fan, usually)
 #define OT_ICC OT1 // integral cycle control on OT1 (AC heater, usually)
 
+//#define DEBUG_ICC // output on alternate pin for monitoring
+//#define DEBUG_PIN 13
+
 // use these if zero cross detector connected to I/O2
 //#define EXT_INT 0 // interrupt 0
 //#define INT_PIN 2 // pin 2
