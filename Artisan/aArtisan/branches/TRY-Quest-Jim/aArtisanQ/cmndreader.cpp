@@ -241,7 +241,8 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
     uint8_t len = strlen( pars->paramStr(1) );
     if( len > 0 ) {
       levelOT1 = atoi( pars->paramStr(1) );
-      ssr.Out( levelOT1, levelOT2 );
+//      ssr.Out( levelOT1, levelOT2 );
+      output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
       #ifdef ACKS_ON
       Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
       #endif
@@ -267,7 +268,8 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
     uint8_t len = strlen( pars->paramStr(1) );
     if( len > 0 ) {
       levelOT2 = atoi( pars->paramStr(1) );
-      ssr.Out( levelOT1, levelOT2 );
+//      ssr.Out( levelOT1, levelOT2 );
+      output_level_pac( levelOT2 );
       #ifdef ACKS_ON
       Serial.print("# OT2 level set to "); Serial.println( levelOT1 );
       #endif

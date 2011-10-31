@@ -41,9 +41,10 @@
 #define CMNDREADER_H
 
 #include <cmndproc.h>
-#include <PWM16.h>
+//#include <PWM16.h>
 
 #include "user.h"
+#include "phase_ctrl.h"
 
 // ----------------------- commands
 #define READ_CMD "READ" // triggers the TC4 to output current temps on serial line
@@ -84,7 +85,7 @@ extern rc2000Cmnd rc2000;
 extern unitsCmnd units;
 
 // extern declarations for functions, variables in the main program
-extern PWM16 ssr;
+//extern PWM16 ssr;
 extern int levelOT1;
 extern int levelOT2;
 extern void logger();

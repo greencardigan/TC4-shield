@@ -1,7 +1,12 @@
-// aArtisan.pde
+// aArtisanQ.pde
 // ------------
 
 // Written to support the Artisan roasting scope //http://code.google.com/p/artisan/
+
+// This version of aArtisan is specific to Quest roasters or other roasters:
+//   heater is controlled from OT1 using a zero cross SSR (integral pulse control)
+//   AC fan is controlled from OT2 using a random fire SSR (phase angle control)
+//   zero cross detector (true on logic low) is connected to I/O3
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
@@ -35,7 +40,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V1.10"
+#define BANNER_ARTISAN "aArtisanQ V0.xx"
 
 // Revision history:
 // 20110408 Created.
@@ -60,6 +65,8 @@
 // ----------- Version 1.10
 // 20111011 Added support for type J and type T thermocouples
 //          Better error checking on EEPROM reads
+// ----------- aArtsianQ version 0.xx
+// 20111031 Created.
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -76,11 +83,14 @@
 #include "MemoryFree.h"
 #endif
 
+// code for integral cycle control and phase angle control
+#include "phase_ctrl.h"
+
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <cmndproc.h> // for command interpreter
 #include <thermocouple.h> // type K, type J, and type T thermocouple support
 #include <cADC.h> // MCP3424
-#include <PWM16.h> // for SSR output
+//#include <PWM16.h> // for SSR output
 #ifdef LCD
 #include <cLCD.h> // required only if LCD is used
 #endif
@@ -91,11 +101,9 @@
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 #define DELIM "; ," // command line parameter delimiters
 
-#ifdef EEPROM_ARTISAN // optional code if EEPROM flag is active
 #include <mcEEPROM.h>
 mcEEPROM eeprom;
 calBlock caldata;
-#endif
 
 float AT; // ambient temp
 float T[NC];  // final output values referenced to physical channels 0-3
@@ -107,13 +115,15 @@ boolean Cscale = false;
 #endif
 
 int levelOT1, levelOT2;  // parameters to control output levels
-//int levelIO3;
+#ifdef MEMORY_CHK
+uint32_t checktime;
+#endif
 
 // class objects
 cADC adc( A_ADC ); // MCP3424
 ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NC]; // filter for logged ET, BT
-PWM16 ssr;  // object for SSR output on OT1, OT2
+//PWM16 ssr;  // object for SSR output on OT1, OT2
 CmndInterp ci( DELIM ); // command interpreter object
 
 // ---------------------------------- LCD interface definition
@@ -146,7 +156,9 @@ void checkSerial() {
     #endif
     #ifdef MEMORY_CHK
     Serial.print("# freeMemory()=");
-    Serial.println(freeMemory());
+    Serial.print(freeMemory());
+    Serial.print("  ,  ");
+    Serial.println( result );
     #endif
   }
 }
@@ -278,13 +290,15 @@ void setup()
   adc.setCal( CAL_GAIN, UV_OFFSET );
   amb.setOffset( AMB_OFFSET );
 
-#ifdef EEPROM_ARTISAN
   // read calibration and identification data from eeprom
   if( readCalBlock( eeprom, caldata ) ) {
     adc.setCal( caldata.cal_gain, caldata.cal_offset );
     amb.setOffset( caldata.K_offset );
   }
-#endif
+  else { // if there was a problem with EEPROM read, then use default values
+    adc.setCal( CAL_GAIN, UV_OFFSET );
+    amb.setOffset( AMB_OFFSET );
+  }   
 
   // initialize filters on all channels
   fT[0].init( ET_FILTER ); // digital filtering on ET
@@ -292,9 +306,11 @@ void setup()
   fT[2].init( ET_FILTER);
   fT[3].init( ET_FILTER);
   
-  // set up output variables
-  ssr.Setup( TIME_BASE );
+  // set up output on OT1 and OT2
+//  ssr.Setup( TIME_BASE );
   levelOT1 = levelOT2 = 0;
+  init_control();
+
   
   // initialize the active channels to default values
   actv[0] = 1;  // ET on TC1
@@ -313,16 +329,34 @@ void setup()
   ci.addCommand( &rf2000 );
   ci.addCommand( &rc2000 );
   ci.addCommand( &reader );
+  pinMode( LED_PIN, OUTPUT );
 
 #ifdef LCD
   delay( 500 );
   lcd.clear();
+#endif
+#ifdef MEMORY_CHK
+  checktime = millis();
 #endif
 }
 
 // -----------------------------------------------------------------
 void loop()
 {
+  if( ACdetect() ) {
+    digitalWrite( LED_PIN, HIGH );
+  }  
+  else {
+    digitalWrite( LED_PIN, LOW );
+  }
+#ifdef MEMORY_CHK  
+  uint32_t now = millis();
+  if( now - checktime > 1000 ) {
+    Serial.print("# freeMemory()=");
+    Serial.println(freeMemory());
+    checktime = now;
+  }
+#endif
   checkSerial();  // Has a command been received?
   get_samples();
   #ifdef LCD

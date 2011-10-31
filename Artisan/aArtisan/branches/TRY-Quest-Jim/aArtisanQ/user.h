@@ -17,7 +17,6 @@
 //#define TC_TYPE typeJ
 //#define TC_TYPE typeT
 
-#define EEPROM_ARTISAN // comment this line out if no calibration information stored in 64K EEPROM
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
 //#define CELSIUS // controls only the initial conditions
@@ -41,7 +40,24 @@
 // This turns on the "# xxxxxxx\n" acknowledgements after commands
 //#define ACKS_ON
 
+// phase angle control and integral cycle control outputs
+#define OT1 9 // OT1 is on pin D9
+#define OT2 10 // OT2 is on pin D10
+#define OT_PAC OT2 // phase angle control on OT2 (AC fan, usually)
+#define OT_ICC OT1 // integral cycle control on OT1 (AC heater, usually)
+#define LED_PIN 13
 
-// *************************************************************************************
+// use these if zero cross detector connected to I/O2
+//#define EXT_INT 0 // interrupt 0
+//#define INT_PIN 2 // pin 2
+
+// use these for I/O3
+#define EXT_INT 1 // interrupt 1
+#define INT_PIN 3
+
+#define FREQ60 // 60Hz
+//#define FREQ50 // 50Hz
+#define TRIAC_MOTOR // inductive loads need a longer pulse width to fire at 100%
+//#define TRIAC_HEATER // enable this for resistive loads, like heaters
 
 #endif

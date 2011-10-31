@@ -62,6 +62,8 @@
 
 #define ZC_LEAD 1000 // zero cross signal leads the actual crossing by approx 500us
 
+#define AC_TIMEOUT_MS 100 // 0.1 second
+
 // for integral cycle control
 #define RATIO_M 100 // resolution of quantization of output levels
 
@@ -72,8 +74,13 @@ void output_level_pac( uint8_t pac_level ); // call this to set output level, 0 
 // call to initialize integral cycle control
 void init_control();
 
+void setupTimer1();
+
 // called at each zero cross by interrupt handler
 void ISR_ZCD();
+
+// detects the presence of AC
+boolean ACdetect();
 
 #endif
 
