@@ -40,7 +40,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ V0.xx"
+#define BANNER_ARTISAN "aArtisanQ beta1"
 
 // Revision history:
 // 20110408 Created.
@@ -67,6 +67,8 @@
 //          Better error checking on EEPROM reads
 // ----------- aArtsianQ version 0.xx
 // 20111031 Created.
+// ----------- aArtisanQ beta1
+// 20111101 Beta 1 release
 
 // this library included with the arduino distribution
 #include <Wire.h>

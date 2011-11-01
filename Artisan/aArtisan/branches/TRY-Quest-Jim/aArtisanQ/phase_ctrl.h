@@ -1,12 +1,14 @@
 // phase_ctrl.h
 //
-// Digital phase angle control on OT1 or OT2 (SSR drive)
-// Connect zero cross detector to D2 (logic low indicates zero cross)
-// Connect OT1 or OT2 to random fire SSR
+// Digital phase angle control on OT2 (random fire SSR drive)
+// Connect zero cross detector to D3 (logic low indicates zero cross)
+// Connect OT2 to random fire SSR
 //
+// ICC control on OT1.  Connect standard zero cross SSR to OT1.
 // Period skipping (a.k.a. integral cycle control) method of AC
 // control using zero crossing SSR's.  Most suitable for control
 // of resistive loads, like heaters.
+// Uses modified Bresenham algorithm (N in M) for ICC control.
 // inspired by post on arduino.cc forum by jwatte on 10-12-2011 -- Thanks!
 
 // created 14-October-2011

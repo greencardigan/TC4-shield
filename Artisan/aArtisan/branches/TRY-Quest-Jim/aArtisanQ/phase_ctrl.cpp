@@ -1,8 +1,11 @@
 // phase_ctrl.cpp
 //
-// Digital phase angle control on OT1 or OT2 (SSR drive)
-// Connect zero cross detector to D2 (logic low indicates zero cross)
-// Connect OT1 or OT2 to random fire SSR
+// Digital phase angle control on OT2 (SSR drive)
+// Connect zero cross detector to D3 (logic low indicates zero cross)
+// Connect OT2 to random fire SSR for small motor control.
+
+// ICC (modified Bresenham) control on OT1.
+// Connect OT1 to standard SSR.  Suitable for heater control.
 
 // created 14-October-2011
 
