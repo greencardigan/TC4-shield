@@ -1,8 +1,11 @@
 // phase_ctrl.cpp
 //
-// Digital phase angle control on OT1 or OT2 (SSR drive)
-// Connect zero cross detector to D2 (logic low indicates zero cross)
-// Connect OT1 or OT2 to random fire SSR
+// Digital phase angle control on OT2 (SSR drive)
+// Connect zero cross detector to D3 (logic low indicates zero cross)
+// Connect OT2 to random fire SSR for small motor control.
+
+// ICC (modified Bresenham) control on OT1.
+// Connect OT1 to standard SSR.  Suitable for heater control.
 
 // created 14-October-2011
 
@@ -49,6 +52,8 @@ uint8_t pac_output; // output level, 0 to 100, for phase angle control
 int8_t ratioN; // ICC output level, 0 to 100
 volatile boolean newN = true; // singles that output level has changed
 volatile int8_t curr; // current value in N:M sequence
+volatile uint32_t lastCross = 0;  // timer0 value at most recent zero cross
+volatile boolean outputEnable = false;
 
 // lookup table (index = rounded % output, 0 to 100)
 // based on 0.5 uS per count
@@ -97,14 +102,17 @@ void setupTimer1() {
 
 // ------------------------- ISR for external zero cross detect
 void ISR_ZCD() {
-  // first, handle the phase angle control output
   TCNT1 = 0;  // reset timer1 counter
+  // perform AC monitoring
+  lastCross = millis(); // timer0
+  // first, handle the phase angle control output
   triac_state = delaying;
-  digitalWrite( OT_PAC, LOW ); // force output off
+  if( outputEnable )
+    digitalWrite( OT_PAC, LOW ); // force output off
   // set output compare register A for delay time
   OCR1A = phase_delay[pac_output] + uint16_t(ZC_LEAD);
   
-  // next, handle the integral cycle control output
+  // next, handle the integral cycle control output using modified Bresenham's algorithm
   // (inspired by post on arduino.cc forum by jwatte on 10-12-2011 -- Thanks!)
   if( newN ) {
     // restart sequence if new output level    
@@ -114,16 +122,11 @@ void ISR_ZCD() {
   curr += ratioN;
   if( curr >= 0 ) {
     curr -= RATIO_M;
-    digitalWrite( OT_ICC, HIGH );
-    #ifdef DEBUG_ICC
-    digitalWrite( DEBUG_PIN, HIGH );
-    #endif
+    if( outputEnable ) 
+      digitalWrite( OT_ICC, HIGH );
   }
   else {
     digitalWrite( OT_ICC, LOW );
-    #ifdef DEBUG_ICC
-    digitalWrite( DEBUG_PIN, LOW );
-    #endif
   }
 }
 
@@ -132,7 +135,8 @@ ISR( TIMER1_COMPA_vect ) { // this gets called every time there is a match on A
   // if triac output is delaying, then
   if( triac_state == delaying ) {  
     triac_state = pulse_on; // indicate output pulse is active
-    digitalWrite( OT_PAC, HIGH );
+    if( outputEnable )
+      digitalWrite( OT_PAC, HIGH );
     TCNT1 = 0; // reset timer count
     OCR1A = TRIAC_PULSE_WIDTH; // start counting for pulse
   }
@@ -155,19 +159,27 @@ void init_control() {
   triac_state = disabled;
   setupTimer1();
   attachInterrupt( EXT_INT, ISR_ZCD, FALLING );
-  #ifdef DEBUG_ICC
-  pinMode( DEBUG_PIN, OUTPUT ); // debugging code
-  #endif
 }
 
 // call this to set phase angle control output levels, 0 to 100 
 void output_level_pac( uint8_t pac_level ) {
-  pac_output = pac_level;
+  if( pac_level > 100 ) // trap error condition
+    pac_output = 0;
+  else
+    pac_output = pac_level;
 }
 
 // call this to set integral cycle control output levels, 0 to 100 
 void output_level_icc( uint8_t icc_level ) {
-  ratioN = icc_level;
+  if( icc_level > 100 )
+    ratioN = 0;
+  else
+    ratioN = icc_level;
   newN = true;  // tell the interrupt routine to restart sequence
+}
+
+// detects the presence of AC
+boolean ACdetect() {
+  return outputEnable = ! ( ( millis() - lastCross ) > AC_TIMEOUT_MS ) ;
 }
 

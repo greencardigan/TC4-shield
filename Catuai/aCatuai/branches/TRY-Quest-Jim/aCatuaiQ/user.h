@@ -48,6 +48,7 @@
 #define OT2 10 // OT2 is on pin D10
 #define OT_PAC OT2 // phase angle control on OT2 (AC fan, usually)
 #define OT_ICC OT1 // integral cycle control on OT1 (AC heater, usually)
+#define LED_PIN 13
 
 //#define DEBUG_ICC // output on alternate pin for monitoring
 //#define DEBUG_PIN 13

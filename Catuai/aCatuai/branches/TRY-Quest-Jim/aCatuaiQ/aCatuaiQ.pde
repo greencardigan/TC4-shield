@@ -50,9 +50,10 @@
 // Revision history
 // 14-Oct-2011  : Created
 // 15-Oct-2011  : Revised trying to fix lock ups when reading ANLG
+// 02-Nov-2011  : Added watchdog on AC power
 
 // -----------------------------------------------------------------------------------------------
-#define BANNER_CAT "CatuaiQ 0.00" // version
+#define BANNER_CAT "CatuaiQ 0.01" // version
 
 #define ANLG_DELAY delay( 10 ); // delay in ms
 //#define ANLG_DELAY ;
@@ -518,12 +519,22 @@ void setup()
   reftime = 0.001 * nextLoop; // initialize reftime to the time of first sample
   first = true;
   lcd.clear();
+
+  pinMode( LED_PIN, OUTPUT );
 }
 
 // -----------------------------------------------------------------
 void loop() {
   float idletime;
   uint32_t thisLoop;
+
+  // check and see if AC is present
+  if( ACdetect() ) {
+    digitalWrite( LED_PIN, HIGH );
+  }  
+  else {
+    digitalWrite( LED_PIN, LOW );
+  }
 
   // delay loop to force update on even LOOPTIME boundaries
   while ( millis() < nextLoop ) { // delay until time for next loop
