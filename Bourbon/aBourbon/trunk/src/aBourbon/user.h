@@ -37,5 +37,12 @@
 // ambient sensor should be stable, so quick variations are probably noise -- filter heavily
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings
 
+// mapping of logical channels to physical ADC channels
+#define LOGCHAN1 0 // LOGCHAN1 mapped to physical channel 0 on ADC
+#define LOGCHAN2 1
+#define LOGCHAN3 2
+#define LOGCHAN4 3
+
+
 // *************************************************************************************
 

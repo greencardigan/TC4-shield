@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_BRBN "Bourbon V2.30"
+#define BANNER_BRBN "Bourbon V2.31"
 // Revision history:
 //   20100922: Added support for I2C LCD interface (optional). 
 //             This program now requires use of cLCD library.
@@ -54,6 +54,8 @@
 //             enough to not require the dummy field.
 //   20110903: Improved error checking when reading cal block from EEPROM
 //             Added support for typeJ, typeT thermocouples
+//   Version 2.31
+//   20111107  Added channel mapping
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -103,6 +105,16 @@ int32_t ftemps[NCHAN]; // heavily filtered temps
 int32_t ftimes[NCHAN]; // filtered sample timestamps
 int32_t flast[NCHAN]; // for calculating derivative
 int32_t lasttimes[NCHAN]; // for calculating derivative
+
+#if NCHAN == 1
+uint8_t chan_map[NCHAN] = { LOGCHAN1 };
+#elif NCHAN == 2
+uint8_t chan_map[NCHAN] = { LOGCHAN1, LOGCHAN2 };
+#elif NCHAN == 3
+uint8_t chan_map[NCHAN] = { LOGCHAN1, LOGCHAN2, LOGCHAN3 };
+#elif NCHAN == 4
+uint8_t chan_map[NCHAN] = { LOGCHAN1, LOGCHAN2, LOGCHAN3, LOGCHAN4 };
+#endif
 
 // LCD output strings
 char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
@@ -333,7 +345,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   float tempC;
   
   for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
-    adc.nextConversion( j ); // start ADC conversion on channel j
+    adc.nextConversion( chan_map[j] ); // start ADC conversion on channel j
     amb.nextConversion(); // start ambient sensor conversion
     checkStatus( MIN_DELAY ); // give the chips time to perform the conversions
     ftimes[j] = millis(); // record timestamp for RoR calculations
