@@ -8,6 +8,7 @@
 // Connect OT1 to standard SSR.  Suitable for heater control.
 
 // created 14-October-2011
+// modified 21-Nov-2011
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
@@ -41,6 +42,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
+#include <avr/io.h>  // contains timer definitions
 #include "phase_ctrl.h"
 
 // for phase angle control
@@ -50,10 +52,10 @@ uint8_t pac_output; // output level, 0 to 100, for phase angle control
 
 // for N:M quantization used by ICC control
 int8_t ratioN; // ICC output level, 0 to 100
-volatile boolean newN = true; // singles that output level has changed
+volatile boolean newN; // singles that output level has changed
 volatile int8_t curr; // current value in N:M sequence
-volatile uint32_t lastCross = 0;  // timer0 value at most recent zero cross
-volatile boolean outputEnable = false;
+volatile uint32_t lastCross;  // timer0 value at most recent zero cross
+volatile boolean outputEnable;
 
 // lookup table (index = rounded % output, 0 to 100)
 // based on 0.5 uS per count
@@ -94,62 +96,61 @@ uint16_t phase_delay[101] = { // 50Hz values based on linearizing power output
 void setupTimer1() {
   TIMSK1 = 0; // disable all interrupts 
   TCCR1A =  0; // put timer1 in normal mode; output pins under sketch control
-  TCCR1B = _BV(TCCR1B_CS11); // set prescaler to clk/8 (1 count = 0.5 uS)
-  OCR1A = 0xFFFF; // initialize output compare register A to max value
-  TIMSK1 = _BV(TIMSK1_OCIE1A); // enable interrupt on output compare A match
-  TCNT1 = 0; // set the timer to zero
+  TCCR1B = (1 << CS11); // set prescaler to clk/8 (1 count = 0.5 uS)
+  OCR1A = TCNT1; // initialize output compare register A to max value
+  TIMSK1 = (1 << OCIE1A); // enable interrupt on output compare A match
 }
 
 // ------------------------- ISR for external zero cross detect
 void ISR_ZCD() {
-  TCNT1 = 0;  // reset timer1 counter
-  // perform AC monitoring
-  lastCross = millis(); // timer0
-  // first, handle the phase angle control output
+  // set compare register to phase angle delay
+  OCR1A = TCNT1 + phase_delay[pac_output] + uint16_t(ZC_LEAD); 
   triac_state = delaying;
-  if( outputEnable )
-    digitalWrite( OT_PAC, LOW ); // force output off
-  // set output compare register A for delay time
-  OCR1A = phase_delay[pac_output] + uint16_t(ZC_LEAD);
-  
-  // next, handle the integral cycle control output using modified Bresenham's algorithm
+  // always force outputs off at zero crossing
+  digitalWrite( OT_PAC, LOW );
+  digitalWrite( OT_ICC, LOW );
+  // integral cycle control output using modified Bresenham's algorithm
   // (inspired by post on arduino.cc forum by jwatte on 10-12-2011 -- Thanks!)
-  if( newN ) {
-    // restart sequence if new output level    
-    curr = int8_t ( - ( int16_t( int16_t(ratioN) + int16_t(RATIO_M) ) ) / 2 );
+  int8_t c = curr; // this allows use of register variable
+  if( newN ) {  // restart sequence if new output level    
+    int16_t n = ratioN;
+    n += RATIO_M;
+    c = -( n >> 1 );
     newN = false;
   }
-  curr += ratioN;
-  if( curr >= 0 ) {
-    curr -= RATIO_M;
+  c += ratioN;
+  if( c >= 0 ) {
+    c -= RATIO_M;
     if( outputEnable ) 
       digitalWrite( OT_ICC, HIGH );
   }
-  else {
-    digitalWrite( OT_ICC, LOW );
-  }
+  curr = c;
+  lastCross = millis();
 }
 
 // ------------------------ ISR for comparator A match
 ISR( TIMER1_COMPA_vect ) { // this gets called every time there is a match on A
-  // if triac output is delaying, then
+  // if triac output is delaying, then switch on the TRIAC
   if( triac_state == delaying ) {  
     triac_state = pulse_on; // indicate output pulse is active
     if( outputEnable )
       digitalWrite( OT_PAC, HIGH );
-    TCNT1 = 0; // reset timer count
-    OCR1A = TRIAC_PULSE_WIDTH; // start counting for pulse
+    else
+      digitalWrite( OT_PAC, LOW );
+    OCR1A = TCNT1 + TRIAC_PULSE_WIDTH; // start counting for firing pulse
   }
   else if( triac_state == pulse_on ){  // if triac output is on, turn it off because pulse is done
     triac_state = disabled;
     digitalWrite( OT_PAC, LOW );
-    TCNT1 = 0;  // reset timer count
-    OCR1A = 0xFFFF; // keep triac output off until next zero cross
+    OCR1A = TCNT1; // keep triac output off until next zero cross
   }
 }
 
 // initialize ICC and PAC control
 void init_control() {
+  lastCross = 0;
+  outputEnable = false;
+  ratioN = 0;
   output_level_icc( 0 );
   output_level_pac( 0 );
   pinMode( OT_ICC, OUTPUT );
@@ -171,11 +172,14 @@ void output_level_pac( uint8_t pac_level ) {
 
 // call this to set integral cycle control output levels, 0 to 100 
 void output_level_icc( uint8_t icc_level ) {
+  newN = false;
+  if( icc_level == ratioN )
+    return;
   if( icc_level > 100 )
     ratioN = 0;
   else
     ratioN = icc_level;
-  newN = true;  // tell the interrupt routine to restart sequence
+  newN = true;
 }
 
 // detects the presence of AC

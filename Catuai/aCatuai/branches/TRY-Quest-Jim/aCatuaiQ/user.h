@@ -5,17 +5,12 @@
 
 // This file contains user definable compiler directives for aCatuaiQ
 
-// NOTE TO USERS: the following parameters should be
-// be reviewed to suit your preferences and hardware setup.  
-// First, load and edit this sketch in the Arduino IDE.
-// Next compile the sketch and upload it to the Arduino.
-
 // select one of the following thermocouple types
 #define TC_TYPE typeK  // thermocouple type / library
 //#define TC_TYPE typeJ
 //#define TC_TYPE typeT
 
-// define this if you connect a potentiomenter to ANLG1 for manual heater, fan control
+// define this if you connect a potentiomenter to ANLG1 and ANLG2 for manual heater, fan control
 #define ANALOG_IN
 
 // optionally, use I2C port expander for LCD interface

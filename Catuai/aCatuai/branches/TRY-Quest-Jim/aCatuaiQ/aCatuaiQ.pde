@@ -51,9 +51,10 @@
 // 14-Oct-2011  : Created
 // 15-Oct-2011  : Revised trying to fix lock ups when reading ANLG
 // 02-Nov-2011  : Added watchdog on AC power
+// 21-Nov-2011  : Tested successfully on popper P1 fan motor
 
 // -----------------------------------------------------------------------------------------------
-#define BANNER_CAT "CatuaiQ 0.01" // version
+#define BANNER_CAT "CatuaiQ beta1" // version
 
 #define ANLG_DELAY delay( 10 ); // delay in ms
 //#define ANLG_DELAY ;

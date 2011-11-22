@@ -12,6 +12,7 @@
 // inspired by post on arduino.cc forum by jwatte on 10-12-2011 -- Thanks!
 
 // created 14-October-2011
+// revised 20-Nov-2011
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
@@ -49,7 +50,6 @@
 #define _phase_ctrl_h
 
 #include <WProgram.h>
-#include "timer1defs.h"
 #include "user.h"
 
 // define the pulse width for firing TRIAC (phase angle control)
