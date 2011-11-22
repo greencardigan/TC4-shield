@@ -73,10 +73,14 @@ Jim Gallt
 
 
 
-version try-Quest
+aCatuaiQ beta1
 -----------------
-Integral cycle control on OT1 for heater
-Phase angle control on OT2 for fan
-Work in progress
+Integral cycle control on OT1 for heater (typical zero cross SSR)
+Phase angle control on OT2 for fan (random fire SSR)
+
+Tested successfully on P1 motor.  Ready for beta release
+
+Jim Gallt
+22-Nov-2011
 
 
