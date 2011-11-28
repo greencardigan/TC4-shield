@@ -1,4 +1,4 @@
-// aCatuai.pde
+// aCatuai.pde Version 1.10
 //
 // 2-channel Rise-o-Meter and manual roast controller
 // output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, [power1], [power2]
@@ -46,10 +46,15 @@
 // Revision history
 // May 22, 2011 : Revisions to respond to RESET command from host, aBourbon-style
 //                Added PWM fan control code for IO3
+// Version 1.00
+// May 27, 2011 : Customisations by BM: log output to 3 decimal places
+// Jul 11, 2011 : Customisations by BM: LCD output improved
 // July 22, 2011: Revised for compatibility with class PWM_IO3 in the PWM16 library
+// Version 1.10
 // Sept. 3, 2011: Now uses readCalBlock() from mcEEPROM library for better error checking.
 //                Now uses thermocouple.h.  Support for type K, type J, and type T
 //                In standalone mode, STRT button now resets the timer.  LED's not used in standalone.
+// Sept  4, 2011: Customised by BM following version 1.00
 
 // -----------------------------------------------------------------------------------------------
 #define BANNER_CAT "Catuai V1.10" // version
@@ -73,19 +78,27 @@
 #endif
 
 #ifdef ANALOG_IN
-#define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1 (if used)
-#define PWM_MODE IO3_FASTPWM
-#define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz PWM output for fan
+// #define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1 (if used)
+#define TIME_BASE pwmN10Hz // cycle time for PWM output to SSR on Ot1 (if used) // was 10Hz
+// #define PWM_MODE IO3_FASTPWM // Fast PWM mode
+#define PWM_MODE IO3_PCORPWM // Phase Correct PWM mode
+//#define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz PWM on FASTPWM, 30.6 Hz on PCORPWM
+#define PWM_PRESCALE IO3_PRESCALE_8 // 7.8 kHz PWM on FASTPWM, 3.9 kHz on PCORPWM
+// #define PWM_PRESCALE IO3_PRESCALE_32 // 1.9 kHz PWM on FASTPWM, 980 Hz on PCORPWM - try with PCOR for Ulka
+// 61Hz and 30.6 Hz are extremely bad for fan noise
+// 3.9 kHz is OK for fan noise, too fast for Ulka
+// 980 Hz is noisy for fan, lots of harmonics, not very good for Ulka
+
 #endif
 
 // ------------------------ other compile directives
-#define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
-#define NCHAN 2   // number of TC input channels
-#define DP 1  // decimal places for output on serial port
+#define MIN_DELAY 300   // ms between ADC samples (tested OK at 270) // normally 300
+#define NCHAN 2   // number of TC input channels // normally 2
+#define DP 3  // decimal places for output on serial port // BM
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 #define RESET "RESET" // text string command for resetting the timer
 #define MAX_COMMAND 80 // max length of a command string
-#define LOOPTIME 1000 // cycle time, in ms
+#define LOOPTIME 1000 // cycle time, in ms // normally 1000
 
 // --------------------------------------------------------------
 // global variables
@@ -140,7 +153,8 @@ float timestamp = 0;
 boolean first;
 uint32_t nextLoop;
 float reftime; // reference for measuring elapsed time
-boolean standAlone = true; // default is standalone mode
+//boolean standAlone = true; // default is standalone mode
+boolean standAlone = false; // default is standalone mode // changed BM
 
 char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
 
@@ -180,19 +194,25 @@ void logger()
   // print temperature, rate for each channel
   i = 0;
   if( NCHAN >= 1 ) {
-    Serial.print(",");
+    Serial.print(", ");
     Serial.print( t1 = D_MULT*temps[i], DP );
-    Serial.print(",");
+    Serial.print(", ");
     RoR = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
     RoR = fRoR[i].doFilter( RoR /  D_MULT ) * D_MULT; // perform post-filtering on RoR values
     Serial.print( RoR , DP );
     i++;
+    if( NCHAN == 1 ) {   // dummy values for T2 and RoR2 to avoid confusing pBourbon
+      Serial.print(", ");
+      Serial.print( 0.0, 1 );
+      Serial.print(", ");
+      Serial.print( 0.0 , 1 );
+    };
   };
   
   if( NCHAN >= 2 ) {
-    Serial.print(",");
+    Serial.print(", ");
     Serial.print( t2 = D_MULT * temps[i], DP );
-    Serial.print(",");
+    Serial.print(", ");
     rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
     rx = fRoR[i].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
     Serial.print( rx , DP );
@@ -200,9 +220,9 @@ void logger()
   };
   
   if( NCHAN >= 3 ) {
-    Serial.print(",");
+    Serial.print(", ");
     Serial.print( D_MULT * temps[i], DP );
-    Serial.print(",");
+    Serial.print(", ");
     rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
     rx = fRoR[i].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
     Serial.print( rx , DP );
@@ -210,9 +230,9 @@ void logger()
   };
   
   if( NCHAN >= 4 ) {
-    Serial.print(",");
+    Serial.print(", ");
     Serial.print( D_MULT * temps[i], DP );
-    Serial.print(",");
+    Serial.print(", ");
     rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
     rx = fRoR[i].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
     Serial.print( rx , DP );
@@ -232,7 +252,7 @@ void logger()
 };
 
 // --------------------------------------------
-void updateLCD( float t1, float t2, float RoR ) {
+void updateLCD( float t1, float t2, float RoR ) { // displays time, temp, RoR only here
   // form the timer output string in min:sec format
   int itod = round( timestamp );
   if( itod > 3599 ) itod = 3599;
@@ -244,13 +264,24 @@ void updateLCD( float t1, float t2, float RoR ) {
   lcd.print( ssec );
  
   // channel 2 temperature 
-  int it02 = round( t2 );
-  if( it02 > 999 ) it02 = 999;
-  else if( it02 < -999 ) it02 = -999;
-  sprintf( st2, "%3d", it02 );
-  lcd.setCursor( 11, 0 );
-  lcd.print( "E " );
-  lcd.print( st2 ); 
+//  int it02 = round( t2 ); //BM
+//  if( it02 > 999 ) it02 = 999; //BM
+//  else if( it02 < -999 ) it02 = -999; //BM
+//  sprintf( st2, "%3d", it02 ); //BM
+//  lcd.setCursor( 11, 0 ); //BM
+//  lcd.print( "E " ); //BM
+  lcd.setCursor( 13, 0 ); //BM
+  lcd.print( "E:" ); //BM
+//  lcd.print( st2 ); //BM
+  if (t2<100.0) lcd.print(" "); //BM
+  lcd.print(t2,1); //BM
+
+// Alternative form for last 2 lines:
+//  if (t2<100.0) lcd.print(" "); //BM
+//  lcd.print((int)t2); //BM
+//  lcd.print("."); //BM
+//  int it2 = (t2 - (int)t2) * 10; //BM
+//  lcd.print( abs(it2) ); //BM
 
   // channel 1 RoR
   int iRoR = round( RoR );
@@ -260,19 +291,24 @@ void updateLCD( float t1, float t2, float RoR ) {
    if( iRoR < -99 ) iRoR = -99; 
   sprintf( sRoR1, "%0+3d", iRoR );
   lcd.setCursor(0,1);
-  lcd.print( "RT");
+//  lcd.print( "RT"); //BM
+  lcd.print( "RoR"); //BM
   lcd.print( sRoR1 );
 
   // channel 1 temperature
-  int it01 = round( t1 );
+/*  int it01 = round( t1 );
   if( it01 > 999 ) 
     it01 = 999;
   else
     if( it01 < -999 ) it01 = -999;
   sprintf( st1, "%3d", it01 );
   lcd.setCursor( 11, 1 );
-  lcd.print("B ");
-  lcd.print(st1);
+  lcd.print("B "); */ //BM
+  lcd.setCursor( 13, 1 ); //BM
+  lcd.print("B:"); //BM
+//  lcd.print(st1); //BM
+  if (t1<100.0) lcd.print(" "); //BM
+  lcd.print(t1,1); //BM
 }
 
 #ifdef ANALOG_IN
@@ -298,8 +334,10 @@ void readAnlg1() { // read analog port 1 and adjust Ot1 output
   if( reading <= 100 && reading != power1 ) { // did it change?
     power1 = reading;
     sprintf( pstr, "%3d", (int)power1 );
-    lcd.setCursor( 6, 0 );
-    lcd.print( pstr ); lcd.print("%");
+//    lcd.setCursor( 6, 0 ); //BM
+//    lcd.print( pstr ); lcd.print("%"); //BM
+    lcd.setCursor( 7, 0 ); //BM
+    lcd.print("H"); lcd.print( pstr ); lcd.print("%"); //BM
   }
 }
 
@@ -313,8 +351,10 @@ void readAnlg2() { // read analog port 2 and adjust IO3 output
     float pow = 2.55 * power2;  // output values are 0 to 255
     io3.Out( round( pow ) );
     sprintf( pstr, "%3d", (int)power2 );
-    lcd.setCursor( 6, 1 );
-    lcd.print( pstr ); lcd.print("%");
+//    lcd.setCursor( 6, 1 ); //BM
+//    lcd.print( pstr ); lcd.print("%"); //BM
+    lcd.setCursor( 7, 1 ); //BM
+    lcd.print("F"); lcd.print( pstr ); lcd.print("%"); //BM
   }
 }
 #endif
@@ -325,9 +365,11 @@ void checkButtons() { // take action if a button is pressed
   if( buttons.readButtons() ) {
     if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) {// left button = start the roast
       if( standAlone ) { // reset the timer
+        buttons.ledOn ( 2 ); // turn on leftmost LED when start button is pushed
         resetTimer();
       }
       else {
+  
         Serial.print( "# STRT,");
         Serial.println( timestamp, DP );
         buttons.ledOn ( 2 ); // turn on leftmost LED when start button is pushed
@@ -335,8 +377,10 @@ void checkButtons() { // take action if a button is pressed
     }
     else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // 2nd button marks first crack
       if( standAlone ) {
+        buttons.ledOn ( 1 ); // turn on middle LED at first crack
       }
       else {
+
         Serial.print( "# FC,");
         Serial.println( timestamp, DP );
         buttons.ledOn ( 1 ); // turn on middle LED at first crack
@@ -344,8 +388,10 @@ void checkButtons() { // take action if a button is pressed
     }
     else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // 3rd button marks second crack
       if( standAlone ) {
+        buttons.ledOn ( 0 ); // turn on rightmost LED at second crack
       }
       else {
+
         Serial.print( "# SC,");
         Serial.println( timestamp, DP );
         buttons.ledOn ( 0 ); // turn on rightmost LED at second crack
@@ -353,11 +399,14 @@ void checkButtons() { // take action if a button is pressed
     }
     else if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // 4th button marks eject
       if( standAlone ) {
+        buttons.ledAllOff(); // turn off all LED's when beans are ejected
       }
       else {
+
         Serial.print( "# EJCT,");
         Serial.println( timestamp, DP );
         buttons.ledAllOff(); // turn off all LED's when beans are ejected
+//      Do not reset the timer here; if timer is reset here, the graph will fly back to 0 on eject!!
       }
     }
   }
@@ -449,14 +498,15 @@ void setup()
 {
   delay(100);
   Wire.begin(); 
-  lcd.begin(16, 2);
+//  lcd.begin(16, 2);
+  lcd.begin(20, 4); //BM
   BACKLIGHT;
-  lcd.setCursor( 0, 0 );
+  lcd.setCursor( 0, 3 );
   lcd.print( BANNER_CAT ); // display version banner
 #ifdef CELSIUS  // display a C or F after the version to indicate temperature scale
-  lcd.print( "C" );
+  lcd.print( " " ); lcd.print( char(0xDF) ); lcd.print( "C" ); //BM
 #else
-  lcd.print( "F" );
+  lcd.print( " " ); lcd.print( char(0xDF) ); lcd.print( "F" ); //BM
 #endif
   
 #ifdef LCDAPTER
@@ -516,7 +566,12 @@ void setup()
   reftime = 0.001 * nextLoop; // initialize reftime to the time of first sample
   first = true;
   lcd.clear();
+  lcd.setCursor( 0, 3 ); //BM
+  lcd.print( BANNER_CAT ); // display version banner //BM
+//  lcd.print( " Celsius" ); //BM
+  lcd.print( " " ); lcd.print( char(0xDF) ); lcd.print( "C" ); //BM
 }
+// ---------------------------------- End of Setup loop
 
 // -----------------------------------------------------------------
 void loop() {
@@ -543,7 +598,7 @@ void loop() {
   if( first ) // use first samples for RoR base values only
     first = false;
   else {
-    logger(); // output results to serial port
+    logger(); // output results to serial port 
  #ifdef ANALOG_IN
     output1.Out( power1, 0 ); // update the power output on the SSR drive Ot1
  #endif
@@ -556,7 +611,7 @@ void loop() {
 
   idletime = LOOPTIME - ( millis() - thisLoop );
   // arbitrary: complain if we don't have at least 50mS left
-  if (idletime < 50 ) {
+  if (idletime < 20 ) { // BM - original was 50, later used 100; this is saved in the excel data also!
     Serial.print("# idle: ");
     Serial.println(idletime);
   }

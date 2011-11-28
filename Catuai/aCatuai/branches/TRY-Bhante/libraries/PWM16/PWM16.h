@@ -55,6 +55,7 @@
 //    5          0        1        0       1      Fast PWM, 8-bit               0x00FF  255
 //    6          0        1        1       0      Fast PWM, 9-bit               0x01FF  511
 //    7          0        1        1       1      Fast PWM, 10-bit              0x03FF 1023
+//   12          1        1        0       0      CTC (non-PWM)              ICR1
 //   14          1        1        1       0      Fast PWM                      ICR1  
 //   15          1        1        1       1      Fast PWM                      OCR1A
 
@@ -94,20 +95,24 @@
 #ifndef PWM16_h
 #define PWM16_h
 
-#define pwmN128Hz 122    // TOP values for various frequencies
-#define pwmN64Hz  244
-#define pwmN60Hz  260  // approx.; exact = 260.4
-#define pwmN50Hz  313  // approx.; exact = 312.5
-#define pwmN32Hz  488
-#define pwmN30Hz  521  // approx.; exact = 520.8
-#define pwmN16Hz  977
-#define pwmN8Hz   1953
-#define pwmN4Hz   3906
-#define pwmN2Hz   7813
-#define pwmN1Hz   15625
-#define pwmN1sec  15625
-#define pwmN2sec  31250
-#define pwmN4sec  62500
+#define pwmN128Hz 121    // TOP values for various frequencies
+#define pwmN64Hz  243
+#define pwmN60Hz  259  // approx.; exact = 259.4
+#define pwmN50Hz  312  // approx.; exact = 311.5
+#define pwmN32Hz  487
+#define pwmN30Hz  520  // approx.; exact = 519.8
+#define pwmN25Hz  624  // BM
+#define pwmN20Hz  780  // approx.; exact = 780.25 // BM
+#define pwmN16Hz  976
+#define pwmN10Hz  1562  // approx; exact = 1561.5 // BM
+#define pwmN8Hz   1952
+#define pwmN5Hz   3124 // BM
+#define pwmN4Hz   3905
+#define pwmN2Hz   7812
+#define pwmN1Hz   15624
+#define pwmN1sec  15624
+#define pwmN2sec  31249
+#define pwmN4sec  62499
 
 #define pwmOff   0       // zero period effectively turns off timer
 #define pwmDutyMax  100  // maximum duty cycle is 100%
@@ -138,8 +143,13 @@ class PWM16 {
 
 #define IO3_PIN 3 // pin DIO3 for IO3
 
+// BOTTOM to MAX 00 to FF:
 #define IO3_FASTPWM _BV(COM2A1) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20) // fast PWM
 #define IO3_PCORPWM _BV(COM2A1) | _BV(COM2B1) | _BV(WGM20) // phase correct PWM
+
+// BOTTOM to TOP 00 to TOP, setting TOP value in OCR2A:
+#define IO3_FASTPWM_TOP _BV(COM2A0) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20) // fast PWM
+#define IO3_PCORPWM_TOP _BV(COM2A0) | _BV(COM2B1) | _BV(WGM20) // phase correct PWM
 
 #define IO3_PRESCALE_1 _BV(CS20) // 0x01, divide by 1
 #define IO3_PRESCALE_8 _BV(CS21) // 0x02, divide by 8

@@ -17,11 +17,11 @@
 
 // ------------------ optionally, use I2C port expander for LCD interface
 #define LCDAPTER // comment this line out to use the standard parallel LCD 4-bit interface
-//#define CELSIUS // if defined, output is in Celsius units; otherwise Fahrenheit
+#define CELSIUS // if defined, output is in Celsius units; otherwise Fahrenheit
 
 #define BAUD 57600  // serial baud rate
-#define BT_FILTER 10 // filtering level (percent) for displayed BT
-#define ET_FILTER 10 // filtering level (percent) for displayed ET
+#define BT_FILTER 0 // filtering level (percent) for displayed BT - default 10
+#define ET_FILTER 0 // filtering level (percent) for displayed ET - default 10
 
 // use RISE_FILTER to adjust the sensitivity of the RoR calculation
 // higher values will give a smoother RoR trace, but will also create more
@@ -29,8 +29,8 @@
 // or other roasters where BT might be jumpy, then a higher value of RISE_FILTER
 // will be needed.  Theoretical max. is 99%, but watch out for the lag when
 // you get above 95%.
-#define RISE_FILTER 85 // heavy filtering on non-displayed BT for RoR calculations
-#define ROR_FILTER 80 // post-filtering for the computed RoR values
+#define RISE_FILTER 75 // heavy filtering on non-displayed BT for RoR calculations default 85
+#define ROR_FILTER 70 // post-filtering for the computed RoR values - default 80
 
 // default values for systems without calibration values stored in EEPROM
 #define CAL_GAIN 1.00 // you may substitute a known gain adjustment from calibration
@@ -38,7 +38,7 @@
 #define AMB_OFFSET 0.0 // you may substitute a known value for amb temp offset (Celsius)
 
 // ambient sensor should be stable, so quick variations are probably noise -- filter heavily
-#define AMB_FILTER 70 // 70% filtering on ambient sensor readings
+#define AMB_FILTER 5 // 70% filtering on ambient sensor readings - default 70
 
 // *************************************************************************************
 
