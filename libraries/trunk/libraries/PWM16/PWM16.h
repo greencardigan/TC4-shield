@@ -1,5 +1,5 @@
 // Timer1 and timer2 PWM control
-// Version date: September 4, 2011
+// Version date: November 30, 2011
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
@@ -147,6 +147,10 @@ class PWM16 {
 
 #define IO3_FASTPWM _BV(COM2A1) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20) // fast PWM
 #define IO3_PCORPWM _BV(COM2A1) | _BV(COM2B1) | _BV(WGM20) // phase correct PWM
+
+// BOTTOM to TOP 00 to TOP, setting TOP value in OCR2A:
+#define IO3_FASTPWM_TOP _BV(COM2A0) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20) // fast PWM
+#define IO3_PCORPWM_TOP _BV(COM2A0) | _BV(COM2B1) | _BV(WGM20) // phase correct PWM
 
 #define IO3_PRESCALE_1 _BV(CS20) // 0x01, divide by 1
 #define IO3_PRESCALE_8 _BV(CS21) // 0x02, divide by 8
