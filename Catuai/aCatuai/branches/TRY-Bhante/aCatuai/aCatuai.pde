@@ -62,6 +62,9 @@
 // The user.h file contains user-definable compiler options
 // It must be located in the same folder as aCatuai.pde
 #include "user.h"
+#ifdef MEMCHECK
+#include "MemoryFree.h"
+#endif
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -161,6 +164,15 @@ char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
 // declaration needed to maintain compatibility with Eclipse/WinAVR/gcc
 void updateLCD( float t1, float t2, float RoR );
 
+#ifdef MEMCHECK
+void displayRAM() {
+  lcd.setCursor( 0,2 );
+  lcd.print("RAM =              ");
+  lcd.setCursor( 6,2 );
+  lcd.print( freeMemory(), DEC );
+}
+#endif
+
 // T1, T2 = temperatures x 1000
 // t1, t2 = time marks, milliseconds
 // ---------------------------------------------------
@@ -253,9 +265,13 @@ void logger()
 
 // --------------------------------------------
 void updateLCD( float t1, float t2, float RoR ) { // displays time, temp, RoR only here
-  // form the timer output string in min:sec format
-  int itod = round( timestamp );
-  if( itod > 3599 ) itod = 3599;
+//  int itod = round( timestamp );
+//  if( itod > 3599 ) itod = 3599;
+  int itod;
+  if( timestamp > 3599 )
+    itod = 3599;
+  else
+    itod = round( timestamp );
   sprintf( smin, "%02u", itod / 60 );
   sprintf( ssec, "%02u", itod % 60 );
   lcd.setCursor(0,0);
@@ -489,6 +505,9 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
     temps[j] = fT[j].doFilter( v ); // apply digital filtering for display/logging
     ftemps[j] =fRise[j].doFilter( v ); // heavier filtering for RoR
   }
+#ifdef MEMCHECK
+  displayRAM();
+#endif
 };
   
 // ------------------------------------------------------------------------
@@ -570,6 +589,9 @@ void setup()
   lcd.print( BANNER_CAT ); // display version banner //BM
 //  lcd.print( " Celsius" ); //BM
   lcd.print( " " ); lcd.print( char(0xDF) ); lcd.print( "C" ); //BM
+#ifdef MEMCHECK
+  displayRAM();
+#endif
 }
 // ---------------------------------- End of Setup loop
 
@@ -615,7 +637,9 @@ void loop() {
     Serial.print("# idle: ");
     Serial.println(idletime);
   }
-
+#ifdef MEMCHECK
+  displayRAM();
+#endif
   nextLoop += LOOPTIME; // time mark for start of next update 
 }
 

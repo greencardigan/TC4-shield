@@ -51,6 +51,7 @@
 //                Now uses thermocouple.h.  Support for type K, type J, and type T
 //                In standalone mode, STRT button now resets the timer.  LED's not used in standalone.
 // Sept. 17, 2011:Moved io3.Out to main loop
+// Dec. 2, 2011  :Fixed overflow of itod for large timestamp values
 
 // -----------------------------------------------------------------------------------------------
 #define BANNER_CAT "Catuai V1.10" // version
@@ -235,8 +236,11 @@ void logger()
 // --------------------------------------------
 void updateLCD( float t1, float t2, float RoR ) {
   // form the timer output string in min:sec format
-  int itod = round( timestamp );
-  if( itod > 3599 ) itod = 3599;
+  int itod;
+  if( timestamp > 3599 )
+    itod = 3599;
+  else
+    itod = round( timestamp );
   sprintf( smin, "%02u", itod / 60 );
   sprintf( ssec, "%02u", itod % 60 );
   lcd.setCursor(0,0);

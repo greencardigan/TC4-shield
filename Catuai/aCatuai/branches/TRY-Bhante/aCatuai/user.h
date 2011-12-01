@@ -1,6 +1,8 @@
 // user.h
 // This file contains user definable compiler directives
 
+#define MEMCHECK // flag to enable checking available RAM
+
 // *************************************************************************************
 // NOTE TO USERS: the following parameters should be
 // be reviewed to suit your preferences and hardware setup.  
