@@ -10,9 +10,9 @@
 #define CHAN 1 // use TC2
 #define CALPT 200.0
 #define TEMP_OFFS -0.0
-#define GAIN_CAL 1.000
+#define GAIN_CAL 1.00
 #define AMB_FILT 90
-#define ADC_FILT 75
+#define ADC_FILT 50
 
 //#define REFINED
 #define ADC_BITS ADC_BITS_18
@@ -31,6 +31,7 @@ long i = 0;
 int dly;
 
 void setup() {
+  delay(1000);
   Serial.begin(57600);
   Wire.begin();
   lcd.begin(16, 2);
