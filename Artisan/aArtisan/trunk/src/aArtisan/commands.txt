@@ -26,8 +26,9 @@ No response from TC4 device.
 READ
 ------
 Requests current temperature readings on all active channels. 
-Response from TC4 device is comma separated list of decimal 
-temperatures in logical channel order: chan1, chan2, chan3, chan4.
+Response from TC4 device is ambient temperature followed by a 
+comma separated list of temperatures in current active units
+in logical channel order: ambient,chan1,chan2,chan3,chan4
 
 OT1,duty
 -------
