@@ -24,10 +24,10 @@ struct infoBlock {
 infoBlock infotx = {
   "TC4C_CONTROLLER",
   "1.10",  // edit this field to comply with the version of your TC4 board
-  1.000, // gain
+  1.00, // gain
   0, // uV offset
-  0.0, // type T offset temp
-  0.0 // type K offset temp
+  -0.0, // type T offset temp
+  -0.0 // type K offset temp
 };
 
 infoBlock inforx = {
