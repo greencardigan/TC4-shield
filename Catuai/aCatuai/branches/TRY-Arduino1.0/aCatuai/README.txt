@@ -74,6 +74,11 @@ Jim Gallt
 Version 2.00
 ------------
 Arduino 1.0 compatibility
+Supports mapping physical input channels to logical channels
+Allows serial commands to be terminated by LF or CR-LF.
+Serial commands no longer case sensitive.
+Longer startup delay (500ms) to avoid stuttering at start.
+
 
 Jim Gallt
 26-Jan-2012

@@ -68,6 +68,14 @@ Jim Gallt
 version 3.00
 ------------
 Arduino 1.0 compatibility
+Allows termination of strings from serial to be either LF, or CR-LF.
+Reset command is not case-sensitive
+Supports mapping of the physical input channels to logical channels
+Fixed overflow problem which shows up in timer after 9 hours
+Different button behavior in standalone mode (left button press resets timer)
+Prints note on serial and LCD if EEPROM values are missing.
+Longer startup delay (500ms) to avoid stuttering starts
+
 
 Jim Gallt
 1/26/2012
