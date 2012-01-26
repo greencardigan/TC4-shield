@@ -5,14 +5,30 @@
 // derived from LiquidCrystal library (arduino-0018, public domain)
 // derived from PortsLCD library (JeeLabs, MIT license)
 
+// Revision history:
+//  20120126: Arduino 1.0 compatibility
+//  (thanks and acknowledgement to Arnaud Kodeck for his code contributions).
+
 #include "cLCD.h"
 #include "MCP23017.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include <WProgram.h>
+
+//#if defined(ARDUINO) && ARDUINO >= 100
+//#include <Arduino.h>
+//#else
+//#include <WProgram.h>
+//#endif
+
 #include <Wire.h>
+
+#if defined(ARDUINO) && ARDUINO >= 100
+#define _WRITE write
+#else
+#define _WRITE send
+#endif
 
 
 // ---------------------------------------------- LCDbase
@@ -187,9 +203,16 @@ inline void LCDbase::command(uint8_t value) {
   send(value, LOW);
 }
 
+#if defined(ARDUINO) && ARDUINO >= 100
+inline size_t LCDbase::write(uint8_t value) {
+  send(value, HIGH);
+  return 0;
+}
+#else
 inline void LCDbase::write(uint8_t value) {
   send(value, HIGH);
 }
+#endif
 
 
 // -------------------------------------------------- Liquid Crystal
@@ -336,16 +359,16 @@ cLCD::cLCD( uint8_t addr ) {
 
 void cLCD::backlight() {
   Wire.beginTransmission( PEaddr );
-  Wire.send( GPIOA );
-  Wire.send( BKLTPIN );
+  Wire._WRITE( GPIOA );
+  Wire._WRITE( BKLTPIN );
   Wire.endTransmission();
   bklight = BKLTPIN;
 }
 
 void cLCD::noBacklight() {
   Wire.beginTransmission( PEaddr );
-  Wire.send( GPIOA );
-  Wire.send( 0 );
+  Wire._WRITE( GPIOA );
+  Wire._WRITE( (uint8_t)0 );
   Wire.endTransmission();
   bklight = 0;
 }
@@ -353,20 +376,20 @@ void cLCD::noBacklight() {
 void cLCD::config() {
   // configure the port expander
   Wire.beginTransmission( PEaddr );
-  Wire.send( IOCONZ );  // valid command only if BANK = 0, which is true upon reset
-  Wire.send( BANK ); // set BANK = 1 if it had been 0 (nothing happens if BANK = 1 already)
+  Wire._WRITE( IOCONZ );  // valid command only if BANK = 0, which is true upon reset
+  Wire._WRITE( BANK ); // set BANK = 1 if it had been 0 (nothing happens if BANK = 1 already)
   Wire.endTransmission();
 
   // now, send our IO control byte with assurance BANK = 1
   Wire.beginTransmission( PEaddr );
-  Wire.send( IOCON );
-  Wire.send( BANK | SEQOP | DISSLW ); //  banked operation, non-sequential addressing
+  Wire._WRITE( IOCON );
+  Wire._WRITE( BANK | SEQOP | DISSLW ); //  banked operation, non-sequential addressing
   Wire.endTransmission();
 
   // now, set up port A pins for output
   Wire.beginTransmission( PEaddr );
-  Wire.send( IODIRA );
-  Wire.send( 0 ); // configure all A pins for output
+  Wire._WRITE( IODIRA );
+  Wire._WRITE( (uint8_t)0 ); // configure all A pins for output
   Wire.endTransmission();
 
   noBacklight();
@@ -386,10 +409,13 @@ void cLCD::send( uint8_t b, uint8_t mode ) {
 void cLCD::write4bits( uint8_t b ){
   b |= bklight; // maintain backlight state
   Wire.beginTransmission( PEaddr );
-  Wire.send( GPIOA );
+  Wire._WRITE( GPIOA );
   // pulse the enable pin
-  Wire.send( b );
-  Wire.send( b | ENPIN );
-  Wire.send( b );
+  Wire._WRITE( b );
+  Wire._WRITE( b | ENPIN );
+  Wire._WRITE( b );
   Wire.endTransmission();
 }
+
+#undef _WRITE
+

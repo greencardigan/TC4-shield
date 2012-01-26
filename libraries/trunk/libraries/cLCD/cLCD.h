@@ -5,10 +5,19 @@
 // derived from LiquidCrystal library (arduino-0018, public domain)
 // derived from PortsLCD library (JeeLabs, MIT license)
 
+// Revision history:
+//   20120126: Arduino 1.0 compatibility
+//     (thanks and acknowledgement to Arnaud Kodeck for his code contributions).
+
 #ifndef cLCD_h
 #define cLCD_h
 
+#if defined(ARDUINO) && ARDUINO >= 100
+#include <Arduino.h>
+#else
 #include <WProgram.h>
+#endif
+
 #include <inttypes.h>
 #include <Print.h>
 #include "MCP23017.h"
@@ -73,7 +82,13 @@ public:
 
 	void createChar(uint8_t, uint8_t[]);
 	void setCursor(uint8_t, uint8_t);
-	virtual void write(uint8_t);
+
+#if defined(ARDUINO) && ARDUINO >= 100
+  virtual size_t write(uint8_t);
+#else
+  virtual void write(uint8_t);
+#endif
+
 	void command(uint8_t);
       virtual void backlight(){}
       virtual void noBacklight(){}

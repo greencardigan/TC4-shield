@@ -1,10 +1,17 @@
 // MCP23017.h
 // definitions ofr MCP23017 port expander
 
+// Revision history:
+//  20120126: Arduino 1.0 compatibility
+
 #ifndef MCP23017_h
 #define MCP23017_h
 
+#if defined(ARDUINO) && ARDUINO >= 100
+#include <Arduino.h>
+#else
 #include <WProgram.h>
+#endif
 
 // control register bits
 #define BANK (uint8_t)B10000000 // bank = 1, 8 bit operation
