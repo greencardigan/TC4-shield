@@ -1,5 +1,5 @@
 // cADC library
-// Version date: 9-June-2011
+
 // interface with MCP3424 18-bit ADC
 
 // *** BSD License ***
@@ -37,13 +37,22 @@
 // Acknowledgement is given to Bill Welch for his development of the prototype hardware and software 
 // upon which much of this library is based.
  
-// 20110609  Revisions to cADC for greater control over mode selection
+// Revision history:
+//  Original version date: 9-June-2011
+//  20110609  Revisions to cADC for greater control over mode selection
+//  20120126:  Compatibility with Arduino 1.0
+//    (thanks and acknowledgement to Arnaud Kodeck for his code contributions).
 
 #ifndef _cADC_H
 #define _cADC_H
 
 #include <Wire.h>
+
+#if defined(ARDUINO) && ARDUINO >= 100
+#include <Arduino.h>
+#else
 #include <WProgram.h>
+#endif
 
 // -------------------------------------------------------------------
 // class for digital filtering of raw signals

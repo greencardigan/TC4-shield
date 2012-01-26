@@ -38,8 +38,18 @@
 // upon which much of this library is based.
 
 // 20110609  Significant revision for flexibility in selecting modes of operation
+// 20120126  Arduino 1.0 compatibility
+//  (thanks and acknowledgement to Arnaud Kodeck for his code contributions).
 
 #include "cADC.h"
+
+#if defined(ARDUINO) && ARDUINO >= 100
+#define _READ read
+#define _WRITE write
+#else
+#define _READ receive
+#define _WRITE send
+#endif
 
 // --------------------------------------------------- dFilterRC
 filterRC::filterRC() {
@@ -119,9 +129,9 @@ int32_t cADC::readuV() {
   // resolution determines number of bytes requested
   if( ( cfg & ADC_RES_MASK ) == ADC_BITS_18 ) { // 3 data bytes
     Wire.requestFrom( a_adc, (uint8_t) 4 );
-    uint8_t a = Wire.receive(); // first data byte
-    uint8_t b = Wire.receive(); // second data byte
-    uint8_t c = Wire.receive(); // 3rd data byte
+    uint8_t a = Wire._READ(); // first data byte
+    uint8_t b = Wire._READ(); // second data byte
+    uint8_t c = Wire._READ(); // 3rd data byte
     v = a;
     v <<= 24; // v = a : 0 : 0 : 0
     v >>= 16; // v = s : s : a : 0
@@ -131,14 +141,14 @@ int32_t cADC::readuV() {
   }
   else { // 2 data bytes
     Wire.requestFrom( a_adc, (uint8_t) 3 );
-    uint8_t a = Wire.receive(); // first data byte
-    uint8_t b = Wire.receive(); // second data byte
+    uint8_t a = Wire._READ(); // first data byte
+    uint8_t b = Wire._READ(); // second data byte
     v = a;
     v <<= 24; // v = a : 0 : 0 : 0
     v >>= 16; // v = s : s : a : 0
     v |= b; //   v = s : s : a : b
   }
-  uint8_t stat = Wire.receive(); // read the status byte returned from the ADC
+  uint8_t stat = Wire._READ(); // read the status byte returned from the ADC
   v *= 1000;  // convert to uV.  This cannot overflow ( 10 bits + 18 bits < 31 bits )
   // bit shift count for ADC gain
   uint8_t gn = stat & ADC_GAIN_MASK;
@@ -152,7 +162,7 @@ int32_t cADC::readuV() {
 // -------------------------------------
 void cADC::nextConversion( uint8_t chan ) {
   Wire.beginTransmission( a_adc );
-  Wire.send( cfg | ( ( chan & B00000011 ) << ADC_C0 ) );
+  Wire._WRITE( cfg | ( ( chan & B00000011 ) << ADC_C0 ) );
   Wire.endTransmission();
 };
 
@@ -197,8 +207,8 @@ uint16_t ambSensor::getConvTime() {
 // puts the 9800 in shutdown.  Required for one-shot mode
 void ambSensor::ambShutdown() {
   Wire.beginTransmission( a_amb );
-  Wire.send( AMB_REGSEL_CFG ); // point to config reg
-  Wire.send( (uint8_t)AMB_SHUTDOWN );
+  Wire._WRITE( AMB_REGSEL_CFG ); // point to config reg
+  Wire._WRITE( (uint8_t)AMB_SHUTDOWN );
   Wire.endTransmission();
   // delay needed here?
 }
@@ -214,8 +224,8 @@ void ambSensor::init( int fpercent, uint8_t cmode ) {
 // -----------------------------------------
 void ambSensor::nextConversion() {
   Wire.beginTransmission( a_amb );
-  Wire.send( AMB_REGSEL_CFG ); // configuration register
-  Wire.send( cfg ); // request a conversion
+  Wire._WRITE( (uint8_t)AMB_REGSEL_CFG ); // configuration register
+  Wire._WRITE( cfg ); // request a conversion
   Wire.endTransmission();
 }
 
@@ -223,11 +233,11 @@ void ambSensor::nextConversion() {
 int32_t ambSensor::readSensor() {
   uint8_t a, b;
   Wire.beginTransmission( a_amb );
-  Wire.send( AMB_REGSEL_TMP ); // point to temperature reg.
+  Wire._WRITE( (uint8_t)AMB_REGSEL_TMP ); // point to temperature reg.
   Wire.endTransmission();
   Wire.requestFrom( a_amb, (uint8_t)2 );
-  a = Wire.receive();
-  b = Wire.receive();
+  a = Wire._READ();
+  b = Wire._READ();
   raw = a;     //  0 : 0 : 0 : a
   raw <<= 24;   // a : 0 : 0 : 0
   raw >>= 16;  //  s : s : a : 0
@@ -260,4 +270,7 @@ float ambSensor::getOffset() {
 void ambSensor::setOffset( float tempC ) {
  temp_offset = tempC;
 };
+
+#undef _READ
+#undef _WRITE
 
