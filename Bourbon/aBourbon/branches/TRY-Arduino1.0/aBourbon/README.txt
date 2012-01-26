@@ -65,5 +65,13 @@ support for type J and type T thermocouples.
 Jim Gallt
 9/3/2011
 
+version 3.00
+------------
+Arduino 1.0 compatibility
+
+Jim Gallt
+1/26/2012
+
+
 
 

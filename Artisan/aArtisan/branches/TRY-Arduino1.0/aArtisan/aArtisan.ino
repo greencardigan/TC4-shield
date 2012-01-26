@@ -1,4 +1,4 @@
-// aArtisan.pde
+// aArtisan.ino
 // ------------
 
 // Written to support the Artisan roasting scope //http://code.google.com/p/artisan/
@@ -60,6 +60,8 @@
 // ----------- Version 1.10
 // 20111011 Added support for type J and type T thermocouples
 //          Better error checking on EEPROM reads
+// ----------- Version 2.00 (for Arduino 1.0)
+// 20120126 Created .ino source file.
 
 // this library included with the arduino distribution
 #include <Wire.h>

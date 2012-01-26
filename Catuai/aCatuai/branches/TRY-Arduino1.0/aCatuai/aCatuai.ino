@@ -1,4 +1,4 @@
-// aCatuai.pde
+// aCatuai.ino
 //
 // 2-channel Rise-o-Meter and manual roast controller
 // output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2, [power1], [power2]
@@ -52,9 +52,12 @@
 //                In standalone mode, STRT button now resets the timer.  LED's not used in standalone.
 // Sept. 17, 2011:Moved io3.Out to main loop
 // Dec. 2, 2011  :Fixed overflow of itod for large timestamp values
+// Jan. 26, 2012 : Arduino 1.0 compatibility
+//                 More robust handling of CR-LF pairs from serial port
+//                 Added channel mapping
 
 // -----------------------------------------------------------------------------------------------
-#define BANNER_CAT "Catuai V1.10" // version
+#define BANNER_CAT "Catuai V2.00" // version
 
 // The user.h file contains user-definable compiler options
 // It must be located in the same folder as aCatuai.pde
@@ -108,6 +111,16 @@ int32_t ftemps[NCHAN]; // heavily filtered temps
 int32_t ftimes[NCHAN]; // filtered sample timestamps
 int32_t flast[NCHAN]; // for calculating derivative
 int32_t lasttimes[NCHAN]; // for calculating derivative
+
+#if NCHAN == 1
+uint8_t chan_map[NCHAN] = { LOGCHAN1 };
+#elif NCHAN == 2
+uint8_t chan_map[NCHAN] = { LOGCHAN1, LOGCHAN2 };
+#elif NCHAN == 3
+uint8_t chan_map[NCHAN] = { LOGCHAN1, LOGCHAN2, LOGCHAN3 };
+#elif NCHAN == 4
+uint8_t chan_map[NCHAN] = { LOGCHAN1, LOGCHAN2, LOGCHAN3, LOGCHAN4 };
+#endif
 
 #ifdef ANALOG_IN
 uint8_t anlg1 = 0; // analog input pins
@@ -228,8 +241,8 @@ void logger()
   Serial.print( "," );
   Serial.print( power2 );
 #endif
-  Serial.println();
 
+  Serial.println();
   updateLCD( t1, t2, RoR );  
 };
 
@@ -402,8 +415,8 @@ void checkSerial() {  // buffer the input from the serial port
       processCommand();
       strcpy( command, "" ); // empty the buffer
     } // end if
-    else {
-      append( command, c );
+    else if( c != '\r' ) { // ignore CR for compatibility with CR-LF pairs
+      append( command, toupper(c) );
     } // end else
   } // end while
 }
@@ -430,7 +443,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   float tempC;
   
   for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
-    adc.nextConversion( j ); // start ADC conversion on channel j
+    adc.nextConversion( chan_map[j] ); // start ADC conversion on channel j
     amb.nextConversion(); // start ambient sensor conversion
     checkStatus( MIN_DELAY ); // give the chips time to perform the conversions
     ftimes[j] = millis(); // record timestamp for RoR calculations
@@ -445,14 +458,14 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
     temps[j] = fT[j].doFilter( v ); // apply digital filtering for display/logging
     ftemps[j] =fRise[j].doFilter( v ); // heavier filtering for RoR
   }
-};
+}
   
 // ------------------------------------------------------------------------
 // MAIN
 //
 void setup()
 {
-  delay(100);
+  delay(500);
   Wire.begin(); 
   lcd.begin(16, 2);
   BACKLIGHT;

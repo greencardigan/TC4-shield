@@ -1,4 +1,4 @@
-// aBourbon.pde
+// aBourbon.ino
 //
 // N-channel Rise-o-Meter
 // output on serial port:  timestamp, ambient, T1, RoR1, T2, RoR2
@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_BRBN "Bourbon V2.31"
+#define BANNER_BRBN "Bourbon V3.00"
 // Revision history:
 //   20100922: Added support for I2C LCD interface (optional). 
 //             This program now requires use of cLCD library.
@@ -56,6 +56,10 @@
 //             Added support for typeJ, typeT thermocouples
 //   Version 2.31
 //   20111107  Added channel mapping
+//   Version 3.00
+//   20120126: Arduino 1.0 compatibility
+//             Standalone operation --> left buttons resets the timer
+//             More robust handling of CR-LF pairs from serial port
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -140,6 +144,7 @@ float timestamp = 0;
 boolean first;
 uint32_t nextLoop;
 float reftime; // reference for measuring elapsed time
+boolean standAlone = true; // default is standalone mode
 
 char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
 
@@ -225,8 +230,11 @@ void logger()
 // --------------------------------------------
 void updateLCD( float t1, float t2, float RoR ) {
   // form the timer output string in min:sec format
-  int itod = round( timestamp );
-  if( itod > 3599 ) itod = 3599;
+  int itod;
+  if( timestamp > 3599 )
+    itod = 3599;
+  else
+    itod = round( timestamp );
   sprintf( smin, "%02u", itod / 60 );
   sprintf( ssec, "%02u", itod % 60 );
   lcd.setCursor(0,0);
@@ -271,24 +279,41 @@ void updateLCD( float t1, float t2, float RoR ) {
 void checkButtons() { // take action if a button is pressed
   if( buttons.readButtons() ) {
     if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) {// left button = start the roast
-      Serial.print( "# STRT,");
-      Serial.println( timestamp, DP );
-      buttons.ledOn ( 2 ); // turn on leftmost LED when start button is pushed
+      if( standAlone ) { // reset the timer
+        resetTimer();
+      }
+      else {
+        Serial.print( "# STRT,");
+        Serial.println( timestamp, DP );
+        buttons.ledOn ( 2 ); // turn on leftmost LED when start button is pushed
+      }
     }
     else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // 2nd button marks first crack
-      Serial.print( "# FC,");
-      Serial.println( timestamp, DP );
-      buttons.ledOn ( 1 ); // turn on middle LED at first crack
+      if( standAlone ) {
+      }
+      else {
+        Serial.print( "# FC,");
+        Serial.println( timestamp, DP );
+        buttons.ledOn ( 1 ); // turn on middle LED at first crack
+      }
     }
     else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // 3rd button marks second crack
-      Serial.print( "# SC,");
-      Serial.println( timestamp, DP );
-      buttons.ledOn ( 0 ); // turn on rightmost LED at second crack
+      if( standAlone ) {
+      }
+      else {
+        Serial.print( "# SC,");
+        Serial.println( timestamp, DP );
+        buttons.ledOn ( 0 ); // turn on rightmost LED at second crack
+      }
     }
     else if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // 4th button marks eject
-      Serial.print( "# EJCT,");
-      Serial.println( timestamp, DP );
-      buttons.ledAllOff(); // turn off all LED's when beans are ejected
+      if( standAlone ) {
+      }
+      else {
+        Serial.print( "# EJCT,");
+        Serial.println( timestamp, DP );
+        buttons.ledAllOff(); // turn off all LED's when beans are ejected
+      }
     }
   }
 }
@@ -301,14 +326,21 @@ void append( char* str, char c ) { // reinventing the wheel
   str[len+1] = '\0';
 }
 
+// ----------------------------
+void resetTimer() {
+  Serial.print( "# Reset, " ); Serial.println( timestamp ); // write message to log
+  nextLoop = 10 + millis(); // wait 10 ms and force a sample/log cycle
+  reftime = 0.001 * nextLoop; // reset the reference point for timestamp
+  return;
+}
+
 // -------------------------------------
 void processCommand() {  // a newline character has been received, so process the command
   if( ! strcmp( command, RESET ) ) { // RESET command received, so reset the timer
-    Serial.print( "# Reset, " ); Serial.println( timestamp ); // write message to log
-    nextLoop = 10 + millis(); // wait 10 ms and force a sample/log cycle
-    reftime = 0.001 * nextLoop; // reset the reference point for timestamp
-    return;
+    resetTimer();
+    standAlone = false;
   }
+  return;
 }
 
 // -------------------------------------
@@ -320,8 +352,8 @@ void checkSerial() {  // buffer the input from the serial port
       processCommand();
       strcpy( command, "" ); // empty the buffer
     } // end if
-    else {
-      append( command, c );
+    else if( c != '\r' ) { // ignore CR for compatibility with CR-LF pairs
+      append( command, toupper(c) );
     } // end else
   } // end while
 }
@@ -360,14 +392,14 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
     temps[j] = fT[j].doFilter( v ); // apply digital filtering for display/logging
     ftemps[j] =fRise[j].doFilter( v ); // heavier filtering for RoR
   }
-};
+}
   
 // ------------------------------------------------------------------------
 // MAIN
 //
 void setup()
 {
-  delay(100);
+  delay(500);
   Wire.begin(); 
   lcd.begin(16, 2);
   BACKLIGHT;
@@ -403,6 +435,9 @@ void setup()
     amb.setOffset( caldata.K_offset );
   }
   else { // if there was a problem with EEPROM read, then use default values
+    Serial.println("# Failed to read EEPROM.  Using default calibration data. ");
+    lcd.setCursor( 0, 1 ); // echo EEPROM data to LCD
+    lcd.print( "No EEPROM - OK" );
     adc.setCal( CAL_GAIN, UV_OFFSET );
     amb.setOffset( AMB_OFFSET );
   }   

@@ -67,6 +67,14 @@ only type K.
 
 Redefined buttons for standalone mode.  Left button (STRT) now resets the timer.
 
-
 Jim Gallt
 3-Sept-2011
+
+
+Version 2.00
+------------
+Arduino 1.0 compatibility
+
+Jim Gallt
+26-Jan-2012
+

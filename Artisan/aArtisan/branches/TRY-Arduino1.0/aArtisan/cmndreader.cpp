@@ -333,9 +333,8 @@ boolean unitsCmnd::doCommand( CmndParser* pars ) {
       return true;
     }
   }
-  else {
-    return false;
-  }
+// else  
+  return false; // revised 26-Jan-2012 to eliminate compiler warning
 }
 
 // ----------------------------- rf2000Cmnd (legacy)
