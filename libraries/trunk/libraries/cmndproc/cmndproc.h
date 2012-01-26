@@ -45,11 +45,16 @@
 // Revision history:
 // 20110601 version 1.00 : created library
 // 20120126 version 1.01 : improved handling of CR and LF
+// 20120126 version 1.02 : updated for Arduino 1.0 compatibility
 
 #ifndef CMNDPROC_H
 #define CMNDPROC_H
 
+#if defined(ARDUINO) && ARDUINO >= 100
+#include <Arduino.h>
+#else
 #include <WProgram.h>
+#endif
 
 #define MAX_TOKENS 4  // maximum number of tokens in a command line
 #define MAX_TOKEN_LEN 4  // max characters read per token (input may be longer)
