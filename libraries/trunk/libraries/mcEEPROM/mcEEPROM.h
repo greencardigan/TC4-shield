@@ -12,6 +12,9 @@
 //
 // 20100731  Version 1.00
 // 20110903  Support for calibration block for TC4
+// 20120126  Arduino 1.0 compatibility
+//  (thanks and acknowledgement to Arnaud Kodeck for his code contributions).
+
 //
 // ------------------------------------------------
 // *** BSD License ***
@@ -49,7 +52,12 @@
 #ifndef MCEEPROM_H_
 #define MCEEPROM_H_
 
+#if defined(ARDUINO) && ARDUINO >= 100
+#include <Arduino.h>
+#else
 #include <WProgram.h>
+#endif
+
 #include <Wire.h>
 
 #define ADDR_BITS B1010000

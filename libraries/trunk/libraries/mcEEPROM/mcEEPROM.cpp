@@ -12,6 +12,9 @@
 //
 // 20100731  Version 1.00
 // 20110903  Support for calibration block for TC4
+// 20120126  Arduino 1.0 compatibility
+//  (thanks and acknowledgement to Arnaud Kodeck for his code contributions).
+
 //
 // ------------------------------------------------
 // *** BSD License ***
@@ -55,6 +58,14 @@
 
 #include "mcEEPROM.h"
 
+#if defined(ARDUINO) && ARDUINO >= 100
+#define _READ read
+#define _WRITE write
+#else
+#define _READ receive
+#define _WRITE send
+#endif
+
 // --------------------------
 mcEEPROM::mcEEPROM( uint8_t select ) {
 	chip_addr = select;
@@ -77,16 +88,16 @@ uint16_t mcEEPROM::read( uint16_t ptr, uint8_t barray[], uint16_t count ) {
 	while( k < count ) {
 		DELAY;
 		Wire.beginTransmission( chip_addr );
-		Wire.send( (uint8_t)( ptr >> 8 ) ); // MSB of pointer
-		Wire.send( (uint8_t)( ptr >> 0 ) ) ; // LSB of pointer)
+		Wire._WRITE( (uint8_t)( ptr >> 8 ) ); // MSB of pointer
+		Wire._WRITE( (uint8_t)( ptr >> 0 ) ) ; // LSB of pointer)
 		Wire.endTransmission(); // send two byte address to chip
 		n = BUFFER_SIZE; // don't exceed the Wire buffer size
 		if( n + k >= count )  // don't exceed requested byte count
 			n = count - k;
 		Wire.requestFrom( chip_addr, (uint8_t)n );
-		if( n == Wire.available() ) {
+		if( n == (uint16_t)Wire.available() ) {
 			for( j = 0; j < n ; j++ ) {  // read the next "n" bytes
-				barray[k] = Wire.receive();
+				barray[k] = Wire._READ();
 				++k;
 			}
 			ptr += n;
@@ -111,16 +122,16 @@ uint16_t mcEEPROM::read( uint16_t ptr, char str[], uint16_t max ) {
 	while( done == 0 ) {
 		DELAY;
 		Wire.beginTransmission( chip_addr );
-		Wire.send( (uint8_t)( ptr >> 8 ) ); // MSB of pointer
-		Wire.send( (uint8_t)( ptr >> 0 ) ); // LSB of pointer)
+		Wire._WRITE( (uint8_t)( ptr >> 8 ) ); // MSB of pointer
+		Wire._WRITE( (uint8_t)( ptr >> 0 ) ); // LSB of pointer)
 		Wire.endTransmission(); // send the two-byte address to EEPROM
 		n = BUFFER_SIZE; // don't exceed the Wire buffer size
 		if( n > max - k )  // don't exceed max byte count
 			n = max - k;
 		Wire.requestFrom( chip_addr, (uint8_t)n );
-		if( n == Wire.available() ) { // exit if there is a mismatch
+		if( n == (uint16_t)Wire.available() ) { // exit if there is a mismatch
 			for( j = 0; j < n && done == 0 ; j++ ) {  // read the next "n" bytes
-				b = Wire.receive();
+				b = Wire._READ();
 				str[k] = (char)b;
 #ifdef DEBUG
 				DPRINT("k = ",k);
@@ -184,8 +195,8 @@ uint16_t mcEEPROM::write( uint16_t ptr, uint8_t barray[], uint16_t count ) {
 	while( k < count ) {
 		DELAY;
 		Wire.beginTransmission( chip_addr );
-		Wire.send( (uint8_t)( ptr >> 8 ) ); // MSB of pointer
-		Wire.send( (uint8_t)( ptr >> 0 ) ) ; // LSB of pointer)
+		Wire._WRITE( (uint8_t)( ptr >> 8 ) ); // MSB of pointer
+		Wire._WRITE( (uint8_t)( ptr >> 0 ) ) ; // LSB of pointer)
 
 		// next, fill up the remaining buffer with data
 #ifdef DEBUG
@@ -206,7 +217,7 @@ uint16_t mcEEPROM::write( uint16_t ptr, uint8_t barray[], uint16_t count ) {
 			DPRINT("k = ",k);
 			DPRINTLN("byte = ",barray[k]);
 #endif
-			Wire.send( barray[k] ); // fill the transmit buffer
+			Wire._WRITE( barray[k] ); // fill the transmit buffer
 			k++;
 		}
 		Wire.endTransmission(); // buffer is written by this call
@@ -264,3 +275,7 @@ bool readCalBlock( mcEEPROM& eeprm, calBlock& caldata ){
   len = eeprm.read( TC4_CAL_ADDR, (uint8_t*) &caldata, sizeof( caldata) );
   return( (len == sizeof( caldata )) && (strncmp( "TC4", caldata.PCB, 3 ) == 0 ) );
 }
+
+#undef _READ
+#undef _WRITE
+
