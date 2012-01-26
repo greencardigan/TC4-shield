@@ -36,11 +36,19 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
+// Revision history:
+//  20120126: Arduino 1.0 compatibility
+//   (thanks and acknowledgement to Arnaud Kodeck for his code contributions).
 
 #ifndef CBUTTON_H_
 #define CBUTTON_H_
 
+#if defined(ARDUINO) && ARDUINO >= 100
+#include <Arduino.h>
+#else
 #include <WProgram.h>
+#endif
+
 #include <Wire.h>
 #include <MCP23017.h>
 

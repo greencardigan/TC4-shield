@@ -36,7 +36,19 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
+// Revision history:
+//  20120126: Arduino 1.0 compatibility
+//   (thanks and acknowledgement to Arnaud Kodeck for his code contributions).
+
 #include "cButton.h"
+
+#if defined(ARDUINO) && ARDUINO >= 100
+#define _READ read
+#define _WRITE write
+#else
+#define _READ receive
+#define _WRITE send
+#endif
 
 // ------------------------------------------ base class methods
 cButtonBase::cButtonBase() {
@@ -94,26 +106,26 @@ void cButtonPE16::begin( uint8_t N, uint8_t addr ) {
   // configure the port expander
   PEaddr = addr;
   Wire.beginTransmission( PEaddr );
-  Wire.send( IOCONZ );  // valid command only if BANK = 0, which is true upon reset
-  Wire.send( BANK ); // set BANK = 1 if it had been 0 (nothing happens if BANK = 1 already)
+  Wire._WRITE( IOCONZ );  // valid command only if BANK = 0, which is true upon reset
+  Wire._WRITE( BANK ); // set BANK = 1 if it had been 0 (nothing happens if BANK = 1 already)
   Wire.endTransmission();
 
   // now, send our IO control byte with assurance BANK = 1
   Wire.beginTransmission( PEaddr );
-  Wire.send( IOCON );
-  Wire.send( BANK | SEQOP | DISSLW ); //  banked operation, non-sequential addressing
+  Wire._WRITE( IOCON );
+  Wire._WRITE( BANK | SEQOP | DISSLW ); //  banked operation, non-sequential addressing
   Wire.endTransmission();
 
   // now, set up port B pins for input
   Wire.beginTransmission( PEaddr );
-  Wire.send( IODIRB );
-  Wire.send( 0x0F ); // configure port B pins:  input 0-3, output 4-7
+  Wire._WRITE( IODIRB );
+  Wire._WRITE( 0x0F ); // configure port B pins:  input 0-3, output 4-7
   Wire.endTransmission();
 
   // reverse the polarity (so that 0 = not pressed, 1 = pressed)
   Wire.beginTransmission( PEaddr );
-  Wire.send( IPOLB );
-  Wire.send( 0x0F ); // configure port B polarity: reversed 0-3, normal 4-7
+  Wire._WRITE( IPOLB );
+  Wire._WRITE( 0x0F ); // configure port B polarity: reversed 0-3, normal 4-7
   Wire.endTransmission();
 
   ledAllOff(); // all LED's off by default
@@ -122,10 +134,10 @@ void cButtonPE16::begin( uint8_t N, uint8_t addr ) {
 // ------------------------------------------
 uint8_t cButtonPE16::rawRead() {
   Wire.beginTransmission( PEaddr );
-  Wire.send( GPIOB );
+  Wire._WRITE( GPIOB );
   Wire.endTransmission();
   Wire.requestFrom( PEaddr, (uint8_t) 1 );
-  bits = Wire.receive() & mask;  // mask off the unused bits
+  bits = Wire._READ() & mask;  // mask off the unused bits
   return bits;
 };
 
@@ -133,9 +145,12 @@ uint8_t cButtonPE16::rawRead() {
 void cButtonPE16::ledUpdate( uint8_t b3) {
   LEDstate = b3;
   Wire.beginTransmission( PEaddr );
-  Wire.send( GPIOB );
-  Wire.send( (uint8_t)(LEDstate << 4) );
+  Wire._WRITE( GPIOB );
+  Wire._WRITE( (uint8_t)(LEDstate << 4) );
   Wire.endTransmission();
 }
+
+#undef _READ
+#undef _WRITE
 
 // ***********************************************************************************
