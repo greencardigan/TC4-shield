@@ -44,6 +44,7 @@
 
 // Revision history:
 // 20110601 version 1.00 : created library
+// 20120126 version 1.01 : improved handling of CR and LF
 
 
 #include "cmndproc.h"
@@ -133,7 +134,7 @@ const char* CmndInterp::checkSerial() {
       cmndstr[0] = '\0'; // empty the buffer
       return result;
     } // end if
-    else { // append character
+    else if( c != '\r' ) { // skip CR, otherwise append character
       cmndstr[len] = toupper(c);
       cmndstr[len+1] = '\0';
     } // end else

@@ -44,6 +44,7 @@
 
 // Revision history:
 // 20110601 version 1.00 : created library
+// 20120126 version 1.01 : improved handling of CR and LF
 
 #ifndef CMNDPROC_H
 #define CMNDPROC_H
