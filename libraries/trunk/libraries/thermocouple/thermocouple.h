@@ -1,5 +1,7 @@
 // thermocouple.h
 // Version 20110615
+// Revision history:
+//  20120126: Compatibility with Arduino 1.0
 
 
 // *** BSD License ***
@@ -36,6 +38,12 @@
 
 #ifndef THERMOCOUPLE_H_
 #define THERMOCOUPLE_H_
+
+#if defined(ARDUINO) && ARDUINO >= 100
+#include <Arduino.h>
+#else
+#include <WProgram.h>
+#endif
 
 #include <avr/pgmspace.h>
 

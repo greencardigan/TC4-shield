@@ -35,7 +35,6 @@
 
 #include "thermocouple.h"
 #include <math.h>
-#include <WProgram.h>
 
 // ------------------------------------- tcBase class
 
