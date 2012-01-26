@@ -62,6 +62,9 @@
 //          Better error checking on EEPROM reads
 // ----------- Version 2.00 (for Arduino 1.0)
 // 20120126 Created .ino source file.
+//          Serial output now fixed at one decimal place
+//          Better echo display of serial commands.
+//          Raw ADC conversions are filtered before converting to temperatures.
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -109,7 +112,7 @@ boolean Cscale = false;
 #endif
 
 int levelOT1, levelOT2;  // parameters to control output levels
-//int levelIO3;
+uint32_t lcd_count; // for echo display of serial commands
 
 // class objects
 cADC adc( A_ADC ); // MCP3424
@@ -144,7 +147,10 @@ void checkSerial() {
   if( result != NULL ) { // some things we might want to do after a command is executed
     #ifdef LCD
     lcd.setCursor( 0, 1 ); // echo all commands to the LCD
+    lcd.print( "         ");
+    lcd.setCursor( 0, 1 ); // echo all commands to the LCD
     lcd.print( result );
+    lcd_count = millis();
     #endif
     #ifdef MEMORY_CHK
     Serial.print("# freeMemory()=");
@@ -179,7 +185,7 @@ void logger()
     if( k > 0 ) {
       --k;
       Serial.print(",");
-      Serial.print( convertUnits( T[k] ) );
+      Serial.print( convertUnits( T[k] ), 1 );
     }
   }
   Serial.println();
@@ -191,22 +197,27 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   int32_t v;
   TC_TYPE tc;
   float tempF;
-  int32_t itemp;
+//  int32_t itemp;
   
+  uint16_t dly = amb.getConvTime(); // use delay based on slowest conversion
+  uint16_t dADC = adc.getConvTime();
+  dly = dly > dADC ? dly : dADC;
+ 
   for( uint8_t jj = 0; jj < NC; jj++ ) { // one-shot conversions on both chips
     uint8_t k = actv[jj]; // map logical channels to physical ADC channels
     if( k > 0 ) {
       --k;
       adc.nextConversion( k ); // start ADC conversion on physical channel k
       amb.nextConversion(); // start ambient sensor conversion
-      checkStatus( MIN_DELAY ); // give the chips time to perform the conversions
+      checkStatus( dly ); // give the chips time to perform the conversions
       amb.readSensor(); // retrieve value from ambient temp register
       v = adc.readuV(); // retrieve microvolt sample from MCP3424
       tempF = tc.Temp_F( 0.001 * v, amb.getAmbF() ); // convert uV to Celsius
-      v = round( tempF / D_MULT ); // store results as integers
+      // filter on direct ADC readings, not computed temperatures
+      v = fT[k].doFilter( v << 10 );  // multiply by 1024 to create some resolution for filter
+      v >>= 10; 
       AT = amb.getAmbF();
-      itemp = fT[k].doFilter( v ); // apply digital filtering for display/logging
-      T[k] = 0.001 * itemp;
+      T[k] = tc.Temp_F( 0.001 * v, AT ); // convert uV to Fahrenheit;
     }
   }
 };
@@ -250,8 +261,11 @@ void updateLCD() {
       lcd.print(st1);  
     }
   }
-  lcd.setCursor( 0, 1 );
-  lcd.print( "         ");
+  if( millis() - lcd_count >= 100 ) { // display for 100 ms only
+    lcd.setCursor( 0, 1 );
+    lcd.print( "         " );
+    lcd_count = 0;
+  }
 }
 #endif
 
@@ -325,10 +339,10 @@ void setup()
 // -----------------------------------------------------------------
 void loop()
 {
-  checkSerial();  // Has a command been received?
   get_samples();
   #ifdef LCD
   updateLCD();
   #endif
+  checkSerial();  // Has a command been received?
 }
 
