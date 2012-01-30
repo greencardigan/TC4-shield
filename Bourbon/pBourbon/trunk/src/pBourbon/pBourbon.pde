@@ -43,6 +43,10 @@
 // program now loads guide profile and saved log file automatically if files are present
 // May 22, 2011:  enabled reading of power1 and power2 from the serial stream
 
+// Version 2.30-RC
+//---------------
+// Add plotting of heater power output, fan output
+
 // ************************************* User Preferences **************************************
 
 // you may choose your own file names here:
@@ -54,6 +58,8 @@ String cfgfilename = "pBourbon.cfg";
 
 // make this as short as possible for good resolution;  depends on your roaster
 int MINUTES = 17; // time limit for graph (change to suit)
+int RESET_TRIES = 20; // number of times to try and establish comm's with remote
+int RESET_DELAY = 500; // ms between attempts
 
 // change the plot background color
 //int CBGND = 64; // background color dark grey
@@ -67,7 +73,7 @@ boolean SMOOTH = true;
 String filename = "logs/roast" + nf(year(),4,0) + nf(month(),2,0) + nf(day(),2,0) + nf(hour(),2,0) + nf(minute(),2,0);
 String CSVfilename = filename + ".csv";
 PrintWriter logfile;
-String appname = "Bourbon Roast Logger v2.20";
+String appname = "Bourbon Roast Logger v2.30-RC";
 
 String profile_data[];
 String logfile_data[];
@@ -83,6 +89,7 @@ boolean POWER2 = false; // output power 2
 String LOGFILE = logfile_f; // by default
 String PROFILE = profile_f;
 
+// ------ COLORS ------------
 color c0 = color(255,0,0); // red, channel 0
 color c1 = color(0,255,0); // green
 color c2 = color(255,255,0); // yellow
@@ -99,6 +106,8 @@ int cbgnd = CBGND;  // background color
 color cloadlogfile_BT = color(150,0,0);
 color cloadlogfile_BTROR = color(0,125,0);
 color cloadlogfile_ET = color(150,150,0);
+color cloadlogfile_P1 = color(150,100,0); // dark orange (power)
+color cloadlogfile_P2 = color(0,150,150); // dark cyan (fan)
 
 int NCHAN = 2;  // 2 input channels
 int resetAck = 0;  // count RESET command acknowledgements
@@ -107,6 +116,7 @@ int resetAck = 0;  // count RESET command acknowledgements
 String whichport = "COM1";
 int baudrate = 57600;
 boolean started;  // waits for a keypress to begin logging
+boolean remote_fail;
 boolean makeJPG = false; // flag for doing a frame grab in draw()
 
 import processing.serial.*;
@@ -172,6 +182,7 @@ void setup() {
   logfile = createWriter(CSVfilename);
 
   started = false; // don't plot until started; keep timestamp == 0
+  remote_fail = false; // assume OK until comm's actually fail
   
   // read com port settings from config file
   // format is: value, comment/n
@@ -319,6 +330,8 @@ void drawchan(float [][] T, color c) {
     line(x1 * time_scale, (MAX_TEMP-y1) * temp_scale, x2 * time_scale, (MAX_TEMP-y2) * temp_scale);
   }
 }
+
+// plot guide profile, if present
 void drawprofile() {
   if (profile_data == null) return;
   int x1, y1, x2, y2;
@@ -336,23 +349,25 @@ void drawprofile() {
   }
 }
 
+// plot guide logfile, if present
 void drawlogfile() {
-
   if (logfile_data == null) return;
   float BT_x1, BT_y1, BT_x2, BT_y2;
   float BTROR_x1, BTROR_y1, BTROR_x2, BTROR_y2;
   float ET_x1, ET_y1, ET_x2, ET_y2;
+  float P1_x1, P1_y1, P1_x2, P1_y2; // for plotting output values, if present
+  float P2_x1, P2_y1, P2_x2, P2_y2;  
 
-  BT_x1 = 0;
-  BT_y1 = 0;
-  BTROR_x1 = 0;
-  BTROR_y1 = 0;
-  ET_x1 = 0;
-  ET_y1 = 0;
+  BT_x1 = 0;  BT_y1 = 0;
+  BTROR_x1 = 0;  BTROR_y1 = 0;
+  ET_x1 = 0;  ET_y1 = 0;
+  P1_x1 = 0;  P1_y1 = 0;
+  P2_x1 = 0;  P2_y1 = 0;
   
   for (int i=0; i<logfile_data.length; i++) {
     String[] rec = split(logfile_data[i], ',');
-    if (rec[0].charAt(0) == '#') {
+    int rlen = rec.length;
+    if (rec[0].charAt(0) == '#') { // comment or special data
       stroke(127,0,127);
       fill(127,0,127);
       if (rec[0].equals("# STRT")) {
@@ -365,27 +380,50 @@ void drawlogfile() {
         ellipse(float(rec[1]) * time_scale,(MAX_TEMP - BT_y1) * temp_scale,6,5);
       }
     }  
-    else {
+    else { // not a comment
+      // plot BT trace from logfile
       BT_x2 = float(rec[0]);
       BT_y2 = float(rec[2]);
-      BTROR_x2 = float(rec[0]);
-      BTROR_y2 = float(rec[3]);
-      ET_x2 = float(rec[0]);
-      ET_y2 = float(rec[4]);
       stroke(cloadlogfile_BT);
       line(BT_x1 * time_scale, (MAX_TEMP-BT_y1) * temp_scale, BT_x2 * time_scale, (MAX_TEMP-BT_y2) * temp_scale);
-      stroke(cloadlogfile_BTROR);
-      line(BTROR_x1 * time_scale, (MAX_TEMP-(BTROR_y1 * 10)) * temp_scale, BTROR_x2 * time_scale, (MAX_TEMP-(BTROR_y2 * 10)) * temp_scale);
-      stroke(cloadlogfile_ET);
-      line(ET_x1 * time_scale, (MAX_TEMP-ET_y1) * temp_scale, ET_x2 * time_scale, (MAX_TEMP-ET_y2) * temp_scale);
       BT_x1 = BT_x2;
       BT_y1 = BT_y2;
+
+      // plot BR_ROR trace from logfile
+      BTROR_x2 = float(rec[0]);
+      BTROR_y2 = float(rec[3]);
+      stroke(cloadlogfile_BTROR);
+      line(BTROR_x1 * time_scale, (MAX_TEMP-(BTROR_y1 * 10)) * temp_scale, BTROR_x2 * time_scale, (MAX_TEMP-(BTROR_y2 * 10)) * temp_scale);
       BTROR_x1 = BTROR_x2;
       BTROR_y1 = BTROR_y2;
+
+      // plot ET trace from logfile
+      ET_x2 = float(rec[0]);
+      ET_y2 = float(rec[4]);      
+      stroke(cloadlogfile_ET);
+      line(ET_x1 * time_scale, (MAX_TEMP-ET_y1) * temp_scale, ET_x2 * time_scale, (MAX_TEMP-ET_y2) * temp_scale);
       ET_x1 = ET_x2;
       ET_y1 = ET_y2;
-    }
-  }
+      
+      // plot output values, if present in logfile
+      if( rlen >= 7 ) { // heater power
+        P1_x2 = float(rec[0]); // time
+        P1_y2 = float(rec[6]);
+        stroke(cloadlogfile_P1);
+        line(P1_x1 * time_scale, (MAX_TEMP-P1_y1) * temp_scale, P1_x2 * time_scale, (MAX_TEMP-P1_y2) * temp_scale);
+        P1_x1 = P1_x2;
+        P1_y1 = P1_y2;
+      }
+      if( rlen >= 8 ) { // fan output
+        P2_x2 = float(rec[0]); // time
+        P2_y2 = float(rec[7]);
+        stroke(cloadlogfile_P2);
+        line(P2_x1 * time_scale, (MAX_TEMP-P2_y1) * temp_scale, P2_x2 * time_scale, (MAX_TEMP-P2_y2) * temp_scale);
+        P2_x1 = P2_x2;
+        P2_y1 = P2_y2;
+      }
+    } // end else
+  } // end for loop
 }
 
 // ------------------------- alphanumeric values at top of screen
@@ -498,7 +536,6 @@ void drawnote() {
 }
 
 void drawmarkers() { 
-
   textFont(markerFont,16);
   fill(c4);
   stroke(c4);
@@ -529,7 +566,6 @@ void drawmarkers() {
 
 // ------------------------------------------------------
 void draw() {
-
   float sx = 1.;
   float sy = 1.;
   sx = float(width) / MAX_TIME / time_scale;
@@ -540,6 +576,10 @@ void draw() {
   if( !started ) {
     textFont( startFont );
     text( appname + "\n" + corf + " Mode\nPress a key or click to begin logging ...\n",110, 110 );
+    if( remote_fail ) {
+       textFont( startFont );
+       text( "Error - unable to establish communication with remote device.",110, 200 );
+    }
   }
   else {
     drawgrid();
@@ -664,7 +704,7 @@ void serialEvent(Serial comport) { // this is executed each time a line of data 
         P2[1][idx] = float(rec[2 * NCHAN + 3]);
       }
   
-      print(rec[0]);
+      print(rec[0]); // timestamp
       logfile.print(rec[0]);
       for (int i=1; i<(2 * NCHAN + 2); i++) {
         print(",");
@@ -698,16 +738,22 @@ void serialEvent(Serial comport) { // this is executed each time a line of data 
 // ------------------------------- reset the Arduino, etc.
 void resetRemote() {
 //    delay( START_DELAY ); // make sure the remote has had time to get started
+    remote_fail = false;  // give it another try every time a reset is requested
     println("\nSynchronising with remote:");
     int i = 0;
-    while( resetAck == 0 && i < 10 ) {
+    while( resetAck == 0 && i < RESET_TRIES ) { // try a few times, then give up
       comport.write( "RESET\n" );  // issue command to the TC4 to synchronize clocks
-      delay( 500 );
+      delay( RESET_DELAY );
       i++;
     }
-    print( resetAck ); println( " reset(s) required." );
-    if( resetAck != 0 )
+    if( resetAck != 0 ) {
       started = true;
+      print( resetAck ); println( " reset(s) required." );  
+    }
+    else { // failed to get a response back from the remote
+      remote_fail = true;
+      println("Error - no response from remote device.");
+    }
 }
 
 // ------------------------------- save a frame when mouse is clicked
