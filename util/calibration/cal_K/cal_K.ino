@@ -2,7 +2,7 @@
 
 #include <cADC.h>
 #include <Wire.h>
-#include <TypeK.h>
+#include <thermocouple.h>
 #include <cLCD.h>
 
 #define BANNER_K "Cal_K 20110610" // version
@@ -10,7 +10,7 @@
 #define CHAN 1 // use TC2
 #define CALPT 200.0
 #define TEMP_OFFS -0.0
-#define GAIN_CAL 1.00
+#define GAIN_CAL 1.00313
 #define AMB_FILT 90
 #define ADC_FILT 50
 
@@ -23,7 +23,7 @@
 cADC adc;
 ambSensor amb;
 filterRC f;
-TypeK tc;
+typeK tc;
 float ctemp;
 cLCD lcd; // I2C LCD interface
 
