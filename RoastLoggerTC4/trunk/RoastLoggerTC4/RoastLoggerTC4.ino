@@ -114,6 +114,11 @@
 #define MAX_COMMAND 80 // max length of a command string
 #define LOOPTIME 1000 // cycle time, in ms
 
+#define CMD_POWER "POWER"
+#define CMD_FAN "FAN"
+#define CMD_PCCONTROL "PCCONTROL"
+#define CMD_ARDUINOCONTROL "ARDUINOCONTROL"
+
 // --------------------------------------------------------------
 // global variables
 
@@ -209,18 +214,18 @@ void logger()
     i++;
   };
 
-  //print heater power level 
+  //print heater power and fan output level 
   Serial.print("Power%=");
   Serial.println(heater);
-//  Serial.print("Fan%=");
-//  Serial.println(fan);
+  Serial.print("Fan=");
+  Serial.println(fan);
 
 };
 
 // -------------------------------------
 void append( char* str, char c ) { // reinventing the wheel
   int len = strlen( str );
-  str[len] = c;
+  str[len] = toupper(c);
   str[len+1] = '\0';
 }
 
@@ -228,7 +233,7 @@ void append( char* str, char c ) { // reinventing the wheel
 void processCommand() {  // a newline character has been received, so process the command
   char *val, *c;
   String key = strtok_r(command, "=", &c);
-  if (key != NULL && key.equals("power")) {
+  if (key != NULL && key.equals(CMD_POWER)) {
     val = strtok_r(NULL, "=", &c);
     if (val != NULL) {
       heater = atoi(val);      
@@ -237,7 +242,7 @@ void processCommand() {  // a newline character has been received, so process th
       }
     }
   }
-  else if (key != NULL && key.equals("fan")) {
+  else if (key != NULL && key.equals(CMD_FAN)) {
     val = strtok_r(NULL, "=", &c);
     if (val != NULL) {
       fan = atoi(val);      
@@ -246,6 +251,10 @@ void processCommand() {  // a newline character has been received, so process th
         io3.Out( round( pow ) );   
       }
     }
+  }
+  else if (key != NULL && key.equals(CMD_PCCONTROL)) { // placeholder
+  }
+  else if (key != NULL && key.equals(CMD_ARDUINOCONTROL)) { // placeholder
   }
 }
 

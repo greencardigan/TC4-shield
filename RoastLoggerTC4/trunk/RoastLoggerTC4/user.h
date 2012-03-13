@@ -7,10 +7,10 @@
 // First, load and edit this sketch in the Arduino IDE.
 // Next compile the sketch and upload it to the Arduino.
 
-//#define CELSIUS //RoastLogger default is Celsius - To output data in Fahrenheit comment out this one line 
+#define CELSIUS //RoastLogger default is Celsius - To output data in Fahrenheit comment out this one line 
 
 // thermocouple type / library : choose one for each input (typeJ, typeK, or typeT)
-#define TC_TYPE1 typeJ  // input 1
+#define TC_TYPE1 typeK  // input 1
 #define TC_TYPE2 typeK  // input 2
 
 #define BAUD 115200 //RoastLogger modified from original 57600  // serial baud rate
