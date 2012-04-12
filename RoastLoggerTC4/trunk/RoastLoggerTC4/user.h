@@ -40,4 +40,3 @@
 #define PWM_MODE IO3_FASTPWM
 #define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz PWM output for fan
 
-

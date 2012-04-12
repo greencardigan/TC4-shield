@@ -1,6 +1,6 @@
+
 /********************************************************************************************
- *  RoastLoggerTC4.ino version 0.4 29/2/2012 by GreenBean
- *  version 0.50 Mar. 12, 2012 with revisions by Jim Gallt
+ *  RoastLoggerTC4.ino  by GreenBean and Jim Gallt (see revision histroy below)
  *  
  *  TC4 Arduino sketch for use with Roast Logger by GreenBean http://www.toomuchcoffee.com/
  *  For information on the RoastLogger see:
@@ -69,12 +69,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_BRBN "RoastLoggerTC4 ver 0.5"
+#define BANNER_BRBN "RoastLoggerTC4 ver 0.6"
 // Revision history: - of RoastLoggerTC4
-//  20120112:  Released for testing
-//  20120127:  Modified to compile under Arduino IDE 1.0
-//  20120312:  Modified by Jim Gallt to use standard PWM outputs on OT1 and IO3
-//             Added fan output command capability
+//  20120112:  Version 0.3 - Released for testing
+//  20120127:  Version 0.4 - Modified to compile under Arduino IDE 1.0
+//  20120312:  Version 0.5 - Modified by Jim Gallt to use standard PWM outputs on OT1 and IO3
+//                           Added fan output command capability
+//  20120403:  Version 0.6 - Minor modification to logger method to change order of output and clean up RoR output
 
 // Revision history: - of aBourbon.pde
 //   20100922: Added support for I2C LCD interface (optional). 
@@ -178,39 +179,28 @@ void logger()
 
   String rorT1,rorT2;
 
-//new compatible handling of C to F across all three RoastLogger sketches
   t1 = D_MULT * temps[0];
   t2 = D_MULT * temps[1];  
-
-#ifdef CELSIUS  
-  rorT1 = "rorT1C=";
-  rorT2 = "rorT2C=";
-#else
-  rorT1 = "rorT1F=";
-  rorT2 = "rorT2F=";
-#endif // CELSIUS
-//end new compatible approach
-
 
   // print temperature, rate for each channel
   i = 0;
   if( NCHAN >= 1 ) {
-    Serial.print("T1=");
-    Serial.println( t1, DP );
-    Serial.print(rorT1);
+    Serial.print("rorT1=");
     RoR = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
     RoR = fRoR[i].doFilter( RoR /  D_MULT ) * D_MULT; // perform post-filtering on RoR values
     Serial.println( RoR , DP );
+    Serial.print("T1=");
+    Serial.println( t1, DP );
     i++;
   };
 
   if( NCHAN >= 2 ) {
-    Serial.print("T2=");
-    Serial.println( t2, DP );
-    Serial.print(rorT2);
+    Serial.print("rorT2=");
     rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
     rx = fRoR[i].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
     Serial.println( rx , DP );
+    Serial.print("T2=");
+    Serial.println( t2, DP );
     i++;
   };
 
@@ -375,6 +365,4 @@ void loop() {
     }
   }
 }
-
-
 

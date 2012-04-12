@@ -1,5 +1,8 @@
 RoastLoggerTC4
 --------------
+RoastLoggerTC4 version 0.6  3 April 2012 by GreenBean
+  - Minor modification to change order of output in logger method
+
 RoastLoggerTC4 version 0.5  12 March 2012 by Jim Gallt
  - modified to allow use of different thermocouple types on each of 2 inputs
  - modified to support use of simple PWM on TC4 OT1 and IO3
@@ -97,7 +100,4 @@ Longer startup delay (500ms) to avoid stuttering starts
 
 Jim Gallt
 1/26/2012
-
-
-
 
