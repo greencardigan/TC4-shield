@@ -75,7 +75,7 @@ class tcBase { // pure virtual base class
   protected:
     virtual FLOAT absTemp_C( FLOAT mV ) = 0;   // returns temperature (referenced to 0C) for mV
     virtual FLOAT absMV_C( FLOAT tempC ) = 0;  // returns raw mV reading for temp referenced to 0C
-    virtual FLOAT _poly( FLOAT x, FLOAT* coeff, uint8_t nrows, uint8_t ncols );
+    virtual FLOAT _poly( FLOAT x, const FLOAT* coeff, uint8_t nrows, uint8_t ncols );
 };
 
 class tcLinear : public tcBase { // basic linear approximation
@@ -107,12 +107,12 @@ class typeK : public tcBase {
     virtual FLOAT C_min(){ return pgm_read_float_near( &range_dir[0][0] ); }
   private:    
     // inverse coefficients
-    static PROGMEM PFLOAT coeff_inv[10][3];
-    static PROGMEM PFLOAT range_inv[2][3];
+    static PROGMEM const PFLOAT coeff_inv[10][3];
+    static PROGMEM const PFLOAT range_inv[2][3];
     // direct coefficients
-    static PROGMEM PFLOAT coeff_dir[11][2];
-    static PROGMEM PFLOAT range_dir[2][2];
-    static PROGMEM PFLOAT a[3];
+    static PROGMEM const PFLOAT coeff_dir[11][2];
+    static PROGMEM const PFLOAT range_dir[2][2];
+    static PROGMEM const PFLOAT a[3];
 };
 
 // ---------------------------------------------------
@@ -128,11 +128,11 @@ class typeT : public tcBase {
     virtual FLOAT C_min(){ return pgm_read_float_near( &range_dir[0][0] ); }
   private:
     // inverse coefficients
-    static PROGMEM PFLOAT coeff_inv[8][2];
-    static PROGMEM PFLOAT range_inv[2][2];
+    static PROGMEM const PFLOAT coeff_inv[8][2];
+    static PROGMEM const PFLOAT range_inv[2][2];
     // direct coefficients
-    static PROGMEM PFLOAT coeff_dir[15][2];
-    static PROGMEM PFLOAT range_dir[2][2];
+    static PROGMEM const PFLOAT coeff_dir[15][2];
+    static PROGMEM const PFLOAT range_dir[2][2];
 };
 
 // ---------------------------------------------------
@@ -148,11 +148,11 @@ class typeJ : public tcBase {
     virtual FLOAT C_min(){ return pgm_read_float_near( &range_dir[0][0] ); }
   private:
     // inverse coefficients
-    static PROGMEM PFLOAT coeff_inv[9][3];
-    static PROGMEM PFLOAT range_inv[2][3];
+    static PROGMEM const PFLOAT coeff_inv[9][3];
+    static PROGMEM const PFLOAT range_inv[2][3];
     // direct coefficients
-    static PROGMEM PFLOAT coeff_dir[9][2];
-    static PROGMEM PFLOAT range_dir[2][2];
+    static PROGMEM const PFLOAT coeff_dir[9][2];
+    static PROGMEM const PFLOAT range_dir[2][2];
 };
 #endif
 

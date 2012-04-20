@@ -89,7 +89,7 @@ FLOAT tcBase::mV_F( FLOAT tempF ) {
 
 // evaluate polynomial using Horner's rule
 // coeff must point to top of selected column of coefficients in nrows x ncols array
-FLOAT tcBase::_poly( FLOAT x, FLOAT* coeff, uint8_t nrows, uint8_t ncols ) {
+FLOAT tcBase::_poly( FLOAT x, const FLOAT* coeff, uint8_t nrows, uint8_t ncols ) {
   uint8_t idx = ( nrows - 1 ) * ncols; // point to the bottom of the column
   FLOAT fx = 0.0; // initialize the summing variable
   for( ; ; ) { // iterate from bottom to top of column
@@ -113,7 +113,7 @@ FLOAT tcLinear::absMV_C( FLOAT C ) { return C * slope; }
 // ------------------------------------- Type K
 
 // coefficients for inverse lookup (given mV, find C)
-PFLOAT typeK::coeff_inv[10][3] = {
+const PFLOAT typeK::coeff_inv[10][3] = {
          { 0.0000000E+00,  0.000000E+00, -1.318058E+02 },
          { 2.5173462E+01,  2.508355E+01,  4.830222E+01 }, 
          { -1.1662878E+00,  7.860106E-02, -1.646031E+00 },
@@ -127,13 +127,13 @@ PFLOAT typeK::coeff_inv[10][3] = {
 };
 
 // mV ranges for inverse lookup coefficients
-PFLOAT typeK::range_inv[2][3] = {
+const PFLOAT typeK::range_inv[2][3] = {
   { -5.891,          0.000,         20.644  },
   {  0.000,         20.644,         54.886  }
 };
 
 // coefficients for direct lookup (given C, find mV)
-PFLOAT typeK::coeff_dir[11][2] = {
+const PFLOAT typeK::coeff_dir[11][2] = {
          {  0.000000000000E+00, -0.176004136860E-01 },
          {  0.394501280250E-01,  0.389212049750E-01 },
          {  0.236223735980E-04,  0.185587700320E-04 },
@@ -148,13 +148,13 @@ PFLOAT typeK::coeff_dir[11][2] = {
 };
 
 // ranges for direct lookup
-PFLOAT typeK::range_dir[2][2] = {
+const PFLOAT typeK::range_dir[2][2] = {
   { -270.000 ,  0.000 },
   {    0.000 ,1372.00 }
 };
 
 // coefficients for exponential portion of direct lookup
-PFLOAT typeK::a[3] = {
+const PFLOAT typeK::a[3] = {
     0.118597600000E+00, -0.118343200000E-03, 0.126968600000E+03
 };
 
@@ -196,7 +196,7 @@ FLOAT typeK::absMV_C( FLOAT tempC ) {
 
 // ------------------------------------- Type T
 
-PFLOAT typeT::coeff_inv[8][2] = {
+const PFLOAT typeT::coeff_inv[8][2] = {
        {  0.0000000E+00,  0.000000E+00 },
        {  2.5949192E+01,  2.592800E+01 },
        { -2.1316967E-01, -7.602961E-01 },
@@ -207,12 +207,12 @@ PFLOAT typeT::coeff_inv[8][2] = {
        {  1.2668171E-03,  0.000000E+00 }
 };
 
-PFLOAT typeT::range_inv[2][2] = {
+const PFLOAT typeT::range_inv[2][2] = {
    { -5.603,          0.000 },
    {  0.000,         20.872 }
 };
 
-PFLOAT typeT::coeff_dir[15][2] = {
+const PFLOAT typeT::coeff_dir[15][2] = {
 { 0.000000000000E+00,  0.000000000000E+00 },
 { 0.387481063640E-01,  0.387481063640E-01 },
 { 0.441944343470E-04,  0.332922278800E-04 },
@@ -230,7 +230,7 @@ PFLOAT typeT::coeff_dir[15][2] = {
 { 0.797951539270E-30,  0.000000000000E+00 }
 };
 
-PFLOAT typeT::range_dir[2][2] = {
+const PFLOAT typeT::range_dir[2][2] = {
   { -200.000 ,  0.000 },
   {    0.000 ,400.00 }
 };
@@ -266,7 +266,7 @@ FLOAT typeT::absMV_C( FLOAT tempC ) {
 
 // -------------------------------------
 
-PFLOAT typeJ::coeff_inv[9][3] = {
+const PFLOAT typeJ::coeff_inv[9][3] = {
 {  0.0000000E+00,  0.000000E+00, -3.11358187E+03 },
 {  1.9528268E+01,  1.978425E+01,  3.00543684E+02 },
 { -1.2286185E+00, -2.001204E-01, -9.94773230E+00 },
@@ -278,12 +278,12 @@ PFLOAT typeJ::coeff_inv[9][3] = {
 { -8.3823321E-05,  0.000000E+00,  0.00000000E+00 }
 };
 
-PFLOAT typeJ::range_inv[2][3] = {
+const PFLOAT typeJ::range_inv[2][3] = {
     { -8.095,          0.000,         42.919 },
     {  0.000,         42.919,         69.553 }
 };
 
-PFLOAT typeJ::coeff_dir[9][2] = {
+const PFLOAT typeJ::coeff_dir[9][2] = {
     {   0.000000000000E+00,  0.296456256810E+03 },
     {   0.503811878150E-01, -0.149761277860E+01 },
     {   0.304758369300E-04,  0.317871039240E-02 },
@@ -295,7 +295,7 @@ PFLOAT typeJ::coeff_dir[9][2] = {
     {   0.156317256970E-22,  0.000000000000E+00 }
 };
 
-PFLOAT typeJ::range_dir[2][2] = {
+const PFLOAT typeJ::range_dir[2][2] = {
   { -210.000,  760.000 },
   {  760.000, 1200.000 }
 };
