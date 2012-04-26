@@ -1,5 +1,11 @@
 RoastLoggerTC4
 --------------
+RoastLoggerTC4 version 0.7  25 April 2012 by Jim Gallt
+  - jumper selectable temperature scale (default is Celsius)
+  - ANLG2 port on TC4:   +5V    AN1    GND
+                                 |______|
+                           add jumper for Fahrenheit
+
 RoastLoggerTC4 version 0.6  3 April 2012 by GreenBean
   - Minor modification to change order of output in logger method
 
