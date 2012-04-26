@@ -342,9 +342,6 @@ void setup()
   first = true;
 }
 
-void checkScale() {
-}
-
 // -----------------------------------------------------------------
 void loop() {
   float idletime;
