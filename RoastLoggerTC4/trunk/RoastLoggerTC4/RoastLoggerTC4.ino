@@ -20,7 +20,7 @@
  *
  *  Modified to be compatible with the Roast Logger and renamed RoastLoggerTC4.pde
  *  Changed baud rate in user.h to 115200
- *  Default output is Celsius - comment out the #define CELSIUS line to output in Fahrenheit.
+ *  Default output is Celsius - add jumper on ANLG2 to output in Fahrenheit.
  *  Added communication for heater power control for OT1 
  *  Changed serial output to report T1, T2, rorT1, rorT2 and power level.
  *  ROR is not currently used by RoastLogger but may be added in future.
@@ -69,13 +69,14 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_BRBN "RoastLoggerTC4 ver 0.6"
+#define BANNER_BRBN "RoastLoggerTC4 ver 0.7"
 // Revision history: - of RoastLoggerTC4
 //  20120112:  Version 0.3 - Released for testing
 //  20120127:  Version 0.4 - Modified to compile under Arduino IDE 1.0
 //  20120312:  Version 0.5 - Modified by Jim Gallt to use standard PWM outputs on OT1 and IO3
 //                           Added fan output command capability
 //  20120403:  Version 0.6 - Minor modification to logger method to change order of output and clean up RoR output
+//  20120425:  Version 0.7 - Select F units using jumper on ANLG2 port (IN -- GND)
 
 // Revision history: - of aBourbon.pde
 //   20100922: Added support for I2C LCD interface (optional). 
@@ -114,6 +115,9 @@
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 #define MAX_COMMAND 80 // max length of a command string
 #define LOOPTIME 1000 // cycle time, in ms
+
+#define ANLG2 A1 // arduino pin A1
+#define UNIT_SEL ANLG2 // select temperature scale
 
 #define CMD_POWER "POWER"
 #define CMD_FAN "FAN"
@@ -156,6 +160,9 @@ float timestamp = 0;
 boolean first;
 uint32_t lastLoop;
 float reftime; // reference for measuring elapsed time
+
+// temperature units selection
+boolean celsius = true;
 
 char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
 
@@ -277,11 +284,10 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
     amb.readSensor(); // retrieve value from ambient temp register
     v = adc.readuV(); // retrieve microvolt sample from MCP3424
     tempC = tc[j]->Temp_C( 0.001 * v, amb.getAmbC() ); // convert to Celsius
-#ifdef CELSIUS
-    v = round( tempC / D_MULT ); // store results as integers
-#else
-    v = round( C_TO_F( tempC ) / D_MULT ); // store results as integers
-#endif
+    if( celsius )
+      v = round( tempC / D_MULT ); // store results as integers
+    else
+      v = round( C_TO_F( tempC ) / D_MULT ); // store results as integers
     temps[j] = fT[j].doFilter( v ); // apply digital filtering for display/logging
     ftemps[j] =fRise[j].doFilter( v ); // heavier filtering for RoR
   }
@@ -328,8 +334,15 @@ void setup()
   
   output1.Setup( TIME_BASE );
   io3.Setup( PWM_MODE, PWM_PRESCALE );
+  
+  // set up ANLG2 input pin for temperature units selection
+  pinMode( UNIT_SEL, INPUT );
+  digitalWrite( UNIT_SEL, HIGH ); // enable pullup
 
   first = true;
+}
+
+void checkScale() {
 }
 
 // -----------------------------------------------------------------
@@ -341,6 +354,7 @@ void loop() {
   thisLoop = millis();
 
   if( thisLoop - lastLoop >= LOOPTIME ) { // time to take another sample
+    celsius = digitalRead( UNIT_SEL ) == HIGH;  // use jumper to drive low and select fahrenheit
     if( first )
       reftime = 0.001 * thisLoop;
     lastLoop += LOOPTIME;

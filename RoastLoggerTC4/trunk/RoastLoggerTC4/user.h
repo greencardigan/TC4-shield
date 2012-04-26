@@ -7,7 +7,8 @@
 // First, load and edit this sketch in the Arduino IDE.
 // Next compile the sketch and upload it to the Arduino.
 
-#define CELSIUS //RoastLogger default is Celsius - To output data in Fahrenheit comment out this one line 
+//RoastLogger default is Celsius - To output data in Fahrenheit use jumper on ANLG2 
+//#define CELSIUS no longer used
 
 // thermocouple type / library : choose one for each input (typeJ, typeK, or typeT)
 #define TC_TYPE1 typeK  // input 1
