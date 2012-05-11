@@ -77,7 +77,9 @@
 //                           Added fan output command capability
 //  20120403:  Version 0.6 - Minor modification to logger method to change order of output and clean up RoR output
 //  20120425:  Version 0.7 - Select F units using jumper on ANLG2 port (IN -- GND)
-//  20120511:  Version 0.8 - Turn fan, heater off by default in setup; use 4 sec timebase for heater PWM
+//  20120511:  Version 0.8 - Turn fan, heater off by default in setup; 
+//                           use 4 sec timebase for heater PWM;
+//                           allow mapping of physical input channels
 
 // Revision history: - of aBourbon.pde
 //   20100922: Added support for I2C LCD interface (optional). 
@@ -149,6 +151,9 @@ int32_t ftemps[NCHAN]; // heavily filtered temps
 int32_t ftimes[NCHAN]; // filtered sample timestamps
 int32_t flast[NCHAN]; // for calculating derivative
 int32_t lasttimes[NCHAN]; // for calculating derivative
+
+// allows choice of TC4 input channels (see user.h for mapping)
+uint8_t chan_map[NCHAN] = { LOGCHAN1, LOGCHAN2 };
 
 //RoastLogger global variables for heater, fan power %
 int8_t heater = 100; // power for 1st output (heater); default 100%
@@ -278,7 +283,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   float tempC;
 
   for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
-    adc.nextConversion( j ); // start ADC conversion on channel j
+    adc.nextConversion( chan_map[j] ); // start ADC conversion on channel j
     amb.nextConversion(); // start ambient sensor conversion
     delay( MIN_DELAY ); // give the chips time to perform the conversions
     ftimes[j] = millis(); // record timestamp for RoR calculations
