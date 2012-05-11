@@ -77,6 +77,7 @@
 //                           Added fan output command capability
 //  20120403:  Version 0.6 - Minor modification to logger method to change order of output and clean up RoR output
 //  20120425:  Version 0.7 - Select F units using jumper on ANLG2 port (IN -- GND)
+//  20120511:  Version 0.8 - Turn fan, heater off by default in setup; use 4 sec timebase for heater PWM
 
 // Revision history: - of aBourbon.pde
 //   20100922: Added support for I2C LCD interface (optional). 
@@ -333,7 +334,10 @@ void setup()
   tc[1] = &tc2;
   
   output1.Setup( TIME_BASE );
+  output1.Out( 0, 0 ); // heater is off by default
+  
   io3.Setup( PWM_MODE, PWM_PRESCALE );
+  io3.Out( 0 ); // fan is off by default
   
   // set up ANLG2 input pin for temperature units selection
   pinMode( UNIT_SEL, INPUT );

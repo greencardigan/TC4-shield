@@ -37,7 +37,20 @@
 
 // *************************************************************************************//
 
-#define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR on Ot1 (if used)
+// choose one of the following for the PWM time base for heater output
+#define TIME_BASE pwmN4sec  // recommended for Hottop D which has mechanical relay
+//#define TIME_BASE pwmN2sec
+//#define TIME_BASE pwmN1Hz
+//#define TIME_BASE pwmN2Hz
+//#define TIME_BASE pwmN4Hz
+//#define TIME_BASE pwmN8Hz 
+
 #define PWM_MODE IO3_FASTPWM
-#define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz PWM output for fan
+
+// choose one of the following for the PWM time base for fan output
+#define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz (tested to work well on Hottop roasters)
+//#define PWM_PRESCALE IO3_PRESCALE_256  // 244 Hz
+//#define PWM_PRESCALE IO3_PRESCALE_128  // 488 Hz
+//#define PWM_PRESCALE IO3_PRESCALE_64   // 977 Hz
+//#define PWM_PRESCALE IO3_PRESCALE_32   // 1953 Hz
 
