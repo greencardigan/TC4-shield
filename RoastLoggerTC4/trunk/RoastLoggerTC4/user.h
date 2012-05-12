@@ -8,7 +8,6 @@
 // Next compile the sketch and upload it to the Arduino.
 
 //RoastLogger default is Celsius - To output data in Fahrenheit use jumper on ANLG2 
-//#define CELSIUS no longer used
 
 // thermocouple type / library : choose one for each input (typeJ, typeK, or typeT)
 #define TC_TYPE1 typeK  // input 1
@@ -33,7 +32,7 @@
 #define AMB_OFFSET 0.0 // you may substitute a known value for amb temp offset (Celsius)
 
 // ambient sensor should be stable, so quick variations are probably noise -- filter heavily
-#define AMB_FILTER 70 // 70% filtering on ambient sensor readings
+#define AMB_FILTER 90 // 90% filtering on ambient sensor readings
 
 // *************************************************************************************//
 

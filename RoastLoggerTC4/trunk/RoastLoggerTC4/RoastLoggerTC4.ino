@@ -1,6 +1,6 @@
 
 /********************************************************************************************
- *  RoastLoggerTC4.ino  by GreenBean and Jim Gallt (see revision histroy below)
+ *  RoastLoggerTC4.ino  by GreenBean and Jim Gallt (see revision history below)
  *  
  *  TC4 Arduino sketch for use with Roast Logger by GreenBean http://www.toomuchcoffee.com/
  *  For information on the RoastLogger see:
@@ -23,7 +23,6 @@
  *  Default output is Celsius - add jumper on ANLG2 to output in Fahrenheit.
  *  Added communication for heater power control for OT1 
  *  Changed serial output to report T1, T2, rorT1, rorT2 and power level.
- *  ROR is not currently used by RoastLogger but may be added in future.
  *  
  *
  ********************************************************************************************/
@@ -69,7 +68,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_BRBN "RoastLoggerTC4 ver 0.7"
+#define BANNER_RL1 "RoastLoggerTC4"
+#define BANNER_RL2 "version 0.8"
+
 // Revision history: - of RoastLoggerTC4
 //  20120112:  Version 0.3 - Released for testing
 //  20120127:  Version 0.4 - Modified to compile under Arduino IDE 1.0
@@ -79,22 +80,10 @@
 //  20120425:  Version 0.7 - Select F units using jumper on ANLG2 port (IN -- GND)
 //  20120511:  Version 0.8 - Turn fan, heater off by default in setup; 
 //                           use 4 sec timebase for heater PWM;
-//                           allow mapping of physical input channels
-
-// Revision history: - of aBourbon.pde
-//   20100922: Added support for I2C LCD interface (optional). 
-//             This program now requires use of cLCD library.
-//   20100927: converted aBourbon to be a roast monitor only
-//   20100928: added EEPROM support (optional)
-//   20110403: moved user configurable compile flags to user.h
-//   20110404: Added support for Celsius operation
-//   20110405: Added support for button pushes
-//   20110406: Added post-filtering for RoR values
-//   20110408: Added code to read RESET code from serial port
-//   20110522: Eliminated the dummy power field in the output stream.  pBourbon now is smart
-//             enough to not require the dummy field.
-//   20110903: Improved error checking when reading cal block from EEPROM
-//             Added support for typeJ, typeT thermocouples
+//                           allow mapping of physical input channels;
+//                           round heater, fan output levels to nearest 5%;
+//                           enable use of LCDapter, if present;
+//                           set default filter level to 90% for ambient sensor
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -110,6 +99,8 @@
 #include <cADC.h>
 #include <PWM16.h>
 #include <mcEEPROM.h>
+#include <cLCD.h>
+#include <cButton.h>
 
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
@@ -139,6 +130,8 @@ ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NCHAN]; // filter for displayed/logged ET, BT
 filterRC fRise[NCHAN]; // heavily filtered for calculating RoR
 filterRC fRoR[NCHAN]; // post-filtering on RoR values
+cLCD lcd; // I2C LCD interface
+cButtonPE16 buttons; // class object to manage button presses
 
 tcBase* tc[NCHAN]; // array of pointers to thermocouples
 
@@ -156,16 +149,18 @@ int32_t lasttimes[NCHAN]; // for calculating derivative
 uint8_t chan_map[NCHAN] = { LOGCHAN1, LOGCHAN2 };
 
 //RoastLogger global variables for heater, fan power %
-int8_t heater = 100; // power for 1st output (heater); default 100%
-int8_t fan = 0; // power for 2nd output (fan); default 0%
+int8_t heater; // power for 1st output (heater)
+int8_t fan; // power for 2nd output (fan)
 PWM16 output1; // 16-bit timer for SSR output on Ot1 and Ot2
 PWM_IO3 io3; // 8-bit timer for fan control on IO3
 
 // used in main loop
-float timestamp = 0;
+float timestamp;
 boolean first;
 uint32_t lastLoop;
+uint32_t thisLoop;
 float reftime; // reference for measuring elapsed time
+boolean standAlone;
 
 // temperature units selection
 boolean celsius = true;
@@ -222,8 +217,80 @@ void logger()
   Serial.println(heater);
   Serial.print("Fan=");
   Serial.println(fan);
+  
+  updateLCD( t1, t2, RoR );
 
 };
+
+// --------------------------------------------
+void updateLCD( float t1, float t2, float RoR ) {
+  char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
+  char pstr[5];
+
+  // form the timer output string in min:sec format
+  int itod;
+  if( timestamp > 3599 ) 
+    itod = 3599;
+  else
+    itod = round( timestamp );
+    
+  sprintf( smin, "%02u", itod / 60 );
+  sprintf( ssec, "%02u", itod % 60 );
+  lcd.setCursor(0,0);
+  lcd.print( smin );
+  lcd.print( ":" );
+  lcd.print( ssec );
+ 
+  // channel 2 temperature 
+  int it02 = round( t2 );
+  if( it02 > 999 ) it02 = 999;
+  else if( it02 < -999 ) it02 = -999;
+  sprintf( st2, "%3d", it02 );
+  lcd.setCursor( 11, 0 );
+  lcd.print( "E " );
+  lcd.print( st2 ); 
+
+  // channel 1 RoR
+  int iRoR = round( RoR );
+  if( iRoR > 99 ) 
+    iRoR = 99;
+  else
+   if( iRoR < -99 ) iRoR = -99; 
+  sprintf( sRoR1, "%0+3d", iRoR );
+  lcd.setCursor(0,1);
+  lcd.print( "RoR1:");
+  lcd.print( sRoR1 );
+
+  // channel 1 temperature
+  int it01 = round( t1 );
+  if( it01 > 999 ) 
+    it01 = 999;
+  else
+    if( it01 < -999 ) it01 = -999;
+  sprintf( st1, "%3d", it01 );
+  lcd.setCursor( 11, 1 );
+  lcd.print("B ");
+  lcd.print(st1);
+  
+  sprintf( pstr, "%3d", heater );
+  lcd.setCursor( 6, 0 );
+  lcd.print( pstr ); lcd.print("%");
+
+  sprintf( pstr, "%3d", fan );
+  lcd.setCursor( 6, 1 );
+  lcd.print( pstr ); lcd.print("%");
+
+}
+
+// -------------------------------------
+int8_t roundOutput( int8_t raw ) {
+  int8_t mod = raw % 5;
+  raw = ( raw / 5 ) * 5;
+  if( mod < 3 )
+    return raw;
+  else
+    return raw + 5;
+}
 
 // -------------------------------------
 void append( char* str, char c ) { // reinventing the wheel
@@ -236,10 +303,12 @@ void append( char* str, char c ) { // reinventing the wheel
 void processCommand() {  // a newline character has been received, so process the command
   char *val, *c;
   String key = strtok_r(command, "=", &c);
+  standAlone = false;
   if (key != NULL && key.equals(CMD_POWER)) {
     val = strtok_r(NULL, "=", &c);
     if (val != NULL) {
-      heater = atoi(val);      
+      heater = atoi(val);   
+      heater = roundOutput( heater );   
       if (heater >= 0 && heater <101) {  
         output1.Out( heater, 0 ); // update the power output on the SSR drive Ot1
       }
@@ -248,7 +317,8 @@ void processCommand() {  // a newline character has been received, so process th
   else if (key != NULL && key.equals(CMD_FAN)) {
     val = strtok_r(NULL, "=", &c);
     if (val != NULL) {
-      fan = atoi(val);      
+      fan = atoi(val); 
+      fan = roundOutput( fan );    
       if (fan >= 0 && fan <101) {  
         float pow = 2.55 * fan;  // output values are 0 to 255
         io3.Out( round( pow ) );   
@@ -276,16 +346,58 @@ void checkSerial() {  // buffer the input from the serial port
   } // end while
 }
 
+// ----------------------------------
+void checkButtons() { // take action if a button is pressed
+  if( buttons.readButtons() ) {
+    if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) {// left button = start the roast
+      if( standAlone ) { // load beans
+        resetTimer();
+        buttons.ledOn( 2 ); // turn on leftmost LED to indicate beans loaded
+      }
+      else { // placeholder for possible future feature
+      }
+    }
+    else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // 2nd button marks first crack
+      if( standAlone ) { // first crack
+        buttons.ledOn( 1 );  // turn on LED to indicate first crack
+      }
+      else { // placeholder
+      }
+    }
+    else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // 3rd button marks second crack
+      if( standAlone ) {
+        buttons.ledOn( 0 ); // rightmost LED at 2nd crack
+      }
+      else { // placeholder
+      }
+    }
+    else if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // 4th button marks eject
+      if( standAlone ) {
+        buttons.ledAllOff(); // turn off all LED's when beans are ejected
+      }
+      else { // placeholder
+      }
+    }
+  }
+}
+
 // --------------------------------------------------------------------------
 void get_samples() // this function talks to the amb sensor and ADC via I2C
 {
   int32_t v;
   float tempC;
+  uint32_t tod;
 
   for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
     adc.nextConversion( chan_map[j] ); // start ADC conversion on channel j
     amb.nextConversion(); // start ambient sensor conversion
-    delay( MIN_DELAY ); // give the chips time to perform the conversions
+    // wait for conversions to take place
+    tod = millis();
+    checkSerial(); // should have time to do this at least once
+    while( millis() - tod < MIN_DELAY ) {
+      checkButtons();
+    }
+    //delay( MIN_DELAY ); // give the chips time to perform the conversions
     ftimes[j] = millis(); // record timestamp for RoR calculations
     amb.readSensor(); // retrieve value from ambient temp register
     v = adc.readuV(); // retrieve microvolt sample from MCP3424
@@ -299,6 +411,12 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   }
 };
 
+// ----------------------------
+void resetTimer() {
+  reftime = 0.001 * thisLoop; // reset the reference point for timestamp
+  return;
+}
+
 // ------------------------------------------------------------------------
 // MAIN
 //
@@ -308,6 +426,18 @@ void setup()
   lastLoop = millis();
   Wire.begin(); 
   Serial.begin(BAUD);
+  standAlone = true; // default
+
+  lcd.begin(16, 2);
+  lcd.backlight();
+  lcd.setCursor( 0, 0 );
+  lcd.print( BANNER_RL1 ); // program name
+  lcd.setCursor( 0, 1 );
+  lcd.print( BANNER_RL2 ); // version
+  buttons.begin( 4 );
+  buttons.readButtons();
+  buttons.ledAllOff();
+
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
   // read calibration and identification data from eeprom
@@ -339,30 +469,34 @@ void setup()
   tc[1] = &tc2;
   
   output1.Setup( TIME_BASE );
-  output1.Out( 0, 0 ); // heater is off by default
+  heater = 0;
+  output1.Out( heater, 0 ); // heater is off by default
   
   io3.Setup( PWM_MODE, PWM_PRESCALE );
-  io3.Out( 0 ); // fan is off by default
+  fan = 0;
+  io3.Out( fan ); // fan is off by default
   
   // set up ANLG2 input pin for temperature units selection
   pinMode( UNIT_SEL, INPUT );
   digitalWrite( UNIT_SEL, HIGH ); // enable pullup
-
+  
+  delay( 800 );  // display banner on LCD
   first = true;
+  lcd.clear();
 }
 
 // -----------------------------------------------------------------
 void loop() {
   float idletime;
-  uint32_t thisLoop;
 
   checkSerial();
+  checkButtons();
   thisLoop = millis();
 
   if( thisLoop - lastLoop >= LOOPTIME ) { // time to take another sample
     celsius = digitalRead( UNIT_SEL ) == HIGH;  // use jumper to drive low and select fahrenheit
     if( first )
-      reftime = 0.001 * thisLoop;
+      resetTimer();
     lastLoop += LOOPTIME;
     timestamp = 0.001 * float( thisLoop ) - reftime; // system time, seconds, for this set of samples
     get_samples(); // retrieve values from MCP9800 and MCP3424

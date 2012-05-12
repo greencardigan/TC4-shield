@@ -1,5 +1,13 @@
 RoastLoggerTC4
 --------------
+
+RoastLogger TC4 version 0.8    12 May 2012 by Jim Gallt
+ - default PWM time base is 4 sec for heater
+ - additional options provided for PWM time base for heater and fan
+ - turn heater and fan off by default at program start
+ - allow mapping of physical ADC channels (0-3) to logical channels (1-4)
+
+
 RoastLoggerTC4 version 0.7  25 April 2012 by Jim Gallt
   - jumper selectable temperature scale (default is Celsius)
   - ANLG2 port on TC4:   +5V    AN1    GND
