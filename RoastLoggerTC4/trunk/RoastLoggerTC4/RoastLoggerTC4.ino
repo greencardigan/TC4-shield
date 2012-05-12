@@ -83,7 +83,8 @@
 //                           allow mapping of physical input channels;
 //                           round heater, fan output levels to nearest 5%;
 //                           enable use of LCDapter, if present;
-//                           set default filter level to 90% for ambient sensor
+//                           set default filter level to 90% for ambient sensor;
+//                           enabled button functions (in standalone mode)
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -258,7 +259,7 @@ void updateLCD( float t1, float t2, float RoR ) {
    if( iRoR < -99 ) iRoR = -99; 
   sprintf( sRoR1, "%0+3d", iRoR );
   lcd.setCursor(0,1);
-  lcd.print( "RoR1:");
+  lcd.print( "RT");
   lcd.print( sRoR1 );
 
   // channel 1 temperature

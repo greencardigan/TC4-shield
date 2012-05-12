@@ -6,6 +6,14 @@ RoastLogger TC4 version 0.8    12 May 2012 by Jim Gallt
  - additional options provided for PWM time base for heater and fan
  - turn heater and fan off by default at program start
  - allow mapping of physical ADC channels (0-3) to logical channels (1-4)
+ - round output values for heater, fan to nearest 5%
+ - now supports LCDapter if attached
+ - enabled use of buttons on LCDapter in (only) standalone mode:
+     button 1: bean load (resets timer, turns on LED 1)
+     button 2: first crack (turns on LED 2)
+     button 3: second crack (turns on LED 3)
+     button 4: eject (turns off all LED's)
+ - increased damping on ambient temperature values to reduce noise
 
 
 RoastLoggerTC4 version 0.7  25 April 2012 by Jim Gallt
