@@ -85,12 +85,14 @@
 //                           enable use of LCDapter, if present;
 //                           set default filter level to 90% for ambient sensor;
 //                           enabled button functions (in standalone mode)
+//  20120513   Version 0.9x - Standalone user interface
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
 
 // The user.h file contains user-definable compiler options
 #include "user.h"
+#include "basic_HID.h" // standard interface
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -131,8 +133,7 @@ ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NCHAN]; // filter for displayed/logged ET, BT
 filterRC fRise[NCHAN]; // heavily filtered for calculating RoR
 filterRC fRoR[NCHAN]; // post-filtering on RoR values
-cLCD lcd; // I2C LCD interface
-cButtonPE16 buttons; // class object to manage button presses
+HIDbase hid; // interface
 
 tcBase* tc[NCHAN]; // array of pointers to thermocouples
 
@@ -161,7 +162,9 @@ boolean first;
 uint32_t lastLoop;
 uint32_t thisLoop;
 float reftime; // reference for measuring elapsed time
-boolean standAlone;
+
+// current values are needed globally
+float RoR_cur,t1_cur,t2_cur;
 
 // temperature units selection
 boolean celsius = true;
@@ -183,23 +186,23 @@ float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ) {
 void logger()
 {
   int i;
-  float RoR,t1,t2,t_amb;
+  float t_amb;
   float rx;
 
   String rorT1,rorT2;
 
-  t1 = D_MULT * temps[0];
-  t2 = D_MULT * temps[1];  
+  t1_cur = D_MULT * temps[0];
+  t2_cur = D_MULT * temps[1];  
 
   // print temperature, rate for each channel
   i = 0;
   if( NCHAN >= 1 ) {
     Serial.print("rorT1=");
-    RoR = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
-    RoR = fRoR[i].doFilter( RoR /  D_MULT ) * D_MULT; // perform post-filtering on RoR values
-    Serial.println( RoR , DP );
+    RoR_cur = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
+    RoR_cur = fRoR[i].doFilter( RoR_cur /  D_MULT ) * D_MULT; // perform post-filtering on RoR values
+    Serial.println( RoR_cur , DP );
     Serial.print("T1=");
-    Serial.println( t1, DP );
+    Serial.println( t1_cur, DP );
     i++;
   };
 
@@ -209,7 +212,7 @@ void logger()
     rx = fRoR[i].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
     Serial.println( rx , DP );
     Serial.print("T2=");
-    Serial.println( t2, DP );
+    Serial.println( t2_cur, DP );
     i++;
   };
 
@@ -219,69 +222,9 @@ void logger()
   Serial.print("Fan=");
   Serial.println(fan);
   
-  updateLCD( t1, t2, RoR );
+  hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for main screen
 
 };
-
-// --------------------------------------------
-void updateLCD( float t1, float t2, float RoR ) {
-  char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
-  char pstr[5];
-
-  // form the timer output string in min:sec format
-  int itod;
-  if( timestamp > 3599 ) 
-    itod = 3599;
-  else
-    itod = round( timestamp );
-    
-  sprintf( smin, "%02u", itod / 60 );
-  sprintf( ssec, "%02u", itod % 60 );
-  lcd.setCursor(0,0);
-  lcd.print( smin );
-  lcd.print( ":" );
-  lcd.print( ssec );
- 
-  // channel 2 temperature 
-  int it02 = round( t2 );
-  if( it02 > 999 ) it02 = 999;
-  else if( it02 < -999 ) it02 = -999;
-  sprintf( st2, "%3d", it02 );
-  lcd.setCursor( 11, 0 );
-  lcd.print( "E " );
-  lcd.print( st2 ); 
-
-  // channel 1 RoR
-  int iRoR = round( RoR );
-  if( iRoR > 99 ) 
-    iRoR = 99;
-  else
-   if( iRoR < -99 ) iRoR = -99; 
-  sprintf( sRoR1, "%0+3d", iRoR );
-  lcd.setCursor(0,1);
-  lcd.print( "RT");
-  lcd.print( sRoR1 );
-
-  // channel 1 temperature
-  int it01 = round( t1 );
-  if( it01 > 999 ) 
-    it01 = 999;
-  else
-    if( it01 < -999 ) it01 = -999;
-  sprintf( st1, "%3d", it01 );
-  lcd.setCursor( 11, 1 );
-  lcd.print("B ");
-  lcd.print(st1);
-  
-  sprintf( pstr, "%3d", heater );
-  lcd.setCursor( 6, 0 );
-  lcd.print( pstr ); lcd.print("%");
-
-  sprintf( pstr, "%3d", fan );
-  lcd.setCursor( 6, 1 );
-  lcd.print( pstr ); lcd.print("%");
-
-}
 
 // -------------------------------------
 int8_t roundOutput( int8_t raw ) {
@@ -304,7 +247,7 @@ void append( char* str, char c ) { // reinventing the wheel
 void processCommand() {  // a newline character has been received, so process the command
   char *val, *c;
   String key = strtok_r(command, "=", &c);
-  standAlone = false;
+  hid.setSlaveMode();
   if (key != NULL && key.equals(CMD_POWER)) {
     val = strtok_r(NULL, "=", &c);
     if (val != NULL) {
@@ -347,41 +290,6 @@ void checkSerial() {  // buffer the input from the serial port
   } // end while
 }
 
-// ----------------------------------
-void checkButtons() { // take action if a button is pressed
-  if( buttons.readButtons() ) {
-    if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) {// left button = start the roast
-      if( standAlone ) { // load beans
-        resetTimer();
-        buttons.ledOn( 2 ); // turn on leftmost LED to indicate beans loaded
-      }
-      else { // placeholder for possible future feature
-      }
-    }
-    else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // 2nd button marks first crack
-      if( standAlone ) { // first crack
-        buttons.ledOn( 1 );  // turn on LED to indicate first crack
-      }
-      else { // placeholder
-      }
-    }
-    else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // 3rd button marks second crack
-      if( standAlone ) {
-        buttons.ledOn( 0 ); // rightmost LED at 2nd crack
-      }
-      else { // placeholder
-      }
-    }
-    else if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // 4th button marks eject
-      if( standAlone ) {
-        buttons.ledAllOff(); // turn off all LED's when beans are ejected
-      }
-      else { // placeholder
-      }
-    }
-  }
-}
-
 // --------------------------------------------------------------------------
 void get_samples() // this function talks to the amb sensor and ADC via I2C
 {
@@ -396,7 +304,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
     tod = millis();
     checkSerial(); // should have time to do this at least once
     while( millis() - tod < MIN_DELAY ) {
-      checkButtons();
+      HIDevents(); // check for interface events
     }
     //delay( MIN_DELAY ); // give the chips time to perform the conversions
     ftimes[j] = millis(); // record timestamp for RoR calculations
@@ -418,6 +326,22 @@ void resetTimer() {
   return;
 }
 
+// ------------------- process interface events
+void HIDevents() {
+  if( hid.pollStatus() ) { // something changed
+    if( hid.resetTimer() )
+      resetTimer();
+    if( hid.chgLevel_1() ) {
+      heater = hid.getLevel_1();
+      hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for main screen
+    }
+    if( hid.chgLevel_2() ) {
+      fan = hid.getLevel_2();
+      hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for main screen
+    }
+  }
+}
+
 // ------------------------------------------------------------------------
 // MAIN
 //
@@ -427,17 +351,16 @@ void setup()
   lastLoop = millis();
   Wire.begin(); 
   Serial.begin(BAUD);
-  standAlone = true; // default
 
-  lcd.begin(16, 2);
-  lcd.backlight();
-  lcd.setCursor( 0, 0 );
-  lcd.print( BANNER_RL1 ); // program name
-  lcd.setCursor( 0, 1 );
-  lcd.print( BANNER_RL2 ); // version
-  buttons.begin( 4 );
-  buttons.readButtons();
-  buttons.ledAllOff();
+// initialize the input device
+  hid.begin( 16, 2, 4 );
+  hid.backlight();
+  hid.setCursor( 0, 0 );
+  hid.print( BANNER_RL1 ); // program name
+  hid.setCursor( 0, 1 );
+  hid.print( BANNER_RL2 ); // version
+  hid.readButtons();
+  hid.ledAllOff();
 
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
@@ -483,7 +406,8 @@ void setup()
   
   delay( 800 );  // display banner on LCD
   first = true;
-  lcd.clear();
+  hid.clear();
+  hid.refresh( 0.0, 0.0, 0.0, 0.0, heater, fan );
 }
 
 // -----------------------------------------------------------------
@@ -491,7 +415,7 @@ void loop() {
   float idletime;
 
   checkSerial();
-  checkButtons();
+  HIDevents();
   thisLoop = millis();
 
   if( thisLoop - lastLoop >= LOOPTIME ) { // time to take another sample
