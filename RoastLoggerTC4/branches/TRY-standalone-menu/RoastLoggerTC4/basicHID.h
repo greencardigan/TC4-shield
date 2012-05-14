@@ -1,8 +1,11 @@
 // basic_HID.h
 
+// universal user interface for TC4 applications
+// display and control features require LCDapter
+
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
-// Copyright (c) 2011, MLG Properties, LLC
+// Copyright (c) 2012, MLG Properties, LLC
 // All rights reserved.
 //
 // Contributor:  Jim Gallt
@@ -34,33 +37,93 @@
 
 // Revision history
 // 20120512  version 0.0  - created
+// 20120513  version 0.1  - alpha version
+
+#ifndef _BASIC_HID_H
+#define _BASIC_HID_H
 
 #include <cLCD.h>
 #include <cButton.h>
 
+#define BTN_HOME 3 // leftmost button
+#define BTN_SEL_MODE 2
+#define BTN_UP 1
+#define BTN_DOWN 0 // rightmost button
+
+#define LED_1 2 // leftmost LED
+#define LED_2 1
+#define LED_3 0 // rightmost LED
+
+// ----------------- screen positions
+#define TIMER_Y 0 // first line
+#define TIMER_X 0 // first column
+#define TIMER_LEN 5 // 5 characters
+
+#define LEVEL_1_X ( TIMER_X + TIMER_LEN + 1 ) // 1 character padding
+#define LEVEL_1_Y 0 // first line
+#define LEVEL_1_LEN 4 // 4 characters of data, incl. %
+
+#define T2_X ( LEVEL_1_X + LEVEL_1_LEN + 1 ) // 1 character padding
+#define T2_Y 0 // first line
+#define T2_LEN 5 // 2 character label + 3 digits
+#define T2_LABEL "E "
+
+#define ROR_X 0  // first character
+#define ROR_Y 1  // 2nd line
+#define ROR_LEN 5
+#define ROR_LABEL "RT"
+
+#define LEVEL_2_X ( ROR_X + ROR_LEN + 1 ) // 1 character padding
+#define LEVEL_2_Y 1 // 2nd line
+#define LEVEL_2_LEN 4 // 4 characters of data, incl. %
+
+#define T1_X ( LEVEL_2_X + LEVEL_2_LEN + 1 ) // 1 character padding
+#define T1_Y 1 // 2nd line
+#define T1_LEN 5 // 2 character label + 3 digits
+#define T1_LABEL "B "
+
 // --------------------------
 class HIDbase : public cLCD, public cButtonPE16 {
   public:
-  virtual void refresh( float t1, float t2, float RoR, float time, int8_t pow1, int8_t pow2 );
-  virtual void homeScreen(); // repaints the home screen
   void begin( uint8_t LCDcols = 16, uint8_t LCDrows = 2, uint8_t Nbuttons = 4 );
-  inline void setMasterMode(){ standAlone = true; }
-  inline void setSlaveMode() { standAlone = false; }
-  boolean pollStatus(); // main event handler; returns true on timer reset
-  virtual boolean doButtons(); // take action based on user button presses; return true on timer reset
+  virtual void refresh( float t1, float t2, float RoR, float time, int8_t pow1, int8_t pow2 );
+  inline void setMasterMode(){ HIDstate = running_state; }
+  inline void setSlaveMode() { HIDstate = slave_state; }
+  boolean processEvents(); // main event handler; returns true if any user changes made
   boolean resetTimer(); // tells caller if timer reset requested
   boolean chgLevel_1(); // tells caller if output level 1 changed
   boolean chgLevel_2(); // tells caller if output level 2 changed
   inline int8_t getLevel_1() { return level_1; } // returns new value for level 1
   inline int8_t getLevel_2() { return level_2; } // returns new value for level 2
-  
+
   protected:
-  boolean standAlone;
-  // home screen display fields
-  float T1, T2, RoR1, timestamp;
-  int8_t level_1, level_2;
-  boolean homeChanged; // true when home screen needs to be redrawn
+  virtual void paintLCD(); // causes the display to be repainted 
+  void drawTimer();  // first line of display
+  void drawLevel_1();
+  void drawT2();
+  void drawRoR();  // second line of display
+  void drawLevel_2();
+  void drawT1();
+  void drawConfirmReset(); // request user confirmation before resetting timer
+
+  virtual void doButtons(); // take action based on user button presses
+  virtual void ledToggle( uint8_t n ){ ledUpdate( LEDstate ^ ( 1 << n ) );}
+  void ledFlash( uint8_t whichLED );
+
+  float T1, T2, RoR1, timestamp; // local values for display
+  int8_t level_1, level_2; // local values for display, user modify
   boolean dTime, dLevel_1, dLevel_2; // flags to indicate a value has changed
+  boolean staleLCD; // indicator of need to refresh the display
   
+  typedef enum { // state machine for interpreting user input
+    running_state,
+    level_1_state,
+    level_2_state,
+    slave_state,
+    confirm_reset_state
+  } HIDstate_t;
+  
+  HIDstate_t HIDstate;
 };
 
+#endif

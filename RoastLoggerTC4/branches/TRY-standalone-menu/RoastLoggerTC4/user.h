@@ -54,14 +54,14 @@
 //#define PWM_PRESCALE IO3_PRESCALE_32   // 1953 Hz
 
 // mapping of logical channels to physical ADC channels -- choose one
-#define LOGCHAN1 0 // LOGCHAN1 mapped to physical channel 0 on ADC (default)
+//#define LOGCHAN1 0 // LOGCHAN1 mapped to physical channel 0 on ADC (default)
 //#define LOGCHAN1 1 // LOGCHAN1 mapped to physical channel 1 on ADC
-//#define LOGCHAN1 2 // LOGCHAN1 mapped to physical channel 2 on ADC
+#define LOGCHAN1 2 // LOGCHAN1 mapped to physical channel 2 on ADC
 //#define LOGCHAN1 3 // LOGCHAN1 mapped to physical channel 3 on ADC
 
 // choose one different than above
 //#define LOGCHAN2 0
-#define LOGCHAN2 1  // default
+//#define LOGCHAN2 1  // default
 //#define LOGCHAN2 2
-//#define LOGCHAN2 3
+#define LOGCHAN2 3
 

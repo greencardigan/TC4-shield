@@ -69,7 +69,7 @@
 // ------------------------------------------------------------------------------------------
 
 #define BANNER_RL1 "RoastLoggerTC4"
-#define BANNER_RL2 "version 0.8"
+#define BANNER_RL2 "version 0.9x"
 
 // Revision history: - of RoastLoggerTC4
 //  20120112:  Version 0.3 - Released for testing
@@ -92,7 +92,7 @@
 
 // The user.h file contains user-definable compiler options
 #include "user.h"
-#include "basic_HID.h" // standard interface
+#include "basicHID.h" // standard interface
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -185,8 +185,7 @@ float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ) {
 // ------------------------------------------------------------------
 void logger()
 {
-  int i;
-  float t_amb;
+  uint8_t i;
   float rx;
 
   String rorT1,rorT2;
@@ -222,10 +221,11 @@ void logger()
   Serial.print("Fan=");
   Serial.println(fan);
   
-  hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for main screen
+  hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for display
 
 };
 
+/*
 // -------------------------------------
 int8_t roundOutput( int8_t raw ) {
   int8_t mod = raw % 5;
@@ -235,6 +235,7 @@ int8_t roundOutput( int8_t raw ) {
   else
     return raw + 5;
 }
+*/
 
 // -------------------------------------
 void append( char* str, char c ) { // reinventing the wheel
@@ -252,7 +253,7 @@ void processCommand() {  // a newline character has been received, so process th
     val = strtok_r(NULL, "=", &c);
     if (val != NULL) {
       heater = atoi(val);   
-      heater = roundOutput( heater );   
+      // heater = roundOutput( heater );   
       if (heater >= 0 && heater <101) {  
         output1.Out( heater, 0 ); // update the power output on the SSR drive Ot1
       }
@@ -262,7 +263,7 @@ void processCommand() {  // a newline character has been received, so process th
     val = strtok_r(NULL, "=", &c);
     if (val != NULL) {
       fan = atoi(val); 
-      fan = roundOutput( fan );    
+      // fan = roundOutput( fan );    
       if (fan >= 0 && fan <101) {  
         float pow = 2.55 * fan;  // output values are 0 to 255
         io3.Out( round( pow ) );   
@@ -300,13 +301,14 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
     adc.nextConversion( chan_map[j] ); // start ADC conversion on channel j
     amb.nextConversion(); // start ambient sensor conversion
+
     // wait for conversions to take place
     tod = millis();
     checkSerial(); // should have time to do this at least once
     while( millis() - tod < MIN_DELAY ) {
       HIDevents(); // check for interface events
     }
-    //delay( MIN_DELAY ); // give the chips time to perform the conversions
+
     ftimes[j] = millis(); // record timestamp for RoR calculations
     amb.readSensor(); // retrieve value from ambient temp register
     v = adc.readuV(); // retrieve microvolt sample from MCP3424
@@ -328,16 +330,18 @@ void resetTimer() {
 
 // ------------------- process interface events
 void HIDevents() {
-  if( hid.pollStatus() ) { // something changed
+  if( hid.processEvents() ) { // something changed
     if( hid.resetTimer() )
       resetTimer();
     if( hid.chgLevel_1() ) {
       heater = hid.getLevel_1();
-      hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for main screen
+      output1.Out( heater, 0 );
+      hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for display
     }
     if( hid.chgLevel_2() ) {
       fan = hid.getLevel_2();
-      hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for main screen
+      io3.Out( fan );
+      hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for display
     }
   }
 }
@@ -352,14 +356,14 @@ void setup()
   Wire.begin(); 
   Serial.begin(BAUD);
 
-// initialize the input device
-  hid.begin( 16, 2, 4 );
+// initialize the display/input device
+  hid.begin( 16, 2, 4 ); // default is 16 x 2 LCD with 4 buttons
   hid.backlight();
   hid.setCursor( 0, 0 );
   hid.print( BANNER_RL1 ); // program name
   hid.setCursor( 0, 1 );
   hid.print( BANNER_RL2 ); // version
-  hid.readButtons();
+  //hid.readButtons();
   hid.ledAllOff();
 
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
