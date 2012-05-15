@@ -68,6 +68,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
+#define LOGIC_ANALYZER 
+
 #define BANNER_RL1 "RoastLoggerTC4"
 #define BANNER_RL2 "version 0.9x"
 
@@ -121,6 +123,10 @@
 #define CMD_PCCONTROL "PCCONTROL"
 #define CMD_ARDUINOCONTROL "ARDUINOCONTROL"
 
+#ifdef LOGIC_ANALYZER
+#define BLIP_PIN 2  
+#endif
+
 // --------------------------------------------------------------
 // global variables
 
@@ -170,6 +176,14 @@ float RoR_cur,t1_cur,t2_cur;
 boolean celsius = true;
 
 char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
+
+#ifdef LOGIC_ANALYZER
+uint8_t blip_state;
+void blip() {
+  digitalWrite( BLIP_PIN, blip_state );
+  blip_state = !blip_state;
+}
+#endif
 
 // T1, T2 = temperatures x 1000
 // t1, t2 = time marks, milliseconds
@@ -279,6 +293,11 @@ void processCommand() {  // a newline character has been received, so process th
 // -------------------------------------
 void checkSerial() {  // buffer the input from the serial port
   char c;
+
+#ifdef LOGIC_ANALYZER
+  blip();
+#endif
+  
   while( Serial.available() > 0 ) {
     c = Serial.read();
     if( ( c == '\n' ) || ( strlen( command ) == MAX_COMMAND ) ) { // check for newline, or buffer overflow
@@ -352,6 +371,11 @@ void HIDevents() {
 void setup()
 {
   delay(100);
+
+#ifdef LOGIC_ANALYZER
+  pinMode( BLIP_PIN, OUTPUT );
+#endif
+
   lastLoop = millis();
   Wire.begin(); 
   Serial.begin(BAUD);
