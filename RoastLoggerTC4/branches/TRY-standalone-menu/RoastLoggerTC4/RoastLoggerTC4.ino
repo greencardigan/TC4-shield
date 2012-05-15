@@ -304,8 +304,8 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
 
     // wait for conversions to take place
     tod = millis();
-    checkSerial(); // should have time to do this at least once
     while( millis() - tod < MIN_DELAY ) {
+      checkSerial(); // check for serial input
       HIDevents(); // check for interface events
     }
 
@@ -340,7 +340,7 @@ void HIDevents() {
     }
     if( hid.chgLevel_2() ) {
       fan = hid.getLevel_2();
-      io3.Out( fan );
+      io3.Out( 2.55* fan ); // output values range from 0 to 255
       hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for display
     }
   }
