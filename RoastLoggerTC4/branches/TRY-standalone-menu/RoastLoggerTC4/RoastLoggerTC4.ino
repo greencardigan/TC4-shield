@@ -90,6 +90,8 @@
 //  20120513   Version 0.9x  Standalone user interface
 //  20120516   Version 0.9y  Respond to LOAD command from host (resets timer)
 //                           Split LCD display refreshes into two cycles
+//  20120517                 Eliminated the banner display delay
+//                           Moved hid.refresh() out of logger() and into loop()
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -237,10 +239,7 @@ void logger()
   Serial.println(heater);
   Serial.print("Fan=");
   Serial.println(fan);
-  
-  hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for display
-
-};
+}
 
 // -------------------------------------
 void append( char* str, char c ) { // reinventing the wheel
@@ -253,7 +252,7 @@ void append( char* str, char c ) { // reinventing the wheel
 void processCommand() {  // a newline character has been received, so process the command
   char *val, *c;
   String key = strtok_r(command, "=", &c);
-  hid.setSlaveMode();
+  hid.setSlaveMode(); // disable local user input after first newline character received from serial
   if (key != NULL && key.equals(CMD_POWER)) {
     val = strtok_r(NULL, "=", &c);
     if (val != NULL) {
@@ -364,7 +363,8 @@ void HIDevents() {
 //
 void setup()
 {
-  delay(100);
+  delay(10); // short delay for startup
+  Serial.begin(BAUD); // enable serial right away to avoid buffer overflows
 
 #ifdef LOGIC_ANALYZER
   pinMode( BLIP_PIN, OUTPUT );
@@ -372,8 +372,14 @@ void setup()
 
   lastLoop = millis();
   Wire.begin(); 
-  Serial.begin(BAUD);
 
+  // initialize values
+  heater = 0;
+  fan = 0;
+  t1_cur = 0.0;
+  t2_cur = 0.0;
+  RoR_cur = 0.0;
+  
 // initialize the display/input device
   hid.begin( 16, 2, 4 ); // default is 16 x 2 LCD with 4 buttons
   hid.backlight();
@@ -381,7 +387,6 @@ void setup()
   hid.print( BANNER_RL1 ); // program name
   hid.setCursor( 0, 1 );
   hid.print( BANNER_RL2 ); // version
-  //hid.readButtons();
   hid.ledAllOff();
 
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
@@ -415,21 +420,16 @@ void setup()
   tc[1] = &tc2;
   
   output1.Setup( TIME_BASE );
-  heater = 0;
   output1.Out( heater, 0 ); // heater is off by default
   
   io3.Setup( PWM_MODE, PWM_PRESCALE );
-  fan = 0;
   io3.Out( fan ); // fan is off by default
   
   // set up ANLG2 input pin for temperature units selection
   pinMode( UNIT_SEL, INPUT );
   digitalWrite( UNIT_SEL, HIGH ); // enable pullup
   
-  delay( 800 );  // display banner on LCD
   first = true;
-  hid.clear();
-  hid.refresh( 0.0, 0.0, 0.0, 0.0, heater, fan );
 }
 
 // -----------------------------------------------------------------
@@ -447,11 +447,13 @@ void loop() {
     lastLoop += LOOPTIME;
     timestamp = 0.001 * float( thisLoop ) - reftime; // system time, seconds, for this set of samples
     get_samples(); // retrieve values from MCP9800 and MCP3424
-    if( first ) // use first samples for RoR base values only
+    if( first ) { // use first samples for RoR base values only
       first = false;
+    }
     else {
       logger(); // output results to serial port
     }
+    hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for display
 
     for( int j = 0; j < NCHAN; j++ ) {
       flast[j] = ftemps[j]; // use previous values for calculating RoR
