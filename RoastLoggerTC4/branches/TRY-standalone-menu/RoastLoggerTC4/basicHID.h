@@ -58,29 +58,42 @@
 #define TIMER_Y 0 // first line
 #define TIMER_X 0 // first column
 #define TIMER_LEN 5 // 5 characters
+#define TIMER_BIT 0 // bit position of flag indicating stale timer value (bit = 1)
 
 #define LEVEL_1_X ( TIMER_X + TIMER_LEN + 1 ) // 1 character padding
 #define LEVEL_1_Y 0 // first line
 #define LEVEL_1_LEN 4 // 4 characters of data, incl. %
+#define LEVEL_1_BIT 1 // bit position of flag indicating stale value (bit = 1)
 
 #define T2_X ( LEVEL_1_X + LEVEL_1_LEN + 1 ) // 1 character padding
 #define T2_Y 0 // first line
 #define T2_LEN 5 // 2 character label + 3 digits
 #define T2_LABEL "E "
+#define T2_BIT 2 // bit position of flag indicating stale value (bit = 1)
 
 #define ROR_X 0  // first character
 #define ROR_Y 1  // 2nd line
 #define ROR_LEN 5
 #define ROR_LABEL "RT"
+#define ROR_BIT 3 // bit position of flag indicating stale value (bit = 1)
 
 #define LEVEL_2_X ( ROR_X + ROR_LEN + 1 ) // 1 character padding
 #define LEVEL_2_Y 1 // 2nd line
 #define LEVEL_2_LEN 4 // 4 characters of data, incl. %
+#define LEVEL_2_BIT 4 // bit position of flag indicating stale value (bit = 1)
 
 #define T1_X ( LEVEL_2_X + LEVEL_2_LEN + 1 ) // 1 character padding
 #define T1_Y 1 // 2nd line
 #define T1_LEN 5 // 2 character label + 3 digits
 #define T1_LABEL "B "
+#define T1_BIT 5 // bit position of flag indicating stale value (bit = 1)
+
+#define CONFIRM_BIT 6 // tells us when to repaint the "confirm reset" display
+#define ROW_BIT 7 // which row we are drawing
+
+#define ALL_FIELDS ( (1 << T1_BIT) | (1 << T2_BIT) | (1 << ROR_BIT) | (1 << TIMER_BIT) \
+                   | (1 << LEVEL_1_BIT) | (1 << LEVEL_2_BIT) )
+
 
 // --------------------------
 class HIDbase : public cLCD, public cButtonPE16 {
@@ -113,7 +126,7 @@ class HIDbase : public cLCD, public cButtonPE16 {
   float T1, T2, RoR1, timestamp; // local values for display
   int8_t level_1, level_2; // local values for display, user modify
   boolean dTime, dLevel_1, dLevel_2; // flags to indicate a value has changed
-  boolean staleLCD; // indicator of need to refresh the display
+  boolean statusLCD; // indicator of need to refresh the display
   
   typedef enum { // state machine for interpreting user input
     running_state,

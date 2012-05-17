@@ -38,7 +38,7 @@
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
-// Copyright (c) 2011, MLG Properties, LLC
+// Copyright (c) 2011, 2012, MLG Properties, LLC
 // All rights reserved.
 //
 // Contributor:  Jim Gallt
@@ -68,10 +68,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define LOGIC_ANALYZER 
+//#define LOGIC_ANALYZER 
 
 #define BANNER_RL1 "RoastLoggerTC4"
-#define BANNER_RL2 "version 0.9x"
+#define BANNER_RL2 "version 0.9y"
 
 // Revision history: - of RoastLoggerTC4
 //  20120112:  Version 0.3 - Released for testing
@@ -87,7 +87,9 @@
 //                           enable use of LCDapter, if present;
 //                           set default filter level to 90% for ambient sensor;
 //                           enabled button functions (in standalone mode)
-//  20120513   Version 0.9x - Standalone user interface
+//  20120513   Version 0.9x  Standalone user interface
+//  20120516   Version 0.9y  Respond to LOAD command from host (resets timer)
+//                           Split LCD display refreshes into two cycles
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -122,6 +124,7 @@
 #define CMD_FAN "FAN"
 #define CMD_PCCONTROL "PCCONTROL"
 #define CMD_ARDUINOCONTROL "ARDUINOCONTROL"
+#define CMD_LOAD "LOAD"
 
 #ifdef LOGIC_ANALYZER
 #define BLIP_PIN 2  
@@ -239,18 +242,6 @@ void logger()
 
 };
 
-/*
-// -------------------------------------
-int8_t roundOutput( int8_t raw ) {
-  int8_t mod = raw % 5;
-  raw = ( raw / 5 ) * 5;
-  if( mod < 3 )
-    return raw;
-  else
-    return raw + 5;
-}
-*/
-
 // -------------------------------------
 void append( char* str, char c ) { // reinventing the wheel
   int len = strlen( str );
@@ -287,6 +278,9 @@ void processCommand() {  // a newline character has been received, so process th
   else if (key != NULL && key.equals(CMD_PCCONTROL)) { // placeholder
   }
   else if (key != NULL && key.equals(CMD_ARDUINOCONTROL)) { // placeholder
+  }
+  else if (key != NULL && key.equals(CMD_LOAD)) {
+    resetTimer();  // reset the timer in response to message from host
   }
 }
 
@@ -347,7 +341,7 @@ void resetTimer() {
   return;
 }
 
-// ------------------- process interface events
+// ------------------- process interface events (not active when connected to PC)
 void HIDevents() {
   if( hid.processEvents() ) { // something changed
     if( hid.resetTimer() )

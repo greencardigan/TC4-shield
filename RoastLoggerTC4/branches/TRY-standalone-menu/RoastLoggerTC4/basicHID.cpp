@@ -49,7 +49,8 @@ void HIDbase::refresh( float t1, float t2, float RoR, float time, int8_t pow1, i
   timestamp = time;
   level_1 = pow1;
   level_2 = pow2;
-  staleLCD = true;
+  // all fields are stale
+  statusLCD |= ALL_FIELDS;
 }
 
 // --------------------- draw the timer field in 00:00 format
@@ -147,18 +148,44 @@ void HIDbase::drawConfirmReset() {
 
 // ----------------------- draws the display
 void HIDbase::paintLCD( ) { 
-  if( HIDstate == confirm_reset_state ) {
-    drawConfirmReset(); // screen asking for user confirmation
+  if( HIDstate != confirm_reset_state ) { // normal display, draw it one row at a time
+    if( ! (statusLCD & (1 << ROW_BIT)) ) { // draw the fields in the first row
+      statusLCD |= ( 1 << ROW_BIT );  // set up for drawing second row in next loop
+      if( statusLCD & (1 << TIMER_BIT) ) {
+        drawTimer();  // first line of display
+        statusLCD &= ~(1 << TIMER_BIT); // clear status bit for field
+      }
+      if( statusLCD & (1 << LEVEL_1_BIT) ) {
+        drawLevel_1();  // first line of display
+        statusLCD &= ~(1 << LEVEL_1_BIT); // clear status bit for field
+      }
+      if( statusLCD & (1 << T2_BIT) ) {
+        drawT2();  // first line of display
+        statusLCD &= ~(1 << T2_BIT); // clear status bit for field
+      }
+    }
+    else { // draw the fields in the second row
+      statusLCD &= ~( 1 << ROW_BIT );  // set up for drawing first row in next loop
+      if( statusLCD & (1 << ROR_BIT) ) {
+        drawRoR();  // second line of display
+        statusLCD &= ~(1 << ROR_BIT); // clear status bit for field
+      }
+      if( statusLCD & (1 << LEVEL_2_BIT) ) {
+        drawLevel_2();  // second line of display
+        statusLCD &= ~(1 << LEVEL_2_BIT); // clear status bit for field
+      }
+      if( statusLCD & (1 << T1_BIT) ) {
+        drawT1();  // second line of display
+        statusLCD &= ~(1 << T1_BIT); // clear status bit for field
+      }
+    }
   }
   else {
-    drawTimer();  // first line of display
-    drawLevel_1();
-    drawT2();
-    drawRoR();  // second line of display
-    drawLevel_2();
-    drawT1();
+    if( statusLCD & (1 << CONFIRM_BIT) ) {
+      drawConfirmReset(); // screen asking for user confirmation
+      statusLCD = 0; // paint display only once
+    }
   }
-  staleLCD = false;  
 }
 
 // --------------------------- initialize
@@ -172,7 +199,7 @@ void HIDbase::begin( uint8_t LCDcols, uint8_t LCDrows, uint8_t Nbuttons ) {
   timestamp = 0.0;
   level_1 = 0;
   level_2 = 0;
-  staleLCD = true;
+  statusLCD = ALL_FIELDS; // all fields are stale
   dTime = false;
   dLevel_1 = false;
   dLevel_2 = false;
@@ -193,11 +220,12 @@ void HIDbase::doButtons() {
         dTime = true;
         ledFlash( LED_3 );
         HIDstate = running_state;
+        statusLCD = ALL_FIELDS;
       }
       else if( keyPressed( BTN_DOWN ) && keyChanged( BTN_DOWN ) ) { // N)o key
         ledFlash( LED_3 );
         HIDstate = running_state;
-        staleLCD = true;
+        statusLCD = ALL_FIELDS;
       }
       break;
       
@@ -206,21 +234,22 @@ void HIDbase::doButtons() {
       if( keyPressed( BTN_HOME ) && keyChanged( BTN_HOME ) ) {// left button = start the roast
         ledFlash( LED_1 ); // bump the leftmost LED to indicate beans loaded
         HIDstate = confirm_reset_state; // ask for confirmation before resetting timer
-        staleLCD = true;
+        statusLCD = (1 << CONFIRM_BIT);
       }
       else if( keyPressed( BTN_SEL_MODE ) && keyChanged( BTN_SEL_MODE ) ) { // 2nd button selects mode
         ledFlash( LED_2 );  // bump LED to acknowledge
         HIDstate = level_1_state;
-        staleLCD = true;
+        statusLCD |= (1 << LEVEL_1_BIT);  // repaint the level_1 field
+        statusLCD &= ~(1 << ROW_BIT); // make first row active
       }
       break;
     
       // --------------
       case level_1_state :
       if( keyPressed( BTN_HOME ) && keyChanged( BTN_HOME ) ) {// left button = return to home screen
-        ledFlash( LED_1 ); // bump the leftmost LED to indicate beans loaded
+        ledFlash( LED_1 ); // bump the leftmost LED to acknowledge
         HIDstate = running_state; // return to "home" screen
-        staleLCD = true;
+        statusLCD = ALL_FIELDS;
       }    
       else if( keyPressed( BTN_UP ) && keyChanged( BTN_UP ) ) { // increase the value of level_1
         ledFlash( LED_3 );
@@ -230,6 +259,8 @@ void HIDbase::doButtons() {
         if( trial != level_1 ) {
           level_1 = trial;
           dLevel_1 = true;
+          statusLCD |= (1 << LEVEL_1_BIT); // repaint the level_1 field
+          statusLCD &= ~(1 << ROW_BIT); // make first row active
         }
       }
       else if( keyPressed( BTN_DOWN ) && keyChanged( BTN_DOWN ) ) { // increase the value of level_1
@@ -240,12 +271,15 @@ void HIDbase::doButtons() {
         if( trial != level_1 ) {
           level_1 = trial;
           dLevel_1 = true;
+          statusLCD |= (1 << LEVEL_1_BIT); // repaint the level_1 field
+          statusLCD &= ~(1 << ROW_BIT); // make first row active
         }
       }
       else if( keyPressed( BTN_SEL_MODE ) && keyChanged( BTN_SEL_MODE ) ) { // 2nd button selects mode
         ledFlash( LED_2 );  // bump LED to acknowledge
         HIDstate = level_2_state;
-        staleLCD = true;
+        statusLCD |= (1 << LEVEL_2_BIT);
+        statusLCD &= ~(1 << ROW_BIT); // make first row active
       }
       break;
     
@@ -254,7 +288,7 @@ void HIDbase::doButtons() {
       if( keyPressed( BTN_HOME ) && keyChanged( BTN_HOME ) ) {// left button = return to home screen
         ledFlash( LED_1 ); // bump the leftmost LED to indicate beans loaded
         HIDstate = running_state; // return to "home" screen
-        staleLCD = true;
+        statusLCD = ALL_FIELDS;
       }    
       else if( keyPressed( BTN_UP ) && keyChanged( BTN_UP ) ) { // increase the value of level_1
         ledFlash( LED_3 );
@@ -264,6 +298,9 @@ void HIDbase::doButtons() {
         if( trial != level_2 ) {
           level_2 = trial;
           dLevel_2 = true;
+          statusLCD |= (1 << LEVEL_2_BIT);
+          statusLCD |= (1 << ROW_BIT); // make second row active
+
         }
       }
       else if( keyPressed( BTN_DOWN ) && keyChanged( BTN_DOWN ) ) { // increase the value of level_1
@@ -274,24 +311,25 @@ void HIDbase::doButtons() {
         if( trial != level_2 ) {
           level_2 = trial;
           dLevel_2 = true;
+          statusLCD |= (1 << LEVEL_2_BIT);
+          statusLCD |= (1 << ROW_BIT); // make second row active
         }
       }
       else if( keyPressed( BTN_SEL_MODE ) && keyChanged( BTN_SEL_MODE ) ) { // 2nd button selects mode
         ledFlash( LED_2 );  // bump LED to acknowledge
         HIDstate = running_state;
-        staleLCD = true;
+        statusLCD = ALL_FIELDS;
+        statusLCD |= (1 << ROW_BIT); // make second row active
       }
       break;
     } // end switch
-    staleLCD = staleLCD || dTime ||dLevel_1 || dLevel_2;
   } // end if readButtons()
 }
 
 // ----------------------------- event processer
 boolean HIDbase::processEvents() {
   doButtons();
-  if( staleLCD )
-    paintLCD();
+  paintLCD();
   return dTime || dLevel_1 || dLevel_2;
 }
 
