@@ -71,7 +71,7 @@
 //#define LOGIC_ANALYZER 
 
 #define BANNER_RL1 "RoastLoggerTC4"
-#define BANNER_RL2 "version 0.9y"
+#define BANNER_RL2 "version 1.0b"
 
 // Revision history: - of RoastLoggerTC4
 //  20120112:  Version 0.3 - Released for testing
@@ -92,6 +92,8 @@
 //                           Split LCD display refreshes into two cycles
 //  20120517                 Eliminated the banner display delay
 //                           Moved hid.refresh() out of logger() and into loop()
+//  20120518                 Optimizations for display
+//  20120518   Version 1.0b  beta release for firmware with standalone option
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -348,12 +350,10 @@ void HIDevents() {
     if( hid.chgLevel_1() ) {
       heater = hid.getLevel_1();
       output1.Out( heater, 0 );
-      hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for display
     }
     if( hid.chgLevel_2() ) {
       fan = hid.getLevel_2();
       io3.Out( 2.55* fan ); // output values range from 0 to 255
-      hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for display
     }
   }
 }

@@ -38,6 +38,7 @@
 // Revision history
 // 20120512  version 0.0  - created
 // 20120513  version 0.1  - alpha version
+// 20120518  version 0.2  - beta release
 
 #include "basicHID.h"
 
@@ -249,7 +250,9 @@ void HIDbase::doButtons() {
       if( keyPressed( BTN_HOME ) && keyChanged( BTN_HOME ) ) {// left button = return to home screen
         ledFlash( LED_1 ); // bump the leftmost LED to acknowledge
         HIDstate = running_state; // return to "home" screen
-        statusLCD = ALL_FIELDS;
+        //statusLCD = ALL_FIELDS;
+        statusLCD |= (1 << LEVEL_1_BIT); // update the level_1 field
+        statusLCD &= ~(1 << ROW_BIT); // make first row active
       }    
       else if( keyPressed( BTN_UP ) && keyChanged( BTN_UP ) ) { // increase the value of level_1
         ledFlash( LED_3 );
@@ -278,7 +281,7 @@ void HIDbase::doButtons() {
       else if( keyPressed( BTN_SEL_MODE ) && keyChanged( BTN_SEL_MODE ) ) { // 2nd button selects mode
         ledFlash( LED_2 );  // bump LED to acknowledge
         HIDstate = level_2_state;
-        statusLCD |= (1 << LEVEL_2_BIT);
+        statusLCD |= (1 << LEVEL_2_BIT) | (1 << LEVEL_1_BIT); // update both fields
         statusLCD &= ~(1 << ROW_BIT); // make first row active
       }
       break;
@@ -288,7 +291,9 @@ void HIDbase::doButtons() {
       if( keyPressed( BTN_HOME ) && keyChanged( BTN_HOME ) ) {// left button = return to home screen
         ledFlash( LED_1 ); // bump the leftmost LED to indicate beans loaded
         HIDstate = running_state; // return to "home" screen
-        statusLCD = ALL_FIELDS;
+        //statusLCD = ALL_FIELDS;
+        statusLCD |= (1 << LEVEL_2_BIT); // update the level_2 field
+        statusLCD |= (1 << ROW_BIT); // make second row active
       }    
       else if( keyPressed( BTN_UP ) && keyChanged( BTN_UP ) ) { // increase the value of level_1
         ledFlash( LED_3 );
@@ -318,7 +323,8 @@ void HIDbase::doButtons() {
       else if( keyPressed( BTN_SEL_MODE ) && keyChanged( BTN_SEL_MODE ) ) { // 2nd button selects mode
         ledFlash( LED_2 );  // bump LED to acknowledge
         HIDstate = running_state;
-        statusLCD = ALL_FIELDS;
+        //statusLCD = ALL_FIELDS;
+        statusLCD |= (1 << LEVEL_2_BIT); // update the level_2 field
         statusLCD |= (1 << ROW_BIT); // make second row active
       }
       break;

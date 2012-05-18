@@ -13,7 +13,7 @@
 #define TC_TYPE1 typeK  // input 1
 #define TC_TYPE2 typeK  // input 2
 
-#define BAUD 115200 //RoastLogger modified from original 57600  // serial baud rate
+#define BAUD 115200  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for displayed BT
 #define ET_FILTER 10 // filtering level (percent) for displayed ET
 

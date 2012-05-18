@@ -38,6 +38,7 @@
 // Revision history
 // 20120512  version 0.0  - created
 // 20120513  version 0.1  - alpha version
+// 20120518  version 0.2  - beta release
 
 #ifndef _BASIC_HID_H
 #define _BASIC_HID_H
