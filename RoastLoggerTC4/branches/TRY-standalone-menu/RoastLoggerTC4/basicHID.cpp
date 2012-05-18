@@ -199,7 +199,7 @@ void HIDbase::begin( uint8_t LCDcols, uint8_t LCDrows, uint8_t Nbuttons ) {
   timestamp = 0.0;
   level_1 = 0;
   level_2 = 0;
-  statusLCD = ALL_FIELDS; // all fields are stale
+  statusLCD = 0; // start with all fields fresh
   dTime = false;
   dLevel_1 = false;
   dLevel_2 = false;
