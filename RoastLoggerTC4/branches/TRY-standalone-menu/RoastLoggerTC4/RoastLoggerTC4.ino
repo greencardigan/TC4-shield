@@ -94,6 +94,7 @@
 //                           Moved hid.refresh() out of logger() and into loop()
 //  20120518                 Optimizations for display
 //  20120518   Version 1.0b  beta release for firmware with standalone option
+//  20120607                 Changed PWM frequency for fan to 7808Hz
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
