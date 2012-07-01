@@ -45,10 +45,17 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
+// July 1, 2012 -- Arduino 1.0 compatibility added by Jim Gallt
+
 #ifndef _phase_ctrl_h
 #define _phase_ctrl_h
 
+#if defined(ARDUINO) && ARDUINO >= 100
+#include <Arduino.h>
+#else
 #include <WProgram.h>
+#endif
+
 #include "timer1defs.h"
 #include "user.h"
 
