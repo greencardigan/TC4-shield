@@ -47,12 +47,12 @@
 #define PWM_MODE IO3_FASTPWM
 
 // choose one of the following for the PWM time base for fan output
-//#define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz (works well on Hottop roasters, but a little noisy)
+#define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz (works well on Hottop roasters, but a little noisy)
 //#define PWM_PRESCALE IO3_PRESCALE_256  // 244 Hz
 //#define PWM_PRESCALE IO3_PRESCALE_128  // 488 Hz
 //#define PWM_PRESCALE IO3_PRESCALE_64   // 977 Hz
 //#define PWM_PRESCALE IO3_PRESCALE_32   // 1953 Hz
-#define PWM_PRESCALE IO3_PRESCALE_8 // 7,808 Hz - seems very good and close to OEM fan control
+//#define PWM_PRESCALE IO3_PRESCALE_8 // 7,808 Hz - seems very good and close to OEM fan control
 //#define PWM_PRESCALE IO3_PRESCALE_1 // 62,464 Hz - too fast
 
 // mapping of logical channels to physical ADC channels -- choose one

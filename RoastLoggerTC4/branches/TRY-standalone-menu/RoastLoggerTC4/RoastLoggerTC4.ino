@@ -95,6 +95,8 @@
 //  20120518                 Optimizations for display
 //  20120518   Version 1.0b  beta release for firmware with standalone option
 //  20120607                 Changed PWM frequency for fan to 7808Hz
+//  20120710   Version 2.0   Release supports standalone operation using LCDapter buttons
+//                           Set default fan PWM frequency to 61Hz (7808 is too fast for HTC controller)
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
