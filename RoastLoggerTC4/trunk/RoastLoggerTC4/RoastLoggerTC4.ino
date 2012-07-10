@@ -38,7 +38,7 @@
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
-// Copyright (c) 2011, MLG Properties, LLC
+// Copyright (c) 2011, 2012, MLG Properties, LLC
 // All rights reserved.
 //
 // Contributor:  Jim Gallt
@@ -68,8 +68,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
+//#define LOGIC_ANALYZER 
+
 #define BANNER_RL1 "RoastLoggerTC4"
-#define BANNER_RL2 "version 0.8"
+#define BANNER_RL2 "version 1.0b"
 
 // Revision history: - of RoastLoggerTC4
 //  20120112:  Version 0.3 - Released for testing
@@ -85,12 +87,23 @@
 //                           enable use of LCDapter, if present;
 //                           set default filter level to 90% for ambient sensor;
 //                           enabled button functions (in standalone mode)
+//  20120513   Version 0.9x  Standalone user interface
+//  20120516   Version 0.9y  Respond to LOAD command from host (resets timer)
+//                           Split LCD display refreshes into two cycles
+//  20120517                 Eliminated the banner display delay
+//                           Moved hid.refresh() out of logger() and into loop()
+//  20120518                 Optimizations for display
+//  20120518   Version 1.0b  beta release for firmware with standalone option
+//  20120607                 Changed PWM frequency for fan to 7808Hz
+//  20120710   Version 2.0   Release supports standalone operation using LCDapter buttons
+//                           Set default fan PWM frequency to 61Hz (7808 is too fast for HTC controller)
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
 
 // The user.h file contains user-definable compiler options
 #include "user.h"
+#include "basicHID.h" // standard interface
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -118,6 +131,11 @@
 #define CMD_FAN "FAN"
 #define CMD_PCCONTROL "PCCONTROL"
 #define CMD_ARDUINOCONTROL "ARDUINOCONTROL"
+#define CMD_LOAD "LOAD"
+
+#ifdef LOGIC_ANALYZER
+#define BLIP_PIN 2  
+#endif
 
 // --------------------------------------------------------------
 // global variables
@@ -131,8 +149,7 @@ ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NCHAN]; // filter for displayed/logged ET, BT
 filterRC fRise[NCHAN]; // heavily filtered for calculating RoR
 filterRC fRoR[NCHAN]; // post-filtering on RoR values
-cLCD lcd; // I2C LCD interface
-cButtonPE16 buttons; // class object to manage button presses
+HIDbase hid; // interface
 
 tcBase* tc[NCHAN]; // array of pointers to thermocouples
 
@@ -161,12 +178,22 @@ boolean first;
 uint32_t lastLoop;
 uint32_t thisLoop;
 float reftime; // reference for measuring elapsed time
-boolean standAlone;
+
+// current values are needed globally
+float RoR_cur,t1_cur,t2_cur;
 
 // temperature units selection
 boolean celsius = true;
 
 char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
+
+#ifdef LOGIC_ANALYZER
+uint8_t blip_state;
+void blip() {
+  digitalWrite( BLIP_PIN, blip_state );
+  blip_state = !blip_state;
+}
+#endif
 
 // T1, T2 = temperatures x 1000
 // t1, t2 = time marks, milliseconds
@@ -182,24 +209,23 @@ float calcRise( int32_t T1, int32_t T2, int32_t t1, int32_t t2 ) {
 // ------------------------------------------------------------------
 void logger()
 {
-  int i;
-  float RoR,t1,t2,t_amb;
+  uint8_t i;
   float rx;
 
   String rorT1,rorT2;
 
-  t1 = D_MULT * temps[0];
-  t2 = D_MULT * temps[1];  
+  t1_cur = D_MULT * temps[0];
+  t2_cur = D_MULT * temps[1];  
 
   // print temperature, rate for each channel
   i = 0;
   if( NCHAN >= 1 ) {
     Serial.print("rorT1=");
-    RoR = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
-    RoR = fRoR[i].doFilter( RoR /  D_MULT ) * D_MULT; // perform post-filtering on RoR values
-    Serial.println( RoR , DP );
+    RoR_cur = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
+    RoR_cur = fRoR[i].doFilter( RoR_cur /  D_MULT ) * D_MULT; // perform post-filtering on RoR values
+    Serial.println( RoR_cur , DP );
     Serial.print("T1=");
-    Serial.println( t1, DP );
+    Serial.println( t1_cur, DP );
     i++;
   };
 
@@ -209,7 +235,7 @@ void logger()
     rx = fRoR[i].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
     Serial.println( rx , DP );
     Serial.print("T2=");
-    Serial.println( t2, DP );
+    Serial.println( t2_cur, DP );
     i++;
   };
 
@@ -218,79 +244,6 @@ void logger()
   Serial.println(heater);
   Serial.print("Fan=");
   Serial.println(fan);
-  
-  updateLCD( t1, t2, RoR );
-
-};
-
-// --------------------------------------------
-void updateLCD( float t1, float t2, float RoR ) {
-  char smin[3],ssec[3],st1[6],st2[6],sRoR1[7];
-  char pstr[5];
-
-  // form the timer output string in min:sec format
-  int itod;
-  if( timestamp > 3599 ) 
-    itod = 3599;
-  else
-    itod = round( timestamp );
-    
-  sprintf( smin, "%02u", itod / 60 );
-  sprintf( ssec, "%02u", itod % 60 );
-  lcd.setCursor(0,0);
-  lcd.print( smin );
-  lcd.print( ":" );
-  lcd.print( ssec );
- 
-  // channel 2 temperature 
-  int it02 = round( t2 );
-  if( it02 > 999 ) it02 = 999;
-  else if( it02 < -999 ) it02 = -999;
-  sprintf( st2, "%3d", it02 );
-  lcd.setCursor( 11, 0 );
-  lcd.print( "E " );
-  lcd.print( st2 ); 
-
-  // channel 1 RoR
-  int iRoR = round( RoR );
-  if( iRoR > 99 ) 
-    iRoR = 99;
-  else
-   if( iRoR < -99 ) iRoR = -99; 
-  sprintf( sRoR1, "%0+3d", iRoR );
-  lcd.setCursor(0,1);
-  lcd.print( "RT");
-  lcd.print( sRoR1 );
-
-  // channel 1 temperature
-  int it01 = round( t1 );
-  if( it01 > 999 ) 
-    it01 = 999;
-  else
-    if( it01 < -999 ) it01 = -999;
-  sprintf( st1, "%3d", it01 );
-  lcd.setCursor( 11, 1 );
-  lcd.print("B ");
-  lcd.print(st1);
-  
-  sprintf( pstr, "%3d", heater );
-  lcd.setCursor( 6, 0 );
-  lcd.print( pstr ); lcd.print("%");
-
-  sprintf( pstr, "%3d", fan );
-  lcd.setCursor( 6, 1 );
-  lcd.print( pstr ); lcd.print("%");
-
-}
-
-// -------------------------------------
-int8_t roundOutput( int8_t raw ) {
-  int8_t mod = raw % 5;
-  raw = ( raw / 5 ) * 5;
-  if( mod < 3 )
-    return raw;
-  else
-    return raw + 5;
 }
 
 // -------------------------------------
@@ -304,12 +257,12 @@ void append( char* str, char c ) { // reinventing the wheel
 void processCommand() {  // a newline character has been received, so process the command
   char *val, *c;
   String key = strtok_r(command, "=", &c);
-  standAlone = false;
+  hid.setSlaveMode(); // disable local user input after first newline character received from serial
   if (key != NULL && key.equals(CMD_POWER)) {
     val = strtok_r(NULL, "=", &c);
     if (val != NULL) {
       heater = atoi(val);   
-      heater = roundOutput( heater );   
+      // heater = roundOutput( heater );   
       if (heater >= 0 && heater <101) {  
         output1.Out( heater, 0 ); // update the power output on the SSR drive Ot1
       }
@@ -319,7 +272,7 @@ void processCommand() {  // a newline character has been received, so process th
     val = strtok_r(NULL, "=", &c);
     if (val != NULL) {
       fan = atoi(val); 
-      fan = roundOutput( fan );    
+      // fan = roundOutput( fan );    
       if (fan >= 0 && fan <101) {  
         float pow = 2.55 * fan;  // output values are 0 to 255
         io3.Out( round( pow ) );   
@@ -330,11 +283,19 @@ void processCommand() {  // a newline character has been received, so process th
   }
   else if (key != NULL && key.equals(CMD_ARDUINOCONTROL)) { // placeholder
   }
+  else if (key != NULL && key.equals(CMD_LOAD)) {
+    resetTimer();  // reset the timer in response to message from host
+  }
 }
 
 // -------------------------------------
 void checkSerial() {  // buffer the input from the serial port
   char c;
+
+#ifdef LOGIC_ANALYZER
+  blip();
+#endif
+  
   while( Serial.available() > 0 ) {
     c = Serial.read();
     if( ( c == '\n' ) || ( strlen( command ) == MAX_COMMAND ) ) { // check for newline, or buffer overflow
@@ -347,41 +308,6 @@ void checkSerial() {  // buffer the input from the serial port
   } // end while
 }
 
-// ----------------------------------
-void checkButtons() { // take action if a button is pressed
-  if( buttons.readButtons() ) {
-    if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) {// left button = start the roast
-      if( standAlone ) { // load beans
-        resetTimer();
-        buttons.ledOn( 2 ); // turn on leftmost LED to indicate beans loaded
-      }
-      else { // placeholder for possible future feature
-      }
-    }
-    else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // 2nd button marks first crack
-      if( standAlone ) { // first crack
-        buttons.ledOn( 1 );  // turn on LED to indicate first crack
-      }
-      else { // placeholder
-      }
-    }
-    else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // 3rd button marks second crack
-      if( standAlone ) {
-        buttons.ledOn( 0 ); // rightmost LED at 2nd crack
-      }
-      else { // placeholder
-      }
-    }
-    else if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // 4th button marks eject
-      if( standAlone ) {
-        buttons.ledAllOff(); // turn off all LED's when beans are ejected
-      }
-      else { // placeholder
-      }
-    }
-  }
-}
-
 // --------------------------------------------------------------------------
 void get_samples() // this function talks to the amb sensor and ADC via I2C
 {
@@ -392,13 +318,14 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
     adc.nextConversion( chan_map[j] ); // start ADC conversion on channel j
     amb.nextConversion(); // start ambient sensor conversion
+
     // wait for conversions to take place
     tod = millis();
-    checkSerial(); // should have time to do this at least once
     while( millis() - tod < MIN_DELAY ) {
-      checkButtons();
+      checkSerial(); // check for serial input
+      HIDevents(); // check for interface events
     }
-    //delay( MIN_DELAY ); // give the chips time to perform the conversions
+
     ftimes[j] = millis(); // record timestamp for RoR calculations
     amb.readSensor(); // retrieve value from ambient temp register
     v = adc.readuV(); // retrieve microvolt sample from MCP3424
@@ -418,26 +345,52 @@ void resetTimer() {
   return;
 }
 
+// ------------------- process interface events (not active when connected to PC)
+void HIDevents() {
+  if( hid.processEvents() ) { // something changed
+    if( hid.resetTimer() )
+      resetTimer();
+    if( hid.chgLevel_1() ) {
+      heater = hid.getLevel_1();
+      output1.Out( heater, 0 );
+    }
+    if( hid.chgLevel_2() ) {
+      fan = hid.getLevel_2();
+      io3.Out( 2.55* fan ); // output values range from 0 to 255
+    }
+  }
+}
+
 // ------------------------------------------------------------------------
 // MAIN
 //
 void setup()
 {
-  delay(100);
+  delay(10); // short delay for startup
+  Serial.begin(BAUD); // enable serial right away to avoid buffer overflows
+
+#ifdef LOGIC_ANALYZER
+  pinMode( BLIP_PIN, OUTPUT );
+#endif
+
   lastLoop = millis();
   Wire.begin(); 
-  Serial.begin(BAUD);
-  standAlone = true; // default
 
-  lcd.begin(16, 2);
-  lcd.backlight();
-  lcd.setCursor( 0, 0 );
-  lcd.print( BANNER_RL1 ); // program name
-  lcd.setCursor( 0, 1 );
-  lcd.print( BANNER_RL2 ); // version
-  buttons.begin( 4 );
-  buttons.readButtons();
-  buttons.ledAllOff();
+  // initialize values
+  heater = 0;
+  fan = 0;
+  t1_cur = 0.0;
+  t2_cur = 0.0;
+  RoR_cur = 0.0;
+  
+// initialize the display/input device
+  hid.begin( 16, 2, 4 ); // default is 16 x 2 LCD with 4 buttons
+  hid.backlight();
+  hid.setCursor( 0, 0 );
+  hid.print( BANNER_RL1 ); // program name
+  hid.setCursor( 0, 1 );
+  hid.print( BANNER_RL2 ); // version
+  hid.ledAllOff();
 
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
@@ -470,20 +423,16 @@ void setup()
   tc[1] = &tc2;
   
   output1.Setup( TIME_BASE );
-  heater = 0;
   output1.Out( heater, 0 ); // heater is off by default
   
   io3.Setup( PWM_MODE, PWM_PRESCALE );
-  fan = 0;
   io3.Out( fan ); // fan is off by default
   
   // set up ANLG2 input pin for temperature units selection
   pinMode( UNIT_SEL, INPUT );
   digitalWrite( UNIT_SEL, HIGH ); // enable pullup
   
-  delay( 800 );  // display banner on LCD
   first = true;
-  lcd.clear();
 }
 
 // -----------------------------------------------------------------
@@ -491,7 +440,7 @@ void loop() {
   float idletime;
 
   checkSerial();
-  checkButtons();
+  HIDevents();
   thisLoop = millis();
 
   if( thisLoop - lastLoop >= LOOPTIME ) { // time to take another sample
@@ -501,11 +450,13 @@ void loop() {
     lastLoop += LOOPTIME;
     timestamp = 0.001 * float( thisLoop ) - reftime; // system time, seconds, for this set of samples
     get_samples(); // retrieve values from MCP9800 and MCP3424
-    if( first ) // use first samples for RoR base values only
+    if( first ) { // use first samples for RoR base values only
       first = false;
+    }
     else {
       logger(); // output results to serial port
     }
+    hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for display
 
     for( int j = 0; j < NCHAN; j++ ) {
       flast[j] = ftemps[j]; // use previous values for calculating RoR

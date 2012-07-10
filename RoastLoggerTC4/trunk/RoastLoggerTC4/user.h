@@ -13,7 +13,7 @@
 #define TC_TYPE1 typeK  // input 1
 #define TC_TYPE2 typeK  // input 2
 
-#define BAUD 115200 //RoastLogger modified from original 57600  // serial baud rate
+#define BAUD 115200  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for displayed BT
 #define ET_FILTER 10 // filtering level (percent) for displayed ET
 
@@ -47,11 +47,13 @@
 #define PWM_MODE IO3_FASTPWM
 
 // choose one of the following for the PWM time base for fan output
-#define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz (tested to work well on Hottop roasters)
+#define PWM_PRESCALE IO3_PRESCALE_1024 // 61 Hz (works well on Hottop roasters, but a little noisy)
 //#define PWM_PRESCALE IO3_PRESCALE_256  // 244 Hz
 //#define PWM_PRESCALE IO3_PRESCALE_128  // 488 Hz
 //#define PWM_PRESCALE IO3_PRESCALE_64   // 977 Hz
 //#define PWM_PRESCALE IO3_PRESCALE_32   // 1953 Hz
+//#define PWM_PRESCALE IO3_PRESCALE_8 // 7,808 Hz - seems very good and close to OEM fan control
+//#define PWM_PRESCALE IO3_PRESCALE_1 // 62,464 Hz - too fast
 
 // mapping of logical channels to physical ADC channels -- choose one
 #define LOGCHAN1 0 // LOGCHAN1 mapped to physical channel 0 on ADC (default)

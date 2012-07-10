@@ -1,6 +1,20 @@
 RoastLoggerTC4
 --------------
 
+RoastLoggerTC4  version 2.0    10 July 2012 by Jim Gallt and Tom Coxon
+ - general release of software with standalone capability (see below)
+ - default fan PWM frequency set to 61Hz for best performance with HTC interface
+
+RoastLoggerTC4  version 1.0b   18 May 2012 by Jim Gallt and Tom Coxon (beta version)
+ - optional standalone capability includes heat, fan control with 4-button interface (LCDapter)
+   - button 1:  reset timer or return to normal run mode from adjustment mode
+   - button 2:  enter output level adjustment mode
+   - button 3:  [up]
+   - button 4:  [down]
+ - "load" command rec'd from RoastLogger now resets the timer on the LCD display
+ - some optimization for serial port performance
+
+
 RoastLogger TC4 version 0.8    12 May 2012 by Jim Gallt
  - default PWM time base is 4 sec for heater
  - additional options provided for PWM time base for heater and fan
