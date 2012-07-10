@@ -1,0 +1,24 @@
+release300.txt
+==============
+
+Release notes for TC4 standard libraries, version 3.00:
+ cADC
+ cButton
+ cLCD
+ cmndproc
+ mcEEPROM
+ PWM16
+ thermocouple
+
+
+Libraries have been updated for compatibility with Arduino 1.0.  They
+will also continue to work under previous Arduino releases (0022 has been
+tested).
+
+cmdnproc library
+----------------
+Updated to allow either LF or CR-LF to terminate serial commands.
+
+
+
+Jim Gallt
