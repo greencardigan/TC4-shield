@@ -10,6 +10,27 @@ In addition, the LCD display has a slightly different layout.
 
 ----------------------
 
+Hardware:
+
+1. a simple transformer -- (for the USA: 120 VAC primary, 12 VAC secondary). Do
+   not try to use a wall-wart or other 'regulated' supply.
+
+2. the filter cap needs to be a large value, like 2200 uF shown on the schematic.
+   Otherwise, the circuit will not develop the proper peak voltage (Vpeak).
+
+3. A multi-turn pot would be handy but is not essential (see details below). Note
+   that you can use a cheap plastic type multi-turn trim pot like those on
+   printed circuit boards.
+
+4. A full-wave bridge rectifier.
+
+5. The circuit is only intended to operate near the top-end of the variac range.
+   For the USA: perhaps 80 volts and higher.  Due to the diode-drops of the
+   full-wave bridge, the readings will be incorrect once the transformer's
+   secondary reaches a value below the minimum required by the full-wave bridge.
+
+----------------------
+
 Notes about the juice circuit and the readjuice() routine:
 
 The readjuice() routine is closely tied to the circuit (see juice_monitor-1.jpg).
