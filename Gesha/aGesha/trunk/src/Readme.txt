@@ -84,7 +84,7 @@ some calibration tips if your circuit is somewhat different from mine:
 
 11. Our multi-meters, when set to AC volts, measure 'VAC', also called 'RMS'. Our household voltage
     here is 120 VAC, or 120 RMS. But it is actually a sine wave, with a peak-to-peak voltage of
-    2 * sqrt(2) time RMS, or 339 volts peak-to-peak, or 160 volts peak (Vpeak).
+    2 * sqrt(2) * RMS, or 339 volts peak-to-peak, or 170 volts peak (Vpeak).
 
 12. The output of the full-wave bridge, when filtered, is roughly equal to Vpeak, less some losses
     due to diode voltage drops inside the full-wave bridge itself.
