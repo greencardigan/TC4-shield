@@ -29,6 +29,9 @@ Hardware:
    full-wave bridge, the readings will be incorrect once the transformer's
    secondary reaches a value below the minimum required by the full-wave bridge.
 
+6. The output of the routine is actual VRMS, so for 120 VAC on the variac, the
+   routine should also read 120.
+
 ----------------------
 
 Notes about the juice circuit and the readjuice() routine:
