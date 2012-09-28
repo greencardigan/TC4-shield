@@ -3,8 +3,7 @@
 
 // Written to support the Artisan roasting scope //http://code.google.com/p/artisan/
 
-// This version of aArtisan is specific to Quest roasters or other roasters:
-//   heater is controlled from OT1 using a zero cross SSR (integral pulse control)
+//   Heater is controlled from OT1 using a zero cross SSR (integral pulse control)
 //   AC fan is controlled from OT2 using a random fire SSR (phase angle control)
 //   zero cross detector (true on logic low) is connected to I/O3
 
@@ -40,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID_2_8"
+#define BANNER_ARTISAN "aArtisanQ_PID_3_0"
 
 // Revision history:
 // 20120922 Added support for LCDapter buttons and LEDs (button 1 currently activates or deactivates PID control if enabled)
