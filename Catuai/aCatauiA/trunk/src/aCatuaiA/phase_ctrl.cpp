@@ -1,21 +1,23 @@
 // phase_ctrl.cpp
-//
-// Digital phase angle control on OT2 (SSR drive)
-// Connect zero cross detector to D3 (logic low indicates zero cross)
-// Connect OT2 to random fire SSR for small motor control.
 
-// ICC (modified Bresenham) control on OT1.
-// Connect OT1 to standard SSR.  Suitable for heater control.
+// Connect zero cross detector to D3 (logic low indicates zero cross) ONCE per cycle only
+// Simple resistor + diode + opto pulling down INT_PIN pullup is sufficient
 
-// created 14-October-2011
-// modified 21-Nov-2011
+// Digital phase angle control on OT2(12) - connect to opto triac driver
+
+// Integral cycle control on OT1(11).
+// Connect OT1 to opto triac driver.  Suitable for heater control.
+
+// Both outputs suitable to drive random fire SSRs
+
+// created September 2012
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
-// Copyright (c) 2011, MLG Properties, LLC
+// Copyright (c) 2012, Osiris Technology Pty Ltd
 // All rights reserved.
 //
-// Contributor:  Jim Gallt
+// Contributors: Eric Mills, Jim Galt
 //
 // Redistribution and use in source and binary forms, with or without modification, are 
 // permitted provided that the following conditions are met:
@@ -42,148 +44,115 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#include <avr/io.h>  // contains timer definitions
+#include <avr/io.h>
 #include "phase_ctrl.h"
+#include "user.h"
 
-// for phase angle control
-enum output_state {delaying, pulse_on, disabled};
-volatile output_state triac_state = disabled;
-uint8_t pac_output; // output level, 0 to 100, for phase angle control
+#define OT_ICC	11	// Pin 11 is OC1A, hard wired below in the code
+#define OT_PAC	12	// Pin 12 is OC1B, hard wired below in the code
 
-// for N:M quantization used by ICC control
-int8_t ratioN; // ICC output level, 0 to 100
-volatile boolean newN; // singles that output level has changed
-volatile int8_t curr; // current value in N:M sequence
-volatile uint32_t lastCross;  // timer0 value at most recent zero cross
-volatile boolean outputEnable;
+static uint8_t pacOutput;	// Output level, 0 to PAC_MAX, for phase angle control
+static int8_t iccOutput;	// ICC output level, 0 to ICC_MAX
 
-// lookup table (index = rounded % output, 0 to 100)
-// based on 0.5 uS per count
-// FIXME: put this in PROGMEM
-#ifdef FREQ60
-uint16_t phase_delay[101] = { // 60Hz values based on linearizing power output
-	/* 0      1      2      3      4      5      6     7      8       9 */
-/* 00 */ 16667, 14733, 14218, 13851, 13554, 13301, 13076, 12874, 12687, 12514,
-/* 10 */ 12352, 12198, 12052, 11912, 11778, 11649, 11525, 11404, 11287, 11173,
-/* 20 */ 11061, 10953, 10846, 10742, 10640, 10540, 10441, 10343, 10248, 10153,
-/* 30 */ 10060,  9967,  9876,  9786,  9696,  9608, 9520,  9432,  9346,  9259,
-/* 40 */  9174,  9088,  9004,  8919,  8835,  8751, 8667,  8584,  8500,  8417,
-/* 50 */  8333,  8250,  8167,  8083,  8000,  7916, 7832,  7748,  7663,  7578,
-/* 60 */  7493,  7407,  7321,  7234,  7147,  7059, 6970,  6881,  6791,  6699,
-/* 70 */  6607,  6514,  6419,  6323,  6226,  6127, 6027,  5924,  5820,  5714,
-/* 80 */  5605,  5494,  5380,  5263,  5142,  5017, 4888,  4754,  4615,  4469,
-/* 90 */  4315,  4153,  3979,  3793,  3590,  3366, 3113,  2816,  2449,  1933,
-/* 100 */ 0	
+// Lookup table (index = rounded 1/2% output, 0 to 100)
+// Based on 0.5 uS per count (sysclk prescale 8)
+// Table entries are solution to: pi*x - sin(pi*x)cos(pi*x) = pi*y for y:1.0->0.5 in steps of 0.005
+// then table entry = x*TOP [power = integral sin^2(x)]
+#if MAINS_FREQ == 60
+#define TOP 16667		// Half cycle time in counter timer 1 (8.3ms)
+static const uint16_t phase_delay[PAC_MAX / 2 + 1] PROGMEM = {
+ 16667,  15137,  14733,  14447,  14218,  14022,  13851,  13696,  13554,  13423, 
+ 13301,  13186,  13076,  12973,  12874,  12779,  12687,  12599,  12514,  12432, 
+ 12352,  12274,  12198,  12124,  12052,  11981,  11912,  11845,  11778,  11713, 
+ 11649,  11587,  11525,  11464,  11404,  11345,  11287,  11229,  11173,  11117, 
+ 11061,  11007,  10953,  10899,  10846,  10794,  10742,  10691,  10640,  10590, 
+ 10540,  10490,  10441,  10392,  10343,  10295,  10248,  10200,  10153,  10106, 
+ 10060,  10013,   9967,   9922,   9876,   9831,   9786,   9741,   9696,   9652, 
+  9608,   9563,   9520,   9476,   9432,   9389,   9346,   9302,   9259,   9216, 
+  9174,   9131,   9088,   9046,   9004,   8961,   8919,   8877,   8835,   8793, 
+  8751,   8709,   8667,   8625,   8584,   8542,   8500,   8458,   8417,   8375, 
+  8333 
 };
-#else ifdef FREQ50
-uint16_t phase_delay[101] = { // 50Hz values based on linearizing power output
-	/* 0      1      2      3      4      5      6     7      8       9 */
-/* 00 */ 20000, 17680, 17061, 16621, 16265, 15961, 15692, 15448, 15225, 15017,
-/* 10 */ 14822, 14638, 14462, 14295, 14134, 13979, 13830, 13685, 13544, 13407,
-/* 20 */ 13274, 13143, 13016, 12891, 12768, 12647, 12529, 12412, 12297, 12184,
-/* 30 */ 12072, 11961, 11851, 11743, 11636, 11529, 11423, 11319, 11215, 11111,
-/* 40 */ 11008, 10906, 10804, 10703, 10602, 10501, 10401, 10300, 10200, 10100,
-/* 50 */ 10000,  9900,  9800,  9700,  9599,  9499,  9398,  9297,  9196,  9094,
-/* 60 */  8992,  8889,  8785,  8681,  8577,  8471,  8364,  8257,  8149,  8039,
-/* 70 */  7928,  7816,  7703,  7588,  7471,  7353,  7232,  7109,  6984,  6857,
-/* 80 */  6726,  6593,  6456,  6315,  6170,  6021,  5866,  5705,  5538,  5362,
-/* 90 */  5178,  4983,  4775,  4552,  4308,  4039,  3735,  3379,  2939,  2320,
-/* 100 */ 0	
+#elif MAINS_FREQ == 50
+#define TOP 20000		// Half cycle time in counter timer 1 (10ms)
+static const uint16_t phase_delay[(PAC_MAX / 2) + 1] PROGMEM = {
+ 20000,  18165,  17680,  17337,  17061,  16827,  16621,  16435,  16265,  16108, 
+ 15961,  15823,  15692,  15567,  15448,  15334,  15225,  15119,  15017,  14918, 
+ 14822,  14728,  14638,  14549,  14462,  14378,  14295,  14214,  14134,  14056, 
+ 13979,  13904,  13830,  13757,  13685,  13614,  13544,  13475,  13407,  13340, 
+ 13274,  13208,  13143,  13079,  13016,  12953,  12891,  12829,  12768,  12707, 
+ 12647,  12588,  12529,  12470,  12412,  12354,  12297,  12240,  12184,  12127, 
+ 12072,  12016,  11961,  11906,  11851,  11797,  11743,  11689,  11636,  11582, 
+ 11529,  11476,  11423,  11371,  11319,  11267,  11215,  11163,  11111,  11060, 
+ 11008,  10957,  10906,  10855,  10804,  10754,  10703,  10652,  10602,  10551, 
+ 10501,  10451,  10401,  10350,  10300,  10250,  10200,  10150,  10100,  10050, 
+ 10000 
 };
 #endif
 
-// timer1 is used for both phase delay and for TRIAC pulse width timing
-void setupTimer1() {
-  TIMSK1 = 0; // disable all interrupts 
-  TCCR1A =  0; // put timer1 in normal mode; output pins under sketch control
-  TCCR1B = (1 << CS11); // set prescaler to clk/8 (1 count = 0.5 uS)
-  OCR1A = TCNT1; // initialize output compare register A to max value
-  TIMSK1 = (1 << OCIE1A); // enable interrupt on output compare A match
-}
+// ISR for external zero cross detect - once per cycle only, falling edge
+#if EXT_INT == 4			// ATmega2560 pin 2
+ISR(INT4_vect) {
+#elif EXT_INT == 1			// Uno pin 3
+ISR(INT1_vect) {
+#else
+ISR(INT0_vect) {			// Uno pin 2
+#endif
+    static int8_t rem;			// Partial cycle carry forward
+    TCNT1 = ZC_LAG;			// Sync counter to external mains, during first 1% time window (99% power)
 
-// ------------------------- ISR for external zero cross detect
-void ISR_ZCD() {
-  // set compare register to phase angle delay
-  OCR1A = TCNT1 + phase_delay[pac_output] + uint16_t(ZC_LEAD); 
-  triac_state = delaying;
-  // always force outputs off at zero crossing
-  digitalWrite( OT_PAC, LOW );
-  digitalWrite( OT_ICC, LOW );
-  // integral cycle control output using modified Bresenham's algorithm
-  // (inspired by post on arduino.cc forum by jwatte on 10-12-2011 -- Thanks!)
-  int8_t c = curr; // this allows use of register variable
-  if( newN ) {  // restart sequence if new output level    
-    int16_t n = ratioN;
-    n += RATIO_M;
-    c = -( n >> 1 );
-    newN = false;
-  }
-  c += ratioN;
-  if( c >= 0 ) {
-    c -= RATIO_M;
-    if( outputEnable ) 
-      digitalWrite( OT_ICC, HIGH );
-  }
-  curr = c;
-  lastCross = millis();
-}
+    // Mirror about centre of 1/2 cycle, write thru on next counter reset
+    OCR1B = pacOutput <= PAC_MAX / 2 ? pgm_read_word(&phase_delay[pacOutput])
+				     : TOP - pgm_read_word(&phase_delay[PAC_MAX - pacOutput]);
 
-// ------------------------ ISR for comparator A match
-ISR( TIMER1_COMPA_vect ) { // this gets called every time there is a match on A
-  // if triac output is delaying, then switch on the TRIAC
-  if( triac_state == delaying ) {  
-    triac_state = pulse_on; // indicate output pulse is active
-    if( outputEnable )
-      digitalWrite( OT_PAC, HIGH );
+    rem += iccOutput;
+    if(rem > 0) {			// Whole cycle accumulated to be output
+	rem -= ICC_MAX;
+	OCR1A = 0;			// Turn on for whole next cycle, buffered write in timer1
+    }
     else
-      digitalWrite( OT_PAC, LOW );
-    OCR1A = TCNT1 + TRIAC_PULSE_WIDTH; // start counting for firing pulse
-  }
-  else if( triac_state == pulse_on ){  // if triac output is on, turn it off because pulse is done
-    triac_state = disabled;
-    digitalWrite( OT_PAC, LOW );
-    OCR1A = TCNT1; // keep triac output off until next zero cross
-  }
+	OCR1A = TOP;			// Stay off next whole cycle
+    bitClear(EIMSK, EXT_INT);		// Disable this interrupt - debounce
 }
 
-// initialize ICC and PAC control
-void init_control() {
-  lastCross = 0;
-  outputEnable = false;
-  ratioN = 0;
-  output_level_icc( 0 );
-  output_level_pac( 0 );
-  pinMode( OT_ICC, OUTPUT );
-  pinMode( OT_PAC, OUTPUT );
-  pinMode( INT_PIN, INPUT ); // enable input on the interrupt pin
-  digitalWrite( INT_PIN, HIGH );  // enable internal pullup on the int pin
-  triac_state = disabled;
-  setupTimer1();
-  attachInterrupt( EXT_INT, ISR_ZCD, FALLING );
+// Check the INT pin and enable falling interrupt only if it is already HIGH mid cycle
+ISR(TIMER1_COMPC_vect) {
+    if (digitalRead(INT_PIN) == HIGH) {
+	EIFR = 1 << EXT_INT;		// Clear any latched falling edge
+	bitSet(EIMSK, EXT_INT);		// Enable above interrupt
+    }
 }
 
-// call this to set phase angle control output levels, 0 to 100 
+// Initialize ICC and PAC control using timer 1 all channels
+void init_phase_ctrl() {
+    pinMode(INT_PIN, INPUT);		// Enable input on the interrupt pin
+    digitalWrite(INT_PIN, HIGH); 	// Enable internal pullup on the int pin
+#if EXT_INT > 3
+    EICRB |= 2 << ((EXT_INT - 4) << 1);	// Interrupt on falling edge, leave disabled
+#else
+    EICRA |= 2 << (EXT_INT << 1);	// Interrupt on falling edge, leave disabled
+#endif
+
+    // Timer1 is used for phase delay and ICC direct drive
+    // It is freewheeling at 2x mains frequency, synchronised by ZCD interrupt
+    TCCR1A = 0xf2;			// Inverting output (match=>HIGH) fast PWM channel A & B
+    TCCR1B = 0x1a;			// Fast PWM with ICR1 TOP & prescaler to clk/8 (1 count = 0.5 uS)
+    ICR1 = TOP;				// TOP set to half cycle time
+    OCR1A = TOP;			// Turns off output OT_ICC
+    OCR1B = TOP;			// Turns off output OT_PAC
+    OCR1C = 3 * (TOP / 4);		// Generate interrupt later in 1/2 cycle to debounce EXT_INT
+    delay(12);				// Wait for timer1 to wrap & set output pins low before output enable
+    pinMode(OT_ICC, OUTPUT);
+    pinMode(OT_PAC, OUTPUT);
+    TIMSK1 = 1 << OCIE1C;		// Enable timer C match interupt, only interrupt this timer
+}
+
+// Set phase angle control output levels, 0 to 200 
 void output_level_pac( uint8_t pac_level ) {
-  if( pac_level > 100 ) // trap error condition
-    pac_output = 0;
-  else
-    pac_output = pac_level;
+    pacOutput = pac_level <= PAC_MAX ? pac_level : PAC_MAX;
 }
 
-// call this to set integral cycle control output levels, 0 to 100 
+// Set integral cycle control output levels, 0 to 100 
 void output_level_icc( uint8_t icc_level ) {
-  newN = false;
-  if( icc_level == ratioN )
-    return;
-  if( icc_level > 100 )
-    ratioN = 0;
-  else
-    ratioN = icc_level;
-  newN = true;
+    iccOutput = icc_level <= ICC_MAX ? icc_level : ICC_MAX;
 }
-
-// detects the presence of AC
-boolean ACdetect() {
-  return outputEnable = ! ( ( millis() - lastCross ) > AC_TIMEOUT_MS ) ;
-}
-

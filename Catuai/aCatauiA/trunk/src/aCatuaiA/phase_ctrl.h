@@ -1,25 +1,23 @@
 // phase_ctrl.h
 //
-// Digital phase angle control on OT2 (random fire SSR drive)
-// Connect zero cross detector to D3 (logic low indicates zero cross)
-// Connect OT2 to random fire SSR
-//
-// ICC control on OT1.  Connect standard zero cross SSR to OT1.
-// Period skipping (a.k.a. integral cycle control) method of AC
-// control using zero crossing SSR's.  Most suitable for control
-// of resistive loads, like heaters.
-// Uses modified Bresenham algorithm (N in M) for ICC control.
-// inspired by post on arduino.cc forum by jwatte on 10-12-2011 -- Thanks!
+// Connect zero cross detector to D3 (logic low indicates zero cross) ONCE per cycle only
+// Simple resistor + diode + opto pulling down INT_PIN pullup is sufficient
 
-// created 14-October-2011
-// revised 20-Nov-2011
+// Digital phase angle control on OT2(12) - connect to opto triac driver
+
+// Integral cycle control on OT1(11).
+// Connect OT1 to opto triac driver.  Suitable for heater control.
+
+// Both outputs suitable to drive random fire SSRs
+
+// created September 2012
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
-// Copyright (c) 2011, MLG Properties, LLC
+// Copyright (c) 2012, Osiris Technology Pty Ltd
 // All rights reserved.
 //
-// Contributor:  Jim Gallt
+// Contributor:  Eric Mills, Jim Gallt
 //
 // Redistribution and use in source and binary forms, with or without modification, are 
 // permitted provided that the following conditions are met:
@@ -49,40 +47,17 @@
 #ifndef _phase_ctrl_h
 #define _phase_ctrl_h
 
-#include <WProgram.h>
-#include "user.h"
+#include <Arduino.h>
 
-// define the pulse width for firing TRIAC (phase angle control)
-#define TRIAC_PULSE_WIDTH 1000 // 500 uS default
-#ifdef TRIAC_MOTOR
- #undef TRIAC_PULSE_WIDTH
- #define TRIAC_PULSE_WIDTH 4000 // 2000 uS needed for popper motor -- why?
-#else ifdef TRIAC_HEATER
- #undef TRIAC_PULSE_WIDTH
- #define TRIAC_PULSE_WIDTH 1000 // 500 uS works for heaters
-#endif
+#define ZC_LAG 1200	// Zero cross signal lags the actual crossing by < 600us
+			// This may interfere with the 99.5% fan setting (not used)
+			// Increase if PAC flashes full cycles due to running over ZC
 
-#define ZC_LEAD 1000 // zero cross signal leads the actual crossing by approx 500us
+#define ICC_MAX 100	// Must be < 128 (signed char)
+#define PAC_MAX 200	// Hard coded in lookup array size
 
-#define AC_TIMEOUT_MS 100 // 0.1 second
-
-// for integral cycle control
-#define RATIO_M 100 // resolution of quantization of output levels
-
-// call when output levels need to change
-void output_level_icc( uint8_t icc_level ); // call this to set output level, 0 to 100
-void output_level_pac( uint8_t pac_level ); // call this to set output level, 0 to 100 
-
-// call to initialize integral cycle control
-void init_control();
-
-void setupTimer1();
-
-// called at each zero cross by interrupt handler
-void ISR_ZCD();
-
-// detects the presence of AC
-boolean ACdetect();
+void init_phase_ctrl();
+void output_level_icc(uint8_t icc_level);	// Set ICC output level, 0 to ICC_MAX
+void output_level_pac(uint8_t pac_level);	// Set PAC output level, 0 to PAC_MAX 
 
 #endif
-
