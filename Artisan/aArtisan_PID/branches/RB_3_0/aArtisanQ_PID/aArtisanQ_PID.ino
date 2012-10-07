@@ -39,9 +39,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID_3_0"
+#define BANNER_ARTISAN "aArtisanQ_PID RB_3_0"
 
 // Revision history:
+// 20121007 Fixed PID tuning command so it handles doubles
+//          Added inital PID tuning parameters in user.h
 // 20120922 Added support for LCDapter buttons and LEDs (button 1 currently activates or deactivates PID control if enabled)
 //          Added code to allow power to OT1 to be cut if OT2 is below OT1_CUTOFF percentage as defined in user.h.  For heater protection if required. Required modification to phase_ctrl.cpp
 //          Added code to allow OT2 to range between custom min and max percentages (defined in user.h)
@@ -609,7 +611,7 @@ void setup()
   myPID.SetSampleTime(1000); // set sample time to 1 second
   myPID.SetOutputLimits(0, 100); // set output limits to 0 to 100 for OT2
   myPID.SetControllerDirection(DIRECT); // set PID to be direct acting mode. Increase in output leads to increase in input
-  myPID.SetTunings(2, 5, 1); // set default PID tuning values
+  myPID.SetTunings(PRO, INT, DER); // set initial PID tuning values
   myPID.SetMode(MANUAL); // start with PID control off
   profile_number = 1; // set default profile
   setProfile(); // set EEPROM profile pointer and read initial time/temp data
