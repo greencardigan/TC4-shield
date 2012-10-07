@@ -50,7 +50,7 @@ io3Cmnd io3;
 unitsCmnd units;
 rf2000Cmnd rf2000;
 rc2000Cmnd rc2000;
-pidCmnd pid; ////////////
+pidCmnd pid;
 
 
 // --------------------- dwriteCmnd
@@ -384,7 +384,7 @@ boolean rc2000Cmnd::doCommand( CmndParser* pars ) {
   }
 }
 
-// ----------------------------- pidCmnd ///////////////////////
+// ----------------------------- pidCmnd
 // constructor
 pidCmnd::pidCmnd() :
   CmndBase( PID_CMD ) {
@@ -435,9 +435,9 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
     else if( strcmp( pars->paramStr(1), "T" ) == 0 ) {
       #ifdef PID_CONTROL
       double kp, ki, kd;
-      kp = atoi( pars->paramStr(2) );
-      ki = atoi( pars->paramStr(3) );
-      kd = atoi( pars->paramStr(4) );
+      kp = atof( pars->paramStr(2) );
+      ki = atof( pars->paramStr(3) );
+      kd = atof( pars->paramStr(4) );
       myPID.SetTunings( kp, ki, kd );
       #ifdef ACKS_ON
       Serial.print("# PID Tunings set.  "); Serial.print("Kp = "); Serial.print(kp); Serial.print(",  Ki = "); Serial.print(ki); Serial.print(",  Kd = "); Serial.println(kd);
