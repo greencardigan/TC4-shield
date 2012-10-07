@@ -54,7 +54,7 @@
 			// Increase if PAC flashes full cycles due to running over ZC
 
 #define ICC_MAX 100	// Must be < 128 (signed char)
-#define PAC_MAX 200	// Hard coded in lookup array size
+#define PAC_MAX 200	// Hard coded in lookup array size: valid values are 200, 100 and 50
 
 void init_phase_ctrl();
 void output_level_icc(uint8_t icc_level);	// Set ICC output level, 0 to ICC_MAX
