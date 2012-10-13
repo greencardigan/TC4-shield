@@ -3,8 +3,7 @@
 
 // Written to support the Artisan roasting scope //http://code.google.com/p/artisan/
 
-// This version of aArtisan is specific to Quest roasters or other roasters:
-//   heater is controlled from OT1 using a zero cross SSR (integral pulse control)
+//   Heater is controlled from OT1 using a zero cross SSR (integral pulse control)
 //   AC fan is controlled from OT2 using a random fire SSR (phase angle control)
 //   zero cross detector (true on logic low) is connected to I/O3
 
@@ -40,9 +39,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID_2_8"
+#define BANNER_ARTISAN "aArtisanQ_PID RB_3_1"
 
 // Revision history:
+// 20121013 Added code to allow Artisan plotting of levelOT1 and levelOT2 if PLOT_POWER is defined in user.h
+//          Swapped location of T1 and T2 on LCD display and renamed to ET and BT
+// 20121007 Fixed PID tuning command so it handles doubles
+//          Added inital PID tuning parameters in user.h
 // 20120922 Added support for LCDapter buttons and LEDs (button 1 currently activates or deactivates PID control if enabled)
 //          Added code to allow power to OT1 to be cut if OT2 is below OT1_CUTOFF percentage as defined in user.h.  For heater protection if required. Required modification to phase_ctrl.cpp
 //          Added code to allow OT2 to range between custom min and max percentages (defined in user.h)
@@ -268,7 +271,16 @@ void logger()
       Serial.print( convertUnits( T[k] ) );
     }
   }
+  
+#ifdef PLOT_POWER
+  Serial.print(",");
+  Serial.print( levelOT1 );
+  Serial.print(",");
+  Serial.print( levelOT2 );
+#endif  
+  
   Serial.println();
+
 }
 
 // --------------------------------------------------------------------------
@@ -309,7 +321,6 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
         rx = calcRise( ftemps_old[k], ftemps[k], ftimes_old[k], ftimes[k] );
         RoR[k] = fRoR[k].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
       }
-      //Serial.println(RoR[k]);
     }
   }
   first = false;
@@ -351,11 +362,11 @@ void updateLCD() {
       sprintf( st1, "%4d", it01 );
       if( j == 1 ) {
         lcd.setCursor( 9, 0 );
-        lcd.print("T1:");
+        lcd.print("ET:");
       }
       else {
         lcd.setCursor( 9, 1 );
-        lcd.print( "T2:" );
+        lcd.print( "BT:" );
       }
       lcd.print(st1);  
     }
@@ -595,7 +606,7 @@ void setup()
   ci.addCommand( &rf2000 );
   ci.addCommand( &rc2000 );
   ci.addCommand( &reader );
-  ci.addCommand( &pid ); /////////////////
+  ci.addCommand( &pid );
   pinMode( LED_PIN, OUTPUT );
 
 #ifdef LCD
@@ -610,7 +621,7 @@ void setup()
   myPID.SetSampleTime(1000); // set sample time to 1 second
   myPID.SetOutputLimits(0, 100); // set output limits to 0 to 100 for OT2
   myPID.SetControllerDirection(DIRECT); // set PID to be direct acting mode. Increase in output leads to increase in input
-  myPID.SetTunings(2, 5, 1); // set default PID tuning values
+  myPID.SetTunings(PRO, INT, DER); // set initial PID tuning values
   myPID.SetMode(MANUAL); // start with PID control off
   profile_number = 1; // set default profile
   setProfile(); // set EEPROM profile pointer and read initial time/temp data

@@ -45,7 +45,7 @@
 
 #include "user.h"
 #include "phase_ctrl.h"
-#include "PID_v1.h"  ///////////??????
+#include "PID_v1.h"
 
 // ----------------------- commands
 #define READ_CMD "READ" // triggers the TC4 to output current temps on serial line
@@ -59,7 +59,7 @@
 #define DIGITAL_WRITE_CMD "DWRITE" // turn digital pin LOW or HIGH
 #define ANALOG_WRITE_CMD "AWRITE" // write a value 0 to 255 to PWM pin
 #define IO3 3 // use DIO3 for PWM output
-#define PID_CMD "PID" // tirn PID ON or OFF /////////////
+#define PID_CMD "PID" // turn PID ON or OFF
 
 
 // forward declarations
@@ -73,7 +73,7 @@ class io3Cmnd;
 class unitsCmnd;
 class rf2000Cmnd;
 class rc2000Cmnd;
-class pidCmnd; /////////////
+class pidCmnd;
 
 // external declarations of class objects
 extern readCmnd reader;
@@ -86,7 +86,7 @@ extern io3Cmnd io3;
 extern rf2000Cmnd rf2000;
 extern rc2000Cmnd rc2000;
 extern unitsCmnd units;
-extern pidCmnd pid; /////////////
+extern pidCmnd pid;
 
 // extern declarations for functions, variables in the main program
 //extern PWM16 ssr;
@@ -95,7 +95,7 @@ extern int levelOT2;
 extern void logger();
 extern boolean Cscale;
 extern uint8_t actv[NC];
-extern PID myPID; ////////////
+extern PID myPID;
 extern uint32_t counter;
 extern int profile_number;
 extern void setProfile();
@@ -162,7 +162,7 @@ class rc2000Cmnd : public CmndBase {
     virtual boolean doCommand( CmndParser* pars );
 };
 
-class pidCmnd : public CmndBase { /////////////
+class pidCmnd : public CmndBase {
   public:
     pidCmnd();
     virtual boolean doCommand( CmndParser* pars );

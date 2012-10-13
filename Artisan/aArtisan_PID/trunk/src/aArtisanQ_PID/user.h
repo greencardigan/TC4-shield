@@ -26,12 +26,15 @@
 #define ROR_CHAN 0 // physical input channel for RoR display on LCD
 
 #define PID_CONTROL // if PID control is allowed to be activated
-#define PID_CHAN 0 // physical channel for PID input
+#define PID_CHAN 1 // physical channel for PID input
+#define PRO 5.00 // initial proportional parameter
+#define INT 0.25 // initial integral parameter
+#define DER 0.00 // initial derivative parameter
 
 #define OT1_CUTOFF 30 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
 
 #define MIN_OT2 20 // Set OT2 output % for lower limit of potentiometer range. Does not limit serial commands
-#define MAX_OT2 80 // Set OT2 output % for upper limit of potentiometer range. Does not limit serial commands
+#define MAX_OT2 100 // Set OT2 output % for upper limit of potentiometer range. Does not limit serial commands
 
 #define COMMAND_ECHO // Echo all serial commands to LCD
 
@@ -56,6 +59,7 @@
 
 #define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR's on OT1, OT2
 #define NC 4 // maximum number of physical channels on the TC4
+#define PLOT_POWER // send heater and fan power levels to Artisan instead of 3rd and 4th channels
 
 // Useful for debugging only -- leave inactive otherwise
 //#define MEMORY_CHK
