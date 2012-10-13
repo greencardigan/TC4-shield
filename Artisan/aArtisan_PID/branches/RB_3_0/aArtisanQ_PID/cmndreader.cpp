@@ -221,6 +221,10 @@ boolean chanCmnd::doCommand( CmndParser* pars ) {
       Serial.print("# Active channels set to ");
       Serial.println( pars->paramStr(1) );
       // #endif
+#ifdef PLOT_POWER
+      actv[2] = 0;
+      actv[3] = 0;
+#endif
     }
     return true;
   }

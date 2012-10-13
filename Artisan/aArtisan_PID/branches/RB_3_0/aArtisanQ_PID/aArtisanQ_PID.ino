@@ -39,9 +39,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID RB_3_0"
+#define BANNER_ARTISAN "aArtisanQ_PID RB_3_1"
 
 // Revision history:
+// 20121013 Added code to allow Artisan plotting of levelOT1 and levelOT2 if PLOT_POWER is defined in user.h
+//          Swapped location of T1 and T2 on LCD display and renamed to ET and BT
 // 20121007 Fixed PID tuning command so it handles doubles
 //          Added inital PID tuning parameters in user.h
 // 20120922 Added support for LCDapter buttons and LEDs (button 1 currently activates or deactivates PID control if enabled)
@@ -269,7 +271,16 @@ void logger()
       Serial.print( convertUnits( T[k] ) );
     }
   }
+  
+#ifdef PLOT_POWER
+  Serial.print(",");
+  Serial.print( levelOT1 );
+  Serial.print(",");
+  Serial.print( levelOT2 );
+#endif  
+  
   Serial.println();
+
 }
 
 // --------------------------------------------------------------------------
@@ -310,7 +321,6 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
         rx = calcRise( ftemps_old[k], ftemps[k], ftimes_old[k], ftimes[k] );
         RoR[k] = fRoR[k].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
       }
-      //Serial.println(RoR[k]);
     }
   }
   first = false;
@@ -352,11 +362,11 @@ void updateLCD() {
       sprintf( st1, "%4d", it01 );
       if( j == 1 ) {
         lcd.setCursor( 9, 0 );
-        lcd.print("T1:");
+        lcd.print("ET:");
       }
       else {
         lcd.setCursor( 9, 1 );
-        lcd.print( "T2:" );
+        lcd.print( "BT:" );
       }
       lcd.print(st1);  
     }
@@ -596,7 +606,7 @@ void setup()
   ci.addCommand( &rf2000 );
   ci.addCommand( &rc2000 );
   ci.addCommand( &reader );
-  ci.addCommand( &pid ); /////////////////
+  ci.addCommand( &pid );
   pinMode( LED_PIN, OUTPUT );
 
 #ifdef LCD
