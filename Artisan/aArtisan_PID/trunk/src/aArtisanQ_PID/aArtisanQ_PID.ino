@@ -39,9 +39,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID RB_3_1"
+#define BANNER_ARTISAN "aArtisanQ_PID 3_2"
 
 // Revision history:
+// 20121014 Enhanced LCD display code and added support for 4x20 LCDs. Define LCD_4x20 in user.h
 // 20121013 Added code to allow Artisan plotting of levelOT1 and levelOT2 if PLOT_POWER is defined in user.h
 //          Swapped location of T1 and T2 on LCD display and renamed to ET and BT
 // 20121007 Fixed PID tuning command so it handles doubles
@@ -151,11 +152,13 @@ uint32_t checktime;
 #ifdef ANALOGUE1
   uint8_t anlg1 = 0; // analog input pins
   int32_t old_reading_anlg1; // previous analogue reading
+  boolean analogue1_changed;
 #endif
 
 #ifdef ANALOGUE2
   uint8_t anlg2 = 1; // analog input pins
   int32_t old_reading_anlg2; // previous analogue reading
+  boolean analogue2_changed;
 #endif
 
 #ifdef PID_CONTROL
@@ -228,7 +231,7 @@ void checkSerial() {
   const char* result = ci.checkSerial();
   if( result != NULL ) { // some things we might want to do after a command is executed
     #if defined LCD && defined COMMAND_ECHO
-    lcd.setCursor( 0, 1 ); // echo all commands to the LCD
+    lcd.setCursor( 0, 0 ); // echo all commands to the LCD
     lcd.print( result );
     #endif
     #ifdef MEMORY_CHK
@@ -274,7 +277,12 @@ void logger()
   
 #ifdef PLOT_POWER
   Serial.print(",");
-  Serial.print( levelOT1 );
+  if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+    Serial.print( 0 );
+  }
+  else {  
+    Serial.print( levelOT1 );
+  }
   Serial.print(",");
   Serial.print( levelOT2 );
 #endif  
@@ -332,22 +340,130 @@ void updateLCD() {
 
   lcd.setCursor(0,0);  
   if(counter/60 < 10) lcd.print("0"); lcd.print(counter/60); // Prob can do this better. Check aBourbon.
-  lcd.print(":");
+  lcd.print(":"); // make this blink?? :)
   if(counter - (counter/60)*60 < 10) lcd.print("0"); lcd.print(counter - (counter/60)*60);
 
+
+#ifdef LCD_4x20
+
+#ifdef COMMAND_ECHO
+  lcd.print(" "); // overwrite artisan commands
+#endif
+
+  // display the first 2 active channels encountered, normally BT and ET
+  int it01;
+  uint8_t jj,j;
+  uint8_t k;
+  for( jj = 0, j = 0; jj < NC && j < 2; ++jj ) {
+    k = actv[jj];
+    if( k != 0 ) {
+      ++j;
+      it01 = round( convertUnits( T[k-1] ) );
+      if( it01 > 999 ) 
+        it01 = 999;
+      else
+        if( it01 < -999 ) it01 = -999;
+      sprintf( st1, "%4d", it01 );
+      if( j == 1 ) {
+        lcd.setCursor( 13, 0 );
+        lcd.print("ET:");
+      }
+      else {
+        lcd.setCursor( 13, 1 );
+        lcd.print( "BT:" );
+      }
+      lcd.print(st1);  
+    }
+  }
   
- // AT
-  int it01 = round( convertUnits( AT ) );
-/*  if( it01 > 999 ) 
+// AT
+  it01 = round( convertUnits( AT ) );
+  if( it01 > 999 ) 
     it01 = 999;
   else
     if( it01 < -999 ) it01 = -999;
-  sprintf( st1, "%4d", it01 );
-  lcd.setCursor( 0, 0 );
-  lcd.print("AMB:");
+  sprintf( st1, "%3d", it01 );
+  lcd.setCursor( 6, 0 );
+  lcd.print("AT:");
   lcd.print(st1);
-*/
+  
+#ifdef PID_CONTROL
+  if( myPID.GetMode() != MANUAL ) { // if PID is on then display PID: nnn% instead of OT1:
+    lcd.setCursor( 0, 2 );
+    lcd.print( "PID:" );
+    if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+    sprintf( st1, "%4d", (int)0 );     
+    }
+    else {
+      sprintf( st1, "%4d", (int)levelOT1 );
+    }
+    lcd.print( st1 ); lcd.print("%");
+    
+    lcd.setCursor( 13, 2 ); // display setpoint if PID is on
+    lcd.print( "SP:" );
+    sprintf( st1, "%4d", (int)Setpoint );
+    lcd.print( st1 );
+  }
+  else {
+#ifdef ANALOGUE1
+    lcd.setCursor( 13, 2 );
+    lcd.print("       "); // blank out SP: nnn if PID is off
+#else
+    lcd.setCursor( 0, 2 );
+    lcd.print("                    "); // blank out PID: nnn% and SP: nnn if PID is off and ANALOGUE1 isn't defined
+#endif // end ifdef ANALOGUE1
+  }
+#endif // end ifdef PID_CONTROL
+
+  // RoR
+  lcd.setCursor( 0, 1 );
+  lcd.print( "RoR:");
+  sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
+  lcd.print( st1 );
+
+
+#ifdef ANALOGUE1
+#ifdef PID_CONTROL
+  if( myPID.GetMode() == MANUAL ) { // only display OT2: nnn% if PID is off so PID display isn't overwriten
+    lcd.setCursor( 0, 2 );
+    lcd.print("OT1:");
+    if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+    sprintf( st1, "%4d", (int)0 );     
+    }
+    else {
+      sprintf( st1, "%4d", (int)levelOT1 );
+    }
+    lcd.print( st1 ); lcd.print("%");
+  }
+    
+#else // if PID_CONTROL isn't defined then always display OT1: nnn%
+    lcd.setCursor( 0, 2 );
+    lcd.print("OT1:");
+    if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+    sprintf( st1, "%4d", (int)0 );     
+    }
+    else {
+      sprintf( st1, "%4d", (int)levelOT1 );
+    }
+    lcd.print( st1 ); lcd.print("%");
+#endif
+
+#endif
+#ifdef ANALOGUE2
+  lcd.setCursor( 0, 3 );
+  lcd.print("OT2:");
+  sprintf( st1, "%4d", (int)levelOT2 );
+  lcd.print( st1 ); lcd.print("%");
+#endif
+
+#else // if not def LCD_4x20 ie if using a standard 2x16 LCD
+
+#ifdef COMMAND_ECHO
+  lcd.print("    "); // overwrite artisan commands
+#endif
+
   // display the first 2 active channels encountered, normally BT and ET
+  int it01;
   uint8_t jj,j;
   uint8_t k;
   for( jj = 0, j = 0; jj < NC && j < 2; ++jj ) {
@@ -371,11 +487,61 @@ void updateLCD() {
       lcd.print(st1);  
     }
   }
-  lcd.setCursor( 0, 1 );
-  lcd.print( "RoR:     ");
-  lcd.setCursor( 5, 1 );
-  lcd.print( (int)RoR[ROR_CHAN] ); //
-}
+
+#ifdef PID_CONTROL
+  if( myPID.GetMode() != MANUAL ) {
+    lcd.setCursor( 0, 1 );
+    if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+      lcd.print( "  0" );
+    }
+    else {
+      sprintf( st1, "%3d", (int)levelOT1 );
+      lcd.print( st1 );
+    }
+    lcd.print("%");
+    sprintf( st1, "%4d", (int)Setpoint );
+    lcd.print(st1);  
+  }
+  else {
+    lcd.setCursor( 0, 1 );
+    lcd.print( "RoR:");
+    sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
+    lcd.print( st1 );
+  }
+#else
+    lcd.setCursor( 0, 1 );
+    lcd.print( "RoR:");
+    sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
+    lcd.print( st1 );
+#endif
+
+#ifdef ANALOGUE1
+  if( analogue1_changed == true ) { // overwrite RoR or PID values
+    lcd.setCursor( 0, 1 );
+    lcd.print("OT1:     ");
+    lcd.setCursor( 4, 1 );
+    if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+      sprintf( st1, "%3d", (int)0 );     
+    }
+    else {
+      sprintf( st1, "%3d", (int)levelOT1 );
+    }
+    lcd.print( st1 ); lcd.print("%");
+  }
+#endif
+#ifdef ANALOGUE2
+  if( analogue2_changed == true ) { // overwrite RoR or PID values
+    lcd.setCursor( 0, 1 );
+    lcd.print("OT2:     ");
+    lcd.setCursor( 4, 1 );
+    sprintf( st1, "%3d", (int)levelOT2 );
+    lcd.print( st1 ); lcd.print("%");
+  }
+#endif
+
+#endif // end of ifdef LCD_4x20
+
+} // end of updateLCD()
 #endif
 
 #if defined ANALOGUE1 || defined ANALOGUE2
@@ -407,16 +573,13 @@ void readAnlg1() { // read analog port 1 and adjust OT1 output
   int32_t reading;
   reading = getAnalogValue( anlg1 );
   if( reading <= 100 && reading != old_reading_anlg1 ) { // did it change?
+    analogue1_changed = true;
     levelOT1 = reading;
     old_reading_anlg1 = reading; // save reading for next time
-    sprintf( pstr, "%3d", (int)levelOT1 );
-    #ifdef LCD
-    lcd.setCursor( 0, 1 );
-    lcd.print("OT1:     ");
-    lcd.setCursor( 4, 1 );
-    lcd.print( pstr ); lcd.print("%");
-    #endif
     output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
+  }
+  else {
+    analogue1_changed = false;
   }
 }
 #endif
@@ -428,16 +591,13 @@ void readAnlg2() { // read analog port 2 and adjust OT2 output
   int32_t reading;
   reading = getAnalogValue( anlg2 );
   if( reading <= 100 && reading != old_reading_anlg2 ) { // did it change?
+    analogue2_changed = true;
     levelOT2 = reading;
     old_reading_anlg2 = reading; // save reading for next time
-    sprintf( pstr, "%3d", (int)levelOT2 );
-    #ifdef LCD
-    lcd.setCursor( 0, 1 );
-    lcd.print("OT2:     ");
-    lcd.setCursor( 4, 1 );
-    lcd.print( pstr ); lcd.print("%");
-    #endif
     output_level_pac( levelOT2 );
+  }
+  else {
+    analogue2_changed = false;
   }
 }
 #endif
@@ -474,10 +634,6 @@ void updateSetpoint() { //read profile data from EEPROM and calculate new setpoi
   else if( profile_CorF == 'C' & !Cscale) { // make setpoint units match current units
     Setpoint = Setpoint * 9 / 5 + 32; // convert C to F
   }
-  lcd.setCursor (5,1); // move to updateLCD() ??
-  lcd.print("    "); // move to updateLCD() ??
-  lcd.setCursor (5,1); // move to updateLCD() ??
-  lcd.print((int)Setpoint); // move to updateLCD() ??
 }
 
 
@@ -537,7 +693,11 @@ void setup()
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
 #ifdef LCD
+#ifdef LCD_4x20
+  lcd.begin(20, 4);
+#else
   lcd.begin(16, 2);
+#endif
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_ARTISAN ); // display version banner
@@ -653,9 +813,6 @@ void loop()
   #endif
   checkSerial();  // Has a command been received?
   get_samples();
-  #ifdef LCD
-    updateLCD();
-  #endif
   #ifdef ANALOGUE1
     #ifdef PID_CONTROL
       if( myPID.GetMode() == MANUAL ) readAnlg1(); // if PID is off allow ANLG1 read
@@ -674,11 +831,10 @@ void loop()
       myPID.Compute();  // do PID calcs
       levelOT1 = Output; // update OT1 based on PID optput
       output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
-      lcd.setCursor( 0, 1 );
-      lcd.print("     ");
-      lcd.setCursor( 0, 1 );
-      lcd.print( levelOT1 ); lcd.print("%");
     }
+  #endif
+  #ifdef LCD
+    updateLCD();
   #endif
   
 //  Serial.println( time_now - millis() ); // how much time spare in loop. approx 350ms

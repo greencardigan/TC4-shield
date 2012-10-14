@@ -19,11 +19,14 @@
 
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
+//#define LCD_4x20 // if using a 4x20 LCD instead of a 2x16
+
 #define CELSIUS // controls only the initial conditions
+
 #define ANALOGUE1 // if POT connected on ANLG1
 #define ANALOGUE2 // if POT connected on ANLG2
 
-#define ROR_CHAN 0 // physical input channel for RoR display on LCD
+#define ROR_CHAN 1 // physical input channel for RoR display on LCD
 
 #define PID_CONTROL // if PID control is allowed to be activated
 #define PID_CHAN 1 // physical channel for PID input
@@ -31,7 +34,7 @@
 #define INT 0.25 // initial integral parameter
 #define DER 0.00 // initial derivative parameter
 
-#define OT1_CUTOFF 30 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
+#define OT1_CUTOFF 20 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
 
 #define MIN_OT2 20 // Set OT2 output % for lower limit of potentiometer range. Does not limit serial commands
 #define MAX_OT2 100 // Set OT2 output % for upper limit of potentiometer range. Does not limit serial commands
