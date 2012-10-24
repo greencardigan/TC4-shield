@@ -39,32 +39,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 3_2"
+#define BANNER_ARTISAN "aArtisanQ_PID 3_3"
 
 // Revision history:
-// 20121014 Enhanced LCD display code and added support for 4x20 LCDs. Define LCD_4x20 in user.h
-// 20121013 Added code to allow Artisan plotting of levelOT1 and levelOT2 if PLOT_POWER is defined in user.h
-//          Swapped location of T1 and T2 on LCD display and renamed to ET and BT
-// 20121007 Fixed PID tuning command so it handles doubles
-//          Added inital PID tuning parameters in user.h
-// 20120922 Added support for LCDapter buttons and LEDs (button 1 currently activates or deactivates PID control if enabled)
-//          Added code to allow power to OT1 to be cut if OT2 is below OT1_CUTOFF percentage as defined in user.h.  For heater protection if required. Required modification to phase_ctrl.cpp
-//          Added code to allow OT2 to range between custom min and max percentages (defined in user.h)
-// 20120921 Updated RoR calcs to better handle first loop issue (RoR not calculated in first loop)
-//          Stopped ANLG1 being read during PID control
-//          Added code to convert PID Setpoint temps to correct units.  Added temperature units data to profile format
-//          Serial command echo to LCD now optional
-// 20120920 Added RoR calcs
-// 20120918 Added code to read profile from EEPROM and interpolate to calculate setpoint. Time/Temp profiles
-//          Added code to end PID control when end of profile is reached
-//          Added additional PID command allowing roast profile to be selected
-//          Added additional PID command allowing PID tunings to be adjusted on the fly (required MAX_TOKENS 5 in cmndproc.h library)
-// 20120916 Added PID command allowing PID control to be activated and deactivated from Artisan
-//          Added roast clock. Can be reset with PID;TIME command
-//          Removed LCD ambient temp display and added roast clock display
-// 20120915 Added PID Library
-//          Added code for analogue inputs
-// --------------
 // 20110408 Created.
 // 20110409 Reversed the BT and ET values in the output stream.
 //          Shortened the banner display time to avoid timing issues with Artisan
@@ -91,6 +68,31 @@
 // 20111031 Created.
 // ----------- aArtisanQ beta1
 // 20111101 Beta 1 release
+// ----------- aArtisanQ_PID
+// 20120915 Created.
+//          Added PID Library
+//          Added code for analogue inputs
+// 20120916 Added PID command allowing PID control to be activated and deactivated from Artisan
+//          Added roast clock. Can be reset with PID;TIME command
+//          Removed LCD ambient temp display and added roast clock display
+// 20120918 Added code to read profile from EEPROM and interpolate to calculate setpoint. Time/Temp profiles
+//          Added code to end PID control when end of profile is reached
+//          Added additional PID command allowing roast profile to be selected
+//          Added additional PID command allowing PID tunings to be adjusted on the fly (required MAX_TOKENS 5 in cmndproc.h library)
+// 20120920 Added RoR calcs
+// 20120921 Updated RoR calcs to better handle first loop issue (RoR not calculated in first loop)
+//          Stopped ANLG1 being read during PID control
+//          Added code to convert PID Setpoint temps to correct units.  Added temperature units data to profile format
+//          Serial command echo to LCD now optional
+// 20120922 Added support for LCDapter buttons and LEDs (button 1 currently activates or deactivates PID control if enabled)
+//          Added code to allow power to OT1 to be cut if OT2 is below OT1_CUTOFF percentage as defined in user.h.  For heater protection if required. Required modification to phase_ctrl.cpp
+//          Added code to allow OT2 to range between custom min and max percentages (defined in user.h)
+// 20121007 Fixed PID tuning command so it handles doubles
+//          Added inital PID tuning parameters in user.h
+// 20121013 Added code to allow Artisan plotting of levelOT1 and levelOT2 if PLOT_POWER is defined in user.h
+//          Swapped location of T1 and T2 on LCD display and renamed to ET and BT
+// 20121014 Enhanced LCD display code and added support for 4x20 LCDs. Define LCD_4x20 in user.h
+// 20121021 Added optional limits for Analogue1
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -550,6 +552,12 @@ void updateLCD() {
 int32_t getAnalogValue( uint8_t port ) {
   int32_t mod, trial, aval;
   aval = analogRead( port );
+  #ifdef ANALOGUE1
+    if( port == anlg1 ) {
+      aval = MIN_OT1 * 10.23 + ( (float)aval / 1023 ) * 10.23 * ( MAX_OT1 - MIN_OT1 ); // scale analogue value to new range
+      if ( aval == (int)( MIN_OT1 * 10.23 ) ) aval = 0; // still allow OT1 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
+    }
+  #endif
   #ifdef ANALOGUE2
     if( port == anlg2 ) {
       aval = MIN_OT2 * 10.23 + ( (float)aval / 1023 ) * 10.23 * ( MAX_OT2 - MIN_OT2 ); // scale analogue value to new range
@@ -750,10 +758,10 @@ void setup()
   #endif  
   
   // initialize the active channels to default values
-  actv[0] = 1;  // ET on TC1
-  actv[1] = 2;  // BT on TC2
+  actv[0] = 1; // ET on TC1
+  actv[1] = 2; // BT on TC2
   actv[2] = 0; // default inactive
-  actv[3] = 0;
+  actv[3] = 0; // default inactive
 
 // add active commands to the linked list in the command interpreter object
   ci.addCommand( &dwriter );

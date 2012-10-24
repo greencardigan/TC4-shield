@@ -34,10 +34,13 @@
 #define INT 0.25 // initial integral parameter
 #define DER 0.00 // initial derivative parameter
 
-#define OT1_CUTOFF 20 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
+#define MIN_OT1 0 // Set OT1 output % for lower limit of potentiometer range. Does not limit serial commands or PID
+#define MAX_OT1 100 // Set OT1 output % for upper limit of potentiometer range. Does not limit serial commands or PID
 
 #define MIN_OT2 20 // Set OT2 output % for lower limit of potentiometer range. Does not limit serial commands
 #define MAX_OT2 100 // Set OT2 output % for upper limit of potentiometer range. Does not limit serial commands
+
+#define OT1_CUTOFF 20 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
 
 #define COMMAND_ECHO // Echo all serial commands to LCD
 
