@@ -51,6 +51,7 @@ unitsCmnd units;
 rf2000Cmnd rf2000;
 rc2000Cmnd rc2000;
 pidCmnd pid;
+resetCmnd reset;
 
 
 // --------------------- dwriteCmnd
@@ -449,6 +450,27 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       #endif
       return true;
     }
+  }
+  else {
+    return false;
+  }
+}
+
+// ----------------------------- resetCmnd
+// constructor
+resetCmnd::resetCmnd() :
+  CmndBase( RESET_CMD ) {
+}
+
+// execute the reset command
+// RESET\n
+
+boolean resetCmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
+    pBourbon = true;
+    counter = 0;
+    Serial.println( "# Reset" ); // respond to pBourbon reset command
+    return true;
   }
   else {
     return false;

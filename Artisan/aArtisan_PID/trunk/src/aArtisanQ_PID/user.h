@@ -19,7 +19,7 @@
 
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
-//#define LCD_4x20 // if using a 4x20 LCD instead of a 2x16
+#define LCD_4x20 // if using a 4x20 LCD instead of a 2x16
 
 #define CELSIUS // controls only the initial conditions
 
@@ -42,7 +42,7 @@
 
 #define OT1_CUTOFF 20 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
 
-#define COMMAND_ECHO // Echo all serial commands to LCD
+//#define COMMAND_ECHO // Echo all serial commands to LCD
 
 #define BAUD 19200  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for BT

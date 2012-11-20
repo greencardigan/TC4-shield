@@ -181,8 +181,9 @@ uint32_t checktime;
 
 #endif
 
-uint32_t counter;
-uint32_t time_now;
+boolean pBourbon = false; // set initial state for pBourbon flag
+uint32_t counter; // second counter
+uint32_t next_loop_time; // 
 boolean first;
 
 // class objects
@@ -265,6 +266,11 @@ float convertUnits ( float t ) {
 // ------------------------------------------------------------------
 void logger()
 {
+  if( pBourbon == true ) {
+    // print counter
+    Serial.print( counter );
+    Serial.print( "," );
+  }
 // print ambient
   Serial.print( convertUnits( AT ), DP );
 // print active channels
@@ -274,6 +280,10 @@ void logger()
       --k;
       Serial.print(",");
       Serial.print( convertUnits( T[k] ) );
+      if( pBourbon == true ) {
+        Serial.print(",");
+        Serial.print( RoR[k], DP );
+      }
     }
   }
   
@@ -675,8 +685,7 @@ void checkButtons() { // take action if a button is pressed
     }
   }
   else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // button 2
-    // do something
-    //Serial.println("Button 2");
+    counter = 0;
   }
   else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // button 3
     // do something
@@ -775,6 +784,8 @@ void setup()
   ci.addCommand( &rc2000 );
   ci.addCommand( &reader );
   ci.addCommand( &pid );
+  ci.addCommand( &reset );
+  
   pinMode( LED_PIN, OUTPUT );
 
 #ifdef LCD
@@ -797,7 +808,7 @@ void setup()
 
 first = true;
 counter = 3; // start counter at 3 to match with Artisan. Probably a better way to sync with Artisan???
-time_now = millis() + 1000; // needed?? 
+next_loop_time = millis() + 1000; // needed?? 
 
 }
 
@@ -844,15 +855,17 @@ void loop()
   #ifdef LCD
     updateLCD();
   #endif
-  
-//  Serial.println( time_now - millis() ); // how much time spare in loop. approx 350ms
-  while( millis() < time_now ) {
+  if( pBourbon == true ) {
+      logger();
+  } 
+//  Serial.println( next_loop_time - millis() ); // how much time spare in loop. approx 350ms
+  while( millis() < next_loop_time ) {
   #ifdef LCDAPTER
       checkButtons();
   #endif
   }
   
-  time_now = time_now + 1000; // add 1 second until next loop
+  next_loop_time = next_loop_time + 1000; // add 1 second until next loop
   counter++; if( counter > 3599 ) counter = 3599;
   
 }

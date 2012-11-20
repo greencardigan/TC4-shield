@@ -60,7 +60,7 @@
 #define ANALOG_WRITE_CMD "AWRITE" // write a value 0 to 255 to PWM pin
 #define IO3 3 // use DIO3 for PWM output
 #define PID_CMD "PID" // turn PID ON or OFF
-
+#define RESET_CMD "RESET" // pBourbon reset command
 
 // forward declarations
 class dwriteCmnd;
@@ -74,6 +74,7 @@ class unitsCmnd;
 class rf2000Cmnd;
 class rc2000Cmnd;
 class pidCmnd;
+class resetCmnd;
 
 // external declarations of class objects
 extern readCmnd reader;
@@ -87,6 +88,7 @@ extern rf2000Cmnd rf2000;
 extern rc2000Cmnd rc2000;
 extern unitsCmnd units;
 extern pidCmnd pid;
+extern resetCmnd reset;
 
 // extern declarations for functions, variables in the main program
 //extern PWM16 ssr;
@@ -99,6 +101,7 @@ extern PID myPID;
 extern uint32_t counter;
 extern int profile_number;
 extern void setProfile();
+extern boolean pBourbon;
 
 // class declarations for commands
 
@@ -168,6 +171,11 @@ class pidCmnd : public CmndBase {
     virtual boolean doCommand( CmndParser* pars );
 };
 
+class resetCmnd : public CmndBase {
+  public:
+    resetCmnd();
+    virtual boolean doCommand( CmndParser* pars );
+};
 
 #endif
 
