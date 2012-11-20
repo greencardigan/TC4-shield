@@ -93,6 +93,7 @@
 //          Swapped location of T1 and T2 on LCD display and renamed to ET and BT
 // 20121014 Enhanced LCD display code and added support for 4x20 LCDs. Define LCD_4x20 in user.h
 // 20121021 Added optional limits for Analogue1
+// 20121120 Added support for pBourbon logging
 
 // this library included with the arduino distribution
 #include <Wire.h>
