@@ -245,16 +245,36 @@ ot1Cmnd::ot1Cmnd() :
 
 boolean ot1Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-    uint8_t len = strlen( pars->paramStr(1) );
-    if( len > 0 ) {
-      levelOT1 = atoi( pars->paramStr(1) );
-//      ssr.Out( levelOT1, levelOT2 );
-      output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
+    if( strcmp( pars->paramStr(1), "UP" ) == 0 ) {
+      levelOT1 = levelOT1 + 5;
+      if( levelOT1 > MAX_OT1 ) levelOT1 = MAX_OT1;
+      output_level_icc( levelOT1 );
       #ifdef ACKS_ON
       Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
       #endif
+      return true;
     }
-    return true;
+    else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
+      levelOT1 = levelOT1 - 5;
+      if( levelOT1 < MIN_OT1 ) levelOT1 = MIN_OT1;
+      output_level_icc( levelOT1 );
+      #ifdef ACKS_ON
+      Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
+      #endif
+      return true;
+    }
+    else {
+      uint8_t len = strlen( pars->paramStr(1) );
+      if( len > 0 ) {
+        levelOT1 = atoi( pars->paramStr(1) );
+  //      ssr.Out( levelOT1, levelOT2 );
+        output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
+        #ifdef ACKS_ON
+        Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
+        #endif
+      }
+      return true;
+    }
   }
   else {
     return false;
@@ -272,16 +292,36 @@ ot2Cmnd::ot2Cmnd() :
 
 boolean ot2Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-    uint8_t len = strlen( pars->paramStr(1) );
-    if( len > 0 ) {
-      levelOT2 = atoi( pars->paramStr(1) );
-//      ssr.Out( levelOT1, levelOT2 );
+    if( strcmp( pars->paramStr(1), "UP" ) == 0 ) {
+      levelOT2 = levelOT2 + 5;
+      if( levelOT2 > MAX_OT2 ) levelOT2 = MAX_OT2;
       output_level_pac( levelOT2 );
       #ifdef ACKS_ON
       Serial.print("# OT2 level set to "); Serial.println( levelOT2 );
       #endif
+      return true;
     }
-    return true;
+    else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
+      levelOT2 = levelOT2 - 5;
+      if( levelOT2 < MIN_OT2 & levelOT2 != 0 ) levelOT2 = MIN_OT2;
+      output_level_pac( levelOT2 );
+      #ifdef ACKS_ON
+      Serial.print("# OT2 level set to "); Serial.println( levelOT2 );
+      #endif
+      return true;
+    }
+    else {
+      uint8_t len = strlen( pars->paramStr(1) );
+      if( len > 0 ) {
+        levelOT2 = atoi( pars->paramStr(1) );
+  //      ssr.Out( levelOT1, levelOT2 );
+        output_level_pac( levelOT2 );
+        #ifdef ACKS_ON
+        Serial.print("# OT2 level set to "); Serial.println( levelOT2 );
+        #endif
+      }
+      return true;
+    }
   }
   else {
     return false;

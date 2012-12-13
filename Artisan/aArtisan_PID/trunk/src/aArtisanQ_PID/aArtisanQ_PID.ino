@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 3_3"
+#define BANNER_ARTISAN "aArtisanQ_PID 3_4"
 
 // Revision history:
 // 20110408 Created.
@@ -94,6 +94,7 @@
 // 20121014 Enhanced LCD display code and added support for 4x20 LCDs. Define LCD_4x20 in user.h
 // 20121021 Added optional limits for Analogue1
 // 20121120 Added support for pBourbon logging
+// 20121213 Added UP and DOWN parameters for OT1 and OT2 commands.  Increments or decrements power levels by 5%
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -578,7 +579,7 @@ int32_t getAnalogValue( uint8_t port ) {
   trial = aval * 100;
   trial /= 1023;
   mod = trial % 5;
-  trial = ( trial / 5 ) * 5; // truncate to multiple of 5
+  trial = ( trial / 5 ) * 5; // truncate to multiple of 5.  make this adjstable in user.h????
   if( mod >= 3 )
     trial += 5;
   return trial;
