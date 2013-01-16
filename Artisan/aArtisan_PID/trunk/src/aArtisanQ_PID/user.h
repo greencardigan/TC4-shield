@@ -26,6 +26,8 @@
 #define ANALOGUE1 // if POT connected on ANLG1
 #define ANALOGUE2 // if POT connected on ANLG2
 
+#define ANALOGUE_STEP 2 // rounding for analogue input percentage. Use 1, 2, 4, 5, or 10.
+
 #define ROR_CHAN 1 // physical input channel for RoR display on LCD
 
 #define PID_CONTROL // if PID control is allowed to be activated

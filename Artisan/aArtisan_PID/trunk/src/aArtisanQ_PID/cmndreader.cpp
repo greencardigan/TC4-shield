@@ -246,7 +246,7 @@ ot1Cmnd::ot1Cmnd() :
 boolean ot1Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     if( strcmp( pars->paramStr(1), "UP" ) == 0 ) {
-      levelOT1 = levelOT1 + 5;
+      levelOT1 = levelOT1 + ANALOGUE_STEP;
       if( levelOT1 > MAX_OT1 ) levelOT1 = MAX_OT1;
       output_level_icc( levelOT1 );
       #ifdef ACKS_ON
@@ -255,7 +255,7 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
       return true;
     }
     else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
-      levelOT1 = levelOT1 - 5;
+      levelOT1 = levelOT1 - ANALOGUE_STEP;
       if( levelOT1 < MIN_OT1 ) levelOT1 = MIN_OT1;
       output_level_icc( levelOT1 );
       #ifdef ACKS_ON
@@ -293,7 +293,7 @@ ot2Cmnd::ot2Cmnd() :
 boolean ot2Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     if( strcmp( pars->paramStr(1), "UP" ) == 0 ) {
-      levelOT2 = levelOT2 + 5;
+      levelOT2 = levelOT2 + ANALOGUE_STEP;
       if( levelOT2 > MAX_OT2 ) levelOT2 = MAX_OT2;
       output_level_pac( levelOT2 );
       #ifdef ACKS_ON
@@ -302,7 +302,7 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
       return true;
     }
     else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
-      levelOT2 = levelOT2 - 5;
+      levelOT2 = levelOT2 - ANALOGUE_STEP;
       if( levelOT2 < MIN_OT2 & levelOT2 != 0 ) levelOT2 = MIN_OT2;
       output_level_pac( levelOT2 );
       #ifdef ACKS_ON

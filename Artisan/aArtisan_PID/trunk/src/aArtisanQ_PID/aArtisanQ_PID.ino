@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 3_4"
+#define BANNER_ARTISAN "aArtisanQ_PID 3_5"
 
 // Revision history:
 // 20110408 Created.
@@ -95,6 +95,7 @@
 // 20121021 Added optional limits for Analogue1
 // 20121120 Added support for pBourbon logging
 // 20121213 Added UP and DOWN parameters for OT1 and OT2 commands.  Increments or decrements power levels by 5%
+// 20130116 Added user adjustable analogue input rounding (ANALOGUE_STEP) in user.h
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -562,26 +563,28 @@ void updateLCD() {
 // -------------------------------- reads analog value and maps it to 0 to 100
 // -------------------------------- rounded to the nearest 5
 int32_t getAnalogValue( uint8_t port ) {
-  int32_t mod, trial, aval;
+  int32_t mod, trial;
+  float aval;
   aval = analogRead( port );
   #ifdef ANALOGUE1
     if( port == anlg1 ) {
-      aval = MIN_OT1 * 10.23 + ( (float)aval / 1023 ) * 10.23 * ( MAX_OT1 - MIN_OT1 ); // scale analogue value to new range
-      if ( aval == (int)( MIN_OT1 * 10.23 ) ) aval = 0; // still allow OT1 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
+      aval = MIN_OT1 * 10.24 + ( aval / 1024 ) * 10.24 * ( MAX_OT1 - MIN_OT1 ) ; // scale analogue value to new range
+      if ( aval == ( MIN_OT1 * 10.24 ) ) aval = 0; // still allow OT1 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
     }
   #endif
   #ifdef ANALOGUE2
     if( port == anlg2 ) {
-      aval = MIN_OT2 * 10.23 + ( (float)aval / 1023 ) * 10.23 * ( MAX_OT2 - MIN_OT2 ); // scale analogue value to new range
-      if ( aval == (int)( MIN_OT2 * 10.23 ) ) aval = 0; // still allow OT2 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
+      aval = MIN_OT2 * 10.24 + ( aval / 1024 ) * 10.24 * ( MAX_OT2 - MIN_OT2 ) ; // scale analogue value to new range
+      if ( aval == ( MIN_OT2 * 10.24 ) ) aval = 0; // still allow OT2 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
     }
   #endif
-  trial = aval * 100;
+  Serial.println(aval);
+  trial = ( aval + 0.001 ) * 100;
   trial /= 1023;
-  mod = trial % 5;
-  trial = ( trial / 5 ) * 5; // truncate to multiple of 5.  make this adjstable in user.h????
-  if( mod >= 3 )
-    trial += 5;
+  mod = trial % ANALOGUE_STEP;
+  trial = ( trial / ANALOGUE_STEP ) * ANALOGUE_STEP; // truncate to multiple of ANALOGUE_STEP
+  if( mod >= ANALOGUE_STEP / 2 )
+    trial += ANALOGUE_STEP;
   return trial;
 }
 #endif
