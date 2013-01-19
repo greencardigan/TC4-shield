@@ -96,6 +96,7 @@
 // 20121120 Added support for pBourbon logging
 // 20121213 Added UP and DOWN parameters for OT1 and OT2 commands.  Increments or decrements power levels by 5%
 // 20130116 Added user adjustable analogue input rounding (ANALOGUE_STEP) in user.h
+// 20130119 aArtisanQ_PID release 3_5
 
 // this library included with the arduino distribution
 #include <Wire.h>

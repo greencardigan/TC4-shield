@@ -22,14 +22,25 @@ int start_of_profiles = 1024; // address of first profile in EEPROM
 // PROFILE DATA //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
 
+
 int profile_number = 1;
 int profile_type = 1;
 char profile_CorF = 'C';
 char profile_name[40] = "PROFILE 1";
 char profile_description[80] = "Description of Profile 1";
-int profile_time[50] = { 0, 240, 480, 720, 960, 0};
+int profile_time[50] = { 0, 240, 480, 840, 960, 0};
 int profile_temp[50] = {25, 150, 205, 233, 261, 0};
 
+
+/*
+int profile_number = 2;
+int profile_type = 1;
+char profile_CorF = 'C';
+char profile_name[40] = "PROFILE 2";
+char profile_description[80] = "Description of Profile 2";
+int profile_time[50] = { 0, 300, 600, 900, 1200, 0};
+int profile_temp[50] = {25, 150, 205, 233, 261, 0};
+*/
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////

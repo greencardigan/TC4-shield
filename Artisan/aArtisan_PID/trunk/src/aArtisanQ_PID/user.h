@@ -33,7 +33,7 @@
 #define PID_CONTROL // if PID control is allowed to be activated
 #define PID_CHAN 1 // physical channel for PID input
 #define PRO 5.00 // initial proportional parameter
-#define INT 0.25 // initial integral parameter
+#define INT 0.20 // initial integral parameter
 #define DER 0.00 // initial derivative parameter
 
 #define MIN_OT1 0 // Set OT1 output % for lower limit of potentiometer range. Does not limit serial commands or PID
