@@ -36,6 +36,8 @@
 #define INT 0.20 // initial integral parameter
 #define DER 0.00 // initial derivative parameter
 
+#define NUM_PROFILES 2 // number of profiles stored in EEPROM
+
 #define MIN_OT1 0 // Set OT1 output % for lower limit of potentiometer range. Does not limit serial commands or PID
 #define MAX_OT1 100 // Set OT1 output % for upper limit of potentiometer range. Does not limit serial commands or PID
 
