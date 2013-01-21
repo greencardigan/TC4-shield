@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 3_6"
+#define BANNER_ARTISAN "aArtisanQ_PID 3_7"
 
 // Revision history:
 // 20110408 Created.
@@ -99,6 +99,7 @@
 // 20130119 aArtisanQ_PID release 3_5
 // 20130119 Added code to allow for additional LCD display modes
 // 20130120 Added ability to change roast profile using LCD and buttons
+// 20130121 Tidied up button press code
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -359,7 +360,6 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
 #ifdef LCD
 // --------------------------------------------
 void updateLCD() {
-
   
   if( LCD_mode == 0 ) { // Display normal LCD screen
   
@@ -369,7 +369,6 @@ void updateLCD() {
     if(counter - (counter/60)*60 < 10) lcd.print("0"); lcd.print(counter - (counter/60)*60);
     
   #ifdef LCD_4x20
-  
   
   #ifdef COMMAND_ECHO
     lcd.print(" "); // overwrite artisan commands
@@ -471,9 +470,9 @@ void updateLCD() {
         sprintf( st1, "%4d", (int)levelOT1 );
       }
       lcd.print( st1 ); lcd.print("%");
-  #endif
+  #endif // end ifdef PID_CONTROL
+  #endif // end ifdef ANALOGUE1
   
-  #endif
   #ifdef ANALOGUE2
     lcd.setCursor( 0, 3 );
     lcd.print("OT2:");
@@ -538,7 +537,7 @@ void updateLCD() {
       lcd.print( "RoR:");
       sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
       lcd.print( st1 );
-  #endif
+  #endif // end ifdef PID_CONTROL
   
   #ifdef ANALOGUE1
     if( analogue1_changed == true ) { // overwrite RoR or PID values
@@ -553,7 +552,7 @@ void updateLCD() {
       }
       lcd.print( st1 ); lcd.print("%");
     }
-  #endif
+  #endif //ifdef ANALOGUE1
   #ifdef ANALOGUE2
     if( analogue2_changed == true ) { // overwrite RoR or PID values
       lcd.setCursor( 0, 1 );
@@ -562,7 +561,7 @@ void updateLCD() {
       sprintf( st1, "%3d", (int)levelOT2 );
       lcd.print( st1 ); lcd.print("%");
     }
-  #endif
+  #endif // end ifdef ANALOGUE2
   
   #endif // end of ifdef LCD_4x20
 
@@ -594,12 +593,12 @@ void updateLCD() {
     }
     lcd.setCursor( 0, 1 );
     lcd.print("P:"); lcd.print( myPID.GetKp() ); lcd.print(","); lcd.print( myPID.GetKi() ); lcd.print(","); lcd.print( myPID.GetKd() ); 
-  #endif
-  #endif
+  #endif // end ifdef LCD_4x20
+  #endif // end ifdef PID_CONTROL
   }
 
 } // end of updateLCD()
-#endif
+#endif // end ifdef LCD
 
 #if defined ANALOGUE1 || defined ANALOGUE2
 // -------------------------------- reads analog value and maps it to 0 to 100
@@ -628,7 +627,7 @@ int32_t getAnalogValue( uint8_t port ) {
     trial += ANALOGUE_STEP;
   return trial;
 }
-#endif
+#endif // end if defined ANALOGUE1 || defined ANALOGUE2
 
 #ifdef ANALOGUE1
 // ---------------------------------
@@ -646,7 +645,7 @@ void readAnlg1() { // read analog port 1 and adjust OT1 output
     analogue1_changed = false;
   }
 }
-#endif
+#endif // end ifdef ANALOGUE1
 
 #ifdef ANALOGUE2
 // ---------------------------------
@@ -664,7 +663,7 @@ void readAnlg2() { // read analog port 2 and adjust OT2 output
     analogue2_changed = false;
   }
 }
-#endif
+#endif // end ifdef ANALOGUE2
 
 
 #ifdef PID_CONTROL
@@ -725,73 +724,84 @@ void getProfileDescription(int pn) { // read profile name and description data f
   eeprom.read( pp, (uint8_t*)&profile_description, sizeof(profile_description) ); // read profile name  
   
 }
-
-
-#endif
+#endif // end ifdef PID_CONTROL
 
 #ifdef LCDAPTER
 // ----------------------------------
 void checkButtons() { // take action if a button is pressed
   if( buttons.readButtons() ) {
-    if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // button 1 - PID on/off - PREVIOUS PROFILE
-      if( LCD_mode == 0 ) { // toggle PID on/off
-        #ifdef PID_CONTROL
-        if( myPID.GetMode() == MANUAL ) {
-          myPID.SetMode( AUTOMATIC );
+    
+    switch (LCD_mode) {
+    
+      case 0: // Main LCD display
+      
+        if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // button 1 - PID on/off - PREVIOUS PROFILE
+          #ifdef PID_CONTROL
+          if( myPID.GetMode() == MANUAL ) {
+            myPID.SetMode( AUTOMATIC );
+          }
+          else {
+            myPID.SetMode( MANUAL );
+          }
+          #endif
         }
-        else {
-          myPID.SetMode( MANUAL );
+        else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // button 2 - RESET TIMER - NEXT PROFILE
+          counter = 0;
+        }   
+        else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // button 3 - ENTER BUTTON
+          // do something
         }
-        #endif
-      }
-      #ifdef PID_CONTROL
-      else if( LCD_mode == 1 ) { // select previous profile
-       profile_number_new--;
-        if( profile_number_new == 0 ) profile_number_new = NUM_PROFILES; // loop profile_number to end
-        getProfileDescription(profile_number_new);
-      }
-      #endif
-    }
-    else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // button 2 - RESET TIMER - NEXT PROFILE
-      if( LCD_mode == 0 ) { // reset timer
-        counter = 0;
-      }
-      #ifdef PID_CONTROL
-      else if( LCD_mode == 1 ) { // select next profile
-        profile_number_new++;
-        if( profile_number_new > NUM_PROFILES ) profile_number_new = 1; // loop profile_number to start
-        getProfileDescription(profile_number_new);
-      }
-      #endif
-    }
-    else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // button 3 - ENTER BUTTON
-      #ifdef PID_CONTROL
-      if( LCD_mode == 1 ) {
-        profile_number = profile_number_new; // change profile_number to new selection
-        setProfile(); // call setProfile to load the profile selected
-        lcd.clear();
-        LCD_mode = 0; // jump back to main LCD display mode
-      }
-      #endif
-    }
-    else if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) { // button 4 - CHANGE LCD MODE
-      lcd.clear();
-      #ifdef PID_CONTROL
-      if( LCD_mode == 1 ) { // if exiting from mode 1 without pressing enter (button 3)
-        profile_number_new = profile_number; // reset profile_number_new ready for next time
-        setProfile(); // call setProfile() to reset profile name and description
-      }
-      #endif
-      LCD_mode++; // change mode
-      #ifndef PID_CONTROL
-      if( LCD_mode == 1 ) LCD_mode++; // deactivate LCD mode 1 if PID control is disabled
-      #endif
-      if( LCD_mode > 1 ) LCD_mode = 0; // loop at limit of modes
-      delay(5);
-    } 
-  }
-#endif // LCDAPTER
-}
+        else if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) { // button 4 - CHANGE LCD MODE
+          lcd.clear();
+          LCD_mode++; // change mode
+          #ifndef PID_CONTROL
+          if( LCD_mode == 1 ) LCD_mode++; // deactivate LCD mode 1 if PID control is disabled
+          #endif
+          if( LCD_mode > 1 ) LCD_mode = 0; // loop at limit of modes
+          delay(5);
+        }
+        break;
+        
+      case 1: // Profile Selection and PID parameter LCD display
+           
+        if( buttons.keyPressed( 0 ) && buttons.keyChanged( 0 ) ) { // button 1 - PID on/off - PREVIOUS PROFILE
+          #ifdef PID_CONTROL
+          profile_number_new--;
+          if( profile_number_new == 0 ) profile_number_new = NUM_PROFILES; // loop profile_number to end
+          getProfileDescription(profile_number_new);
+          #endif
+        }
+        else if( buttons.keyPressed( 1 ) && buttons.keyChanged( 1 ) ) { // button 2 - RESET TIMER - NEXT PROFILE
+          #ifdef PID_CONTROL
+          profile_number_new++;
+          if( profile_number_new > NUM_PROFILES ) profile_number_new = 1; // loop profile_number to start
+          getProfileDescription(profile_number_new);
+          #endif
+        }   
+        else if( buttons.keyPressed( 2 ) && buttons.keyChanged( 2 ) ) { // button 3 - ENTER BUTTON
+          #ifdef PID_CONTROL
+          profile_number = profile_number_new; // change profile_number to new selection
+          setProfile(); // call setProfile to load the profile selected
+          lcd.clear();
+          LCD_mode = 0; // jump back to main LCD display mode
+          #endif
+        }
+        else if( buttons.keyPressed( 3 ) && buttons.keyChanged( 3 ) ) { // button 4 - CHANGE LCD MODE
+          lcd.clear();
+          #ifdef PID_CONTROL
+          profile_number_new = profile_number; // reset profile_number_new if profile wasn't changed
+          setProfile(); // or getProfileDescription()?????????
+          #endif
+          LCD_mode++; // change mode
+          if( LCD_mode > 1 ) LCD_mode = 0; // loop at limit of modes
+          delay(5);
+        }
+        break;
+    } //end of switch
+  } // end of if( buttons.readButtons() )
+} // end of void checkButtons()
+#endif // end ifdef LCDAPTER
+
 
 // ------------------------------------------------------------------------
 // MAIN
@@ -808,7 +818,7 @@ void setup()
   lcd.begin(20, 4);
 #else
   lcd.begin(16, 2);
-#endif
+#endif // LCD_4x20
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_ARTISAN ); // display version banner
@@ -899,7 +909,6 @@ void setup()
   profile_number = 1; // set default profile
   profile_number_new = profile_number; 
   setProfile(); // read profile description initial time/temp data from eeprom and set profile_pointer
-
 #endif
 
 first = true;
@@ -931,11 +940,10 @@ void loop()
   #ifdef ANALOGUE1
     #ifdef PID_CONTROL
       if( myPID.GetMode() == MANUAL ) readAnlg1(); // if PID is off allow ANLG1 read
-    #endif
-    #ifndef PID_CONTROL
+    #else
       readAnlg1(); // if PID_CONTROL is defined always allow ANLG1 read
-    #endif
-  #endif
+    #endif // PID_CONTROL
+  #endif // ANALOGUE1
   #ifdef ANALOGUE2
     readAnlg2();
   #endif
@@ -951,18 +959,14 @@ void loop()
   #ifdef LCD
     updateLCD();
   #endif
-  if( pBourbon == true ) {
-      logger();
-  } 
+  if( pBourbon == true ) logger(); // send data every second to pBourbon
 //  Serial.println( next_loop_time - millis() ); // how much time spare in loop. approx 350ms
   while( millis() < next_loop_time ) {
   #ifdef LCDAPTER
-      checkButtons();
+    checkButtons();
   #endif
   }
-  
   next_loop_time = next_loop_time + 1000; // add 1 second until next loop
   counter++; if( counter > 3599 ) counter = 3599;
-  
 }
 
