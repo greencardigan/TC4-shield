@@ -13,9 +13,12 @@
 #ifndef USER_H
 #define USER_H
 
-#define TC_TYPE typeK  // use one of these 3 options; comment out the other 2
-//#define TC_TYPE typeJ
-//#define TC_TYPE typeT
+// beginning with version 2.1, TC type is selectable by input channel
+// permissable options:  typeT, typeK, typeJ
+#define TC_TYPE1 typeK  // thermocouple on TC1
+#define TC_TYPE2 typeK  // thermocouple on TC2
+#define TC_TYPE3 typeK  // thermocouple on TC3
+#define TC_TYPE4 typeK  // thermocouple on TC4
 
 #define EEPROM_ARTISAN // comment this line out if no calibration information stored in 64K EEPROM
 #define LCD // if output on an LCD screen is desired

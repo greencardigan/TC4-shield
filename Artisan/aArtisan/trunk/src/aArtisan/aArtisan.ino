@@ -35,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V2.00"
+#define BANNER_ARTISAN "aARTISAN V2.10"
 
 // Revision history:
 // 20110408 Created.
@@ -65,6 +65,8 @@
 //          Serial output now fixed at one decimal place
 //          Better echo display of serial commands.
 //          Raw ADC conversions are filtered before converting to temperatures.
+// ------------ Version 2.10
+// 20130125 Permits use of different TC types on individual channels
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -120,6 +122,13 @@ ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NC]; // filter for logged ET, BT
 PWM16 ssr;  // object for SSR output on OT1, OT2
 CmndInterp ci( DELIM ); // command interpreter object
+
+// array of thermocouple types
+tcBase * tcp[4];
+TC_TYPE1 tc1;
+TC_TYPE2 tc2;
+TC_TYPE3 tc3;
+TC_TYPE4 tc4;
 
 // ---------------------------------- LCD interface definition
 #ifdef LCD
@@ -195,7 +204,7 @@ void logger()
 void get_samples() // this function talks to the amb sensor and ADC via I2C
 {
   int32_t v;
-  TC_TYPE tc;
+  tcBase * tc;
   float tempF;
 //  int32_t itemp;
   
@@ -207,17 +216,18 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
     uint8_t k = actv[jj]; // map logical channels to physical ADC channels
     if( k > 0 ) {
       --k;
+      tc = tcp[k]; // each channel may have its own TC type
       adc.nextConversion( k ); // start ADC conversion on physical channel k
       amb.nextConversion(); // start ambient sensor conversion
       checkStatus( dly ); // give the chips time to perform the conversions
       amb.readSensor(); // retrieve value from ambient temp register
       v = adc.readuV(); // retrieve microvolt sample from MCP3424
-      tempF = tc.Temp_F( 0.001 * v, amb.getAmbF() ); // convert uV to Celsius
+      tempF = tc->Temp_F( 0.001 * v, amb.getAmbF() ); // convert uV to Celsius
       // filter on direct ADC readings, not computed temperatures
       v = fT[k].doFilter( v << 10 );  // multiply by 1024 to create some resolution for filter
       v >>= 10; 
       AT = amb.getAmbF();
-      T[k] = tc.Temp_F( 0.001 * v, AT ); // convert uV to Fahrenheit;
+      T[k] = tc->Temp_F( 0.001 * v, AT ); // convert uV to Fahrenheit;
     }
   }
 };
@@ -317,6 +327,12 @@ void setup()
   actv[1] = 2;  // BT on TC2
   actv[2] = 0; // default inactive
   actv[3] = 0;
+  
+  // assign thermocouple types
+  tcp[0] = &tc1;
+  tcp[1] = &tc2;
+  tcp[2] = &tc3;
+  tcp[3] = &tc4;
 
 // add active commands to the linked list in the command interpreter object
   ci.addCommand( &dwriter );
