@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 3_7"
+#define BANNER_ARTISAN "aArtisanQ_PID 3_8"
 
 // Revision history:
 // 20110408 Created.
@@ -100,6 +100,8 @@
 // 20130119 Added code to allow for additional LCD display modes
 // 20130120 Added ability to change roast profile using LCD and buttons
 // 20130121 Tidied up button press code
+// 20130203 Permits use of different TC types on individual channels as in aArtisan 2.10
+// 20130203 Updated temperature sample filtering to match aArtisan 2.10
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -204,6 +206,13 @@ filterRC fRise[NC]; // heavily filtered for calculating RoR
 filterRC fRoR[NC]; // post-filtering on RoR values
 //PWM16 ssr;  // object for SSR output on OT1, OT2
 CmndInterp ci( DELIM ); // command interpreter object
+
+// array of thermocouple types
+tcBase * tcp[4];
+TC_TYPE1 tc1;
+TC_TYPE2 tc2;
+TC_TYPE3 tc3;
+TC_TYPE4 tc4;
 
 // ---------------------------------- LCD interface definition
 #ifdef LCD
@@ -318,18 +327,23 @@ void logger()
 void get_samples() // this function talks to the amb sensor and ADC via I2C
 {
   int32_t v;
-  TC_TYPE tc;
+  tcBase * tc;
   float tempF;
   int32_t itemp;
   float rx;
+
+  uint16_t dly = amb.getConvTime(); // use delay based on slowest conversion
+  uint16_t dADC = adc.getConvTime();
+  dly = dly > dADC ? dly : dADC;
   
   for( uint8_t jj = 0; jj < NC; jj++ ) { // one-shot conversions on both chips
     uint8_t k = actv[jj]; // map logical channels to physical ADC channels
     if( k > 0 ) {
       --k;
+      tc = tcp[k]; // each channel may have its own TC type
       adc.nextConversion( k ); // start ADC conversion on physical channel k
       amb.nextConversion(); // start ambient sensor conversion
-      checkStatus( MIN_DELAY ); // give the chips time to perform the conversions
+      checkStatus( dly ); // give the chips time to perform the conversions
 
       if( !first ) { // on first loop dont save zero values
         ftemps_old[k] = ftemps[k]; // save old filtered temps for RoR calcs
@@ -340,13 +354,15 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
       
       amb.readSensor(); // retrieve value from ambient temp register
       v = adc.readuV(); // retrieve microvolt sample from MCP3424
-      tempF = tc.Temp_F( 0.001 * v, amb.getAmbF() ); // convert uV to Celsius
-      v = round( tempF / D_MULT ); // store results as integers
-      AT = amb.getAmbF();
-      itemp = fT[k].doFilter( v ); // apply digital filtering for display/logging
-      T[k] = 0.001 * itemp;
+      tempF = tc->Temp_F( 0.001 * v, amb.getAmbF() ); // convert uV to Celsius
 
-      ftemps[k] =fRise[k].doFilter( v ); // heavier filtering for RoR
+      // filter on direct ADC readings, not computed temperatures
+      v = fT[k].doFilter( v << 10 );  // multiply by 1024 to create some resolution for filter
+      v >>= 10; 
+      AT = amb.getAmbF();
+      T[k] = tc->Temp_F( 0.001 * v, AT ); // convert uV to Fahrenheit;
+
+      ftemps[k] =fRise[k].doFilter( tempF * 1000 ); // heavier filtering for RoR
 
       if ( !first ) { // on first loop dont calc RoR
         rx = calcRise( ftemps_old[k], ftemps[k], ftimes_old[k], ftimes[k] );
@@ -875,6 +891,12 @@ void setup()
   actv[1] = 2; // BT on TC2
   actv[2] = 0; // default inactive
   actv[3] = 0; // default inactive
+  
+  // assign thermocouple types
+  tcp[0] = &tc1;
+  tcp[1] = &tc2;
+  tcp[2] = &tc3;
+  tcp[3] = &tc4;
 
 // add active commands to the linked list in the command interpreter object
   ci.addCommand( &dwriter );
