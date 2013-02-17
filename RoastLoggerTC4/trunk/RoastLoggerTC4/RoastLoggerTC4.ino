@@ -71,7 +71,7 @@
 //#define LOGIC_ANALYZER 
 
 #define BANNER_RL1 "RoastLoggerTC4"
-#define BANNER_RL2 "version 2.0"
+#define BANNER_RL2 "version 2.1"
 
 // Revision history: - of RoastLoggerTC4
 //  20120112:  Version 0.3 - Released for testing
@@ -97,6 +97,7 @@
 //  20120607                 Changed PWM frequency for fan to 7808Hz
 //  20120710   Version 2.0   Release supports standalone operation using LCDapter buttons
 //                           Set default fan PWM frequency to 61Hz (7808 is too fast for HTC controller)
+//  20130117   Version 2.1   Made the choice of temperature scale selectable in user.h
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -183,7 +184,7 @@ float reftime; // reference for measuring elapsed time
 float RoR_cur,t1_cur,t2_cur;
 
 // temperature units selection
-boolean celsius = true;
+boolean celsius = CELSIUS;
 
 char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
 
@@ -438,13 +439,17 @@ void setup()
 // -----------------------------------------------------------------
 void loop() {
   float idletime;
-
+  boolean override; // switches temperature scale from default
+  
   checkSerial();
   HIDevents();
   thisLoop = millis();
+ 
 
   if( thisLoop - lastLoop >= LOOPTIME ) { // time to take another sample
-    celsius = digitalRead( UNIT_SEL ) == HIGH;  // use jumper to drive low and select fahrenheit
+    override = digitalRead( UNIT_SEL ) == LOW;  // use jumper to drive low and select fahrenheit
+    if( override ) celsius = !CELSIUS;
+    else celsius = CELSIUS;
     if( first )
       resetTimer();
     lastLoop += LOOPTIME;

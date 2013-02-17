@@ -10,7 +10,7 @@
 #define CHAN 1 // use TC2
 #define CALPT 200.0
 #define TEMP_OFFS -0.0
-#define GAIN_CAL 1.00313
+#define GAIN_CAL 1.00437
 #define AMB_FILT 90
 #define ADC_FILT 50
 
@@ -79,7 +79,8 @@ void loop() {
   float tempC = tc.Temp_C( 0.001 * fv, ctemp ) ;
   Serial.print( tempC ); Serial.print( "," );
   Serial.print( fv ); Serial.print( "," );
-  Serial.println( CHAN, DEC );
+  Serial.print( CHAN, DEC ); Serial.print( "," );
+  Serial.println( ( CALPT - tempC + TEMP_OFFS ), 2 );
 
   lcd.setCursor( 0, 0 );
   lcd.print( "                ");
