@@ -8,8 +8,8 @@
 // Next compile the sketch and upload it to the Arduino.
 
 //Select default units here - to switch at runtime use jumper on ANLG2 
-//#define CELSIUS false
-#define CELSIUS true
+#define CELSIUS false
+//#define CELSIUS true
 
 // thermocouple type / library : choose one for each input (typeJ, typeK, or typeT)
 #define TC_TYPE1 typeK  // input 1
