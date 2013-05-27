@@ -83,4 +83,10 @@ Tested successfully on P1 motor.  Ready for beta release
 Jim Gallt
 22-Nov-2011
 
+aCatauiQ beta2
+----------------
+Minor change in "includes" for compatibility with Arduino 1.x IDE versions.
+
+Jim Gallt
+27-May-2013
 
