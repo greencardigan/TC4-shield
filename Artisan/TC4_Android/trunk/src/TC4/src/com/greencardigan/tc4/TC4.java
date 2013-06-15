@@ -472,8 +472,8 @@ public class TC4 extends Activity {
 					t = (TextView) findViewById(R.id.fanValue);
 					t.setText(fan + "%");
 
-					float y1 = Float.parseFloat(heater);
-					float y2 = Float.parseFloat(fan);
+					float y1 = Float.parseFloat(bt);
+					float y2 = Float.parseFloat(et);
 					
 					int x = Integer.parseInt(counter);
 					
