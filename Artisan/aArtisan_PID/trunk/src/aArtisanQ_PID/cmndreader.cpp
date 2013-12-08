@@ -459,9 +459,32 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       return true;
     }
     else if( strcmp( pars->paramStr(1), "TIME" ) == 0 ) {
-      counter = 0;
+      counter = 0; // reset TC4 timer
       #ifdef ACKS_ON
       Serial.println("# PID time reset");
+      #endif
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "GO" ) == 0 ) {
+      #ifdef PID_CONTROL
+        counter = 0; // reset TC4 timer
+        myPID.SetMode(1); // turn PID on
+        #ifdef ACKS_ON
+        Serial.println("# PID Roast Start");
+        #endif
+      #endif
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "STOP" ) == 0 ) {
+      #ifdef PID_CONTROL
+        myPID.SetMode(0); // turn PID off
+        levelOT1 = 0;
+        output_level_icc( levelOT1 );  // Turn OT1 (heater) off
+        levelOT2 = OT2_AUTO_COOL;
+        output_level_pac( levelOT2 ); // Set fan to auto cool level
+        #ifdef ACKS_ON
+        Serial.println("# PID Roast Stop");
+        #endif
       #endif
       return true;
     }

@@ -29,14 +29,14 @@
 #define ANALOGUE1 // if POT connected on ANLG1
 #define ANALOGUE2 // if POT connected on ANLG2
 
-#define ANALOGUE_STEP 2 // rounding for analogue input percentage. Use 1, 2, 4, 5, or 10.
+#define ANALOGUE_STEP 1 // rounding for analogue input percentage. Use 1, 2, 4, 5, or 10.
 
 #define ROR_CHAN 1 // physical input channel for RoR display on LCD
 
 #define PID_CONTROL // if PID control is allowed to be activated
 #define PID_CHAN 1 // physical channel for PID input
 #define PRO 5.00 // initial proportional parameter
-#define INT 0.20 // initial integral parameter
+#define INT 0.15 // initial integral parameter
 #define DER 0.00 // initial derivative parameter
 
 #define NUM_PROFILES 2 // number of profiles stored in EEPROM
@@ -44,10 +44,12 @@
 #define MIN_OT1 0 // Set OT1 output % for lower limit of potentiometer range. Does not limit serial commands or PID
 #define MAX_OT1 100 // Set OT1 output % for upper limit of potentiometer range. Does not limit serial commands or PID
 
-#define MIN_OT2 20 // Set OT2 output % for lower limit of potentiometer range. Does not limit serial commands
+#define MIN_OT2 10 // Set OT2 output % for lower limit of potentiometer range. Does not limit serial commands
 #define MAX_OT2 100 // Set OT2 output % for upper limit of potentiometer range. Does not limit serial commands
 
-#define OT1_CUTOFF 20 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
+#define OT1_CUTOFF 10 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
+
+#define OT2_AUTO_COOL 15 // Set OT2 output % for auto cool when using PID;STOP command
 
 //#define COMMAND_ECHO // Echo all serial commands to LCD
 

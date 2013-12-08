@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 3_8"
+#define BANNER_ARTISAN "aArtisanQ_PID 3_9"
 
 // Revision history:
 // 20110408 Created.
@@ -102,6 +102,7 @@
 // 20130121 Tidied up button press code
 // 20130203 Permits use of different TC types on individual channels as in aArtisan 2.10
 // 20130203 Updated temperature sample filtering to match aArtisan 2.10
+// 20130406 Added GO and STOP commands to use with Artisan 'Charge' and 'End' buttons
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -627,20 +628,24 @@ int32_t getAnalogValue( uint8_t port ) {
     if( port == anlg1 ) {
       aval = MIN_OT1 * 10.24 + ( aval / 1024 ) * 10.24 * ( MAX_OT1 - MIN_OT1 ) ; // scale analogue value to new range
       if ( aval == ( MIN_OT1 * 10.24 ) ) aval = 0; // still allow OT1 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
+      mod = MIN_OT1;
     }
   #endif
   #ifdef ANALOGUE2
     if( port == anlg2 ) {
       aval = MIN_OT2 * 10.24 + ( aval / 1024 ) * 10.24 * ( MAX_OT2 - MIN_OT2 ) ; // scale analogue value to new range
       if ( aval == ( MIN_OT2 * 10.24 ) ) aval = 0; // still allow OT2 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
+      mod = MIN_OT2;
     }
   #endif
   trial = ( aval + 0.001 ) * 100; // to fix weird rounding error from previous calcs?????
   trial /= 1023;
-  mod = trial % ANALOGUE_STEP;
   trial = ( trial / ANALOGUE_STEP ) * ANALOGUE_STEP; // truncate to multiple of ANALOGUE_STEP
-  if( mod >= ANALOGUE_STEP / 2 )
-    trial += ANALOGUE_STEP;
+  if( trial < mod ) trial = 0;
+//  mod = trial % ANALOGUE_STEP;
+//  trial = ( trial / ANALOGUE_STEP ) * ANALOGUE_STEP; // truncate to multiple of ANALOGUE_STEP
+//  if( mod >= ANALOGUE_STEP / 2 )
+//    trial += ANALOGUE_STEP;
   return trial;
 }
 #endif // end if defined ANALOGUE1 || defined ANALOGUE2
