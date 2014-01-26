@@ -52,6 +52,9 @@ rf2000Cmnd rf2000;
 rc2000Cmnd rc2000;
 pidCmnd pid;
 resetCmnd reset;
+loadCmnd load;
+powerCmnd power;
+fanCmnd fan;
 
 
 // --------------------- dwriteCmnd
@@ -539,3 +542,80 @@ boolean resetCmnd::doCommand( CmndParser* pars ) {
     return false;
   }
 }
+
+// ----------------------------- loadCmnd
+// constructor
+loadCmnd::loadCmnd() :
+  CmndBase( LOAD_CMD ) {
+}
+
+// execute the LOAD command
+// LOAD\n
+
+boolean loadCmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
+    roastlogger = true;
+    counter = 1;
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+// ----------------------------- powerCmnd
+// constructor
+powerCmnd::powerCmnd() :
+  CmndBase( POWER_CMD ) {
+}
+
+// execute the OT1 command
+// POWER=ddd\n
+
+boolean powerCmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
+    uint8_t len = strlen( pars->paramStr(1) );
+    if( len > 0 ) {
+      levelOT1 = atoi( pars->paramStr(1) );
+      //ssr.Out( levelOT1, levelOT2 );
+      output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
+      #ifdef ACKS_ON
+      Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
+      #endif
+    }
+    return true;
+  
+  }
+  else {
+    return false;
+  }
+}
+
+// ----------------------------- fanCmnd
+// constructor
+fanCmnd::fanCmnd() :
+  CmndBase( FAN_CMD ) {
+}
+
+// execute the OT1 command
+// FAN=ddd\n
+
+boolean fanCmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
+    uint8_t len = strlen( pars->paramStr(1) );
+    if( len > 0 ) {
+      levelOT2 = atoi( pars->paramStr(1) );
+      //ssr.Out( levelOT1, levelOT2 );
+      output_level_pac( levelOT2 );
+      #ifdef ACKS_ON
+      Serial.print("# OT2 level set to "); Serial.println( levelOT2 );
+      #endif
+    }
+    return true;
+  
+  }
+  else {
+    return false;
+  }
+}
+

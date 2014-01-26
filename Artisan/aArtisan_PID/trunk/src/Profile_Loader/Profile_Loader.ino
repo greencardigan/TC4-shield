@@ -28,8 +28,8 @@ int profile_type = 1;
 char profile_CorF = 'C';
 char profile_name[40] = "PROFILE 1";
 char profile_description[80] = "Description of Profile 1";
-int profile_time[50] = { 0, 240, 480, 840, 960, 0};
-int profile_temp[50] = {25, 150, 205, 233, 261, 0};
+int profile_time[50] = { 0.00,160.00,180.00,200.00,220.00,240.00,400.00,420.00,440.00,460.00,480.00,720.00,960.00, 0};
+int profile_temp[50] = {25.00,117.00,127.00,136.00,144.00,151.00,193.00,197.00,201.00,204.00,207.00,232.00,257.00, 0};
 
 
 /*

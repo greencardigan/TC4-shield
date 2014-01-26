@@ -31,7 +31,7 @@
 
 #define ANALOGUE_STEP 1 // rounding for analogue input percentage. Use 1, 2, 4, 5, or 10.
 
-#define ROR_CHAN 1 // physical input channel for RoR display on LCD
+#define ROR_CHAN 0 // physical input channel for RoR display on LCD
 
 #define PID_CONTROL // if PID control is allowed to be activated
 #define PID_CHAN 1 // physical channel for PID input

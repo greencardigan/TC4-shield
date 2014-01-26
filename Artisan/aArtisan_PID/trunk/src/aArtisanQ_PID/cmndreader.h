@@ -61,6 +61,10 @@
 #define IO3 3 // use DIO3 for PWM output
 #define PID_CMD "PID" // turn PID ON or OFF
 #define RESET_CMD "RESET" // pBourbon reset command
+#define LOAD_CMD "LOAD" // Roastlogger LOAD command
+#define POWER_CMD "POWER" // Roastlogger POWER command
+#define FAN_CMD "FAN" // Roastlogger FAN command
+
 
 // forward declarations
 class dwriteCmnd;
@@ -75,6 +79,9 @@ class rf2000Cmnd;
 class rc2000Cmnd;
 class pidCmnd;
 class resetCmnd;
+class loadCmnd;
+class powerCmnd;
+class fanCmnd;
 
 // external declarations of class objects
 extern readCmnd reader;
@@ -89,6 +96,9 @@ extern rc2000Cmnd rc2000;
 extern unitsCmnd units;
 extern pidCmnd pid;
 extern resetCmnd reset;
+extern loadCmnd load;
+extern powerCmnd power;
+extern fanCmnd fan;
 
 // extern declarations for functions, variables in the main program
 //extern PWM16 ssr;
@@ -102,6 +112,7 @@ extern uint32_t counter;
 extern int profile_number;
 extern void setProfile();
 extern boolean pBourbon;
+extern boolean roastlogger;
 
 // class declarations for commands
 
@@ -174,6 +185,24 @@ class pidCmnd : public CmndBase {
 class resetCmnd : public CmndBase {
   public:
     resetCmnd();
+    virtual boolean doCommand( CmndParser* pars );
+};
+
+class loadCmnd : public CmndBase {
+  public:
+    loadCmnd();
+    virtual boolean doCommand( CmndParser* pars );
+};
+
+class powerCmnd : public CmndBase {
+  public:
+    powerCmnd();
+    virtual boolean doCommand( CmndParser* pars );
+};
+
+class fanCmnd : public CmndBase {
+  public:
+    fanCmnd();
     virtual boolean doCommand( CmndParser* pars );
 };
 

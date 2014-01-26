@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 3_9"
+#define BANNER_ARTISAN "aArtisanQ_PID 4_0"
 
 // Revision history:
 // 20110408 Created.
@@ -103,6 +103,7 @@
 // 20130203 Permits use of different TC types on individual channels as in aArtisan 2.10
 // 20130203 Updated temperature sample filtering to match aArtisan 2.10
 // 20130406 Added GO and STOP commands to use with Artisan 'Charge' and 'End' buttons
+// 20140127 Added support for Roastlogger (responds to LOAD, POWER and FAN commands. Sends rorT1=, T1=, rorT2=, T2= and power levels to roastlogger)
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -135,7 +136,7 @@
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
 #define DP 1  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
-#define DELIM "; ," // command line parameter delimiters
+#define DELIM "; ,=" // command line parameter delimiters
 
 #include <mcEEPROM.h>
 mcEEPROM eeprom;
@@ -195,6 +196,7 @@ uint32_t checktime;
 #endif
 
 boolean pBourbon = false; // set initial state for pBourbon flag
+boolean roastlogger = false; // set initial state for roastlogger flag
 uint32_t counter; // second counter
 uint32_t next_loop_time; // 
 boolean first;
@@ -287,41 +289,67 @@ float convertUnits ( float t ) {
 // ------------------------------------------------------------------
 void logger()
 {
-  if( pBourbon == true ) {
-    // print counter
-    Serial.print( counter );
-    Serial.print( "," );
-  }
-// print ambient
-  Serial.print( convertUnits( AT ), DP );
-// print active channels
-  for( uint8_t jj = 0; jj < NC; ++jj ) {
-    uint8_t k = actv[jj];
-    if( k > 0 ) {
-      --k;
-      Serial.print(",");
-      Serial.print( convertUnits( T[k] ) );
-      if( pBourbon == true ) {
-        Serial.print(",");
-        Serial.print( RoR[k], DP );
+  if( roastlogger == true) { // CHANNEL ASSIGNMENT MAY NEED FIXING AS REVERSED FROM ARTISAN
+    for( uint8_t jj = 0; jj < NC; ++jj ) {
+      uint8_t k = actv[jj];
+      if( k > 0 ) {
+        --k;
+        Serial.print("rorT");
+        Serial.print(k+1);
+        Serial.print("=");
+        Serial.println( RoR[k], DP );
+        Serial.print("T");
+        Serial.print(k+1);
+        Serial.print("=");
+        Serial.println( convertUnits( T[k] ) );
       }
     }
+    Serial.print("Power%=");
+    if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+      Serial.println( 0 );
+    }
+    else {  
+      Serial.println( levelOT1 );
+    }
+    Serial.print("Fan=");
+    Serial.print( levelOT2 );
   }
-  
-#ifdef PLOT_POWER
-  Serial.print(",");
-  if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
-    Serial.print( 0 );
+  else { // Artisan or pBourbon
+    if( pBourbon == true ) {
+      // print counter
+      Serial.print( counter );
+      Serial.print( "," );
+    }
+    // print ambient
+    Serial.print( convertUnits( AT ), DP );
+    // print active channels
+    for( uint8_t jj = 0; jj < NC; ++jj ) {
+      uint8_t k = actv[jj];
+      if( k > 0 ) {
+        --k;
+        Serial.print(",");
+        Serial.print( convertUnits( T[k] ) );
+        if( pBourbon == true ) {
+          Serial.print(",");
+          Serial.print( RoR[k], DP );
+        }
+      }
+    }
+    
+  #ifdef PLOT_POWER
+    Serial.print(",");
+    if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+      Serial.print( 0 );
+    }
+    else {  
+      Serial.print( levelOT1 );
+    }
+    Serial.print(",");
+    Serial.print( levelOT2 );
+  #endif  
+    
+    Serial.println();
   }
-  else {  
-    Serial.print( levelOT1 );
-  }
-  Serial.print(",");
-  Serial.print( levelOT2 );
-#endif  
-  
-  Serial.println();
-
 }
 
 // --------------------------------------------------------------------------
@@ -892,8 +920,8 @@ void setup()
   #endif  
   
   // initialize the active channels to default values
-  actv[0] = 1; // ET on TC1
-  actv[1] = 2; // BT on TC2
+  actv[0] = 2; // ET on TC1
+  actv[1] = 1; // BT on TC2
   actv[2] = 0; // default inactive
   actv[3] = 0; // default inactive
   
@@ -916,6 +944,9 @@ void setup()
   ci.addCommand( &reader );
   ci.addCommand( &pid );
   ci.addCommand( &reset );
+  ci.addCommand( &load );
+  ci.addCommand( &power );
+  ci.addCommand( &fan );
   
   pinMode( LED_PIN, OUTPUT );
 
@@ -986,7 +1017,7 @@ void loop()
   #ifdef LCD
     updateLCD();
   #endif
-  if( pBourbon == true ) logger(); // send data every second to pBourbon
+  if( pBourbon == true || roastlogger == true ) logger(); // send data every second to pBourbon
 //  Serial.println( next_loop_time - millis() ); // how much time spare in loop. approx 350ms
   while( millis() < next_loop_time ) {
   #ifdef LCDAPTER
