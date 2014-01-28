@@ -314,7 +314,7 @@ void logger()
       Serial.println( levelOT1 );
     }
     Serial.print("Fan=");
-    Serial.print( levelOT2 );
+    Serial.println( levelOT2 );
   }
   else { // Artisan or pBourbon
     if( pBourbon == true ) {
