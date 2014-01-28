@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 4_0"
+#define BANNER_ARTISAN "aArtisanQ_PID 4_1"
 
 // Revision history:
 // 20110408 Created.
@@ -68,7 +68,7 @@
 // 20111031 Created.
 // ----------- aArtisanQ beta1
 // 20111101 Beta 1 release
-// ----------- aArtisanQ_PID
+// ----------- aArtisanQ_PID (Brad Collins)
 // 20120915 Created.
 //          Added PID Library
 //          Added code for analogue inputs
@@ -103,7 +103,9 @@
 // 20130203 Permits use of different TC types on individual channels as in aArtisan 2.10
 // 20130203 Updated temperature sample filtering to match aArtisan 2.10
 // 20130406 Added GO and STOP commands to use with Artisan 'Charge' and 'End' buttons
-// 20140127 Added support for Roastlogger (responds to LOAD, POWER and FAN commands. Sends rorT1=, T1=, rorT2=, T2= and power levels to roastlogger)
+// 20140127 aArtisanQ_PID release 4_0 created
+// 20140127 Added support for Roastlogger roasting software (responds to LOAD, POWER and FAN commands. Sends rorT1=, T1=, rorT2=, T2= and power levels to roastlogger)
+// 20140128 Improved handling of heater and fan power limits
 
 // this library included with the arduino distribution
 #include <Wire.h>

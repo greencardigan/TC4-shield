@@ -250,7 +250,8 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     if( strcmp( pars->paramStr(1), "UP" ) == 0 ) {
       levelOT1 = levelOT1 + ANALOGUE_STEP;
-      if( levelOT1 > MAX_OT1 ) levelOT1 = MAX_OT1;
+      if( levelOT1 > MAX_OT1 ) levelOT1 = MAX_OT1; // don't allow OT1 to exceed maximum
+      if( levelOT1 < MIN_OT1 ) levelOT1 = MIN_OT1; // don't allow OT1 to turn on less than minimum
       output_level_icc( levelOT1 );
       #ifdef ACKS_ON
       Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
@@ -259,7 +260,7 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
     }
     else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
       levelOT1 = levelOT1 - ANALOGUE_STEP;
-      if( levelOT1 < MIN_OT1 ) levelOT1 = MIN_OT1;
+      if( levelOT1 < MIN_OT1 & levelOT1 != 0 ) levelOT1 = 0; // turn ot1 off if trying to go below minimum. or use levelOT1 = MIN_OT1 ?
       output_level_icc( levelOT1 );
       #ifdef ACKS_ON
       Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
@@ -270,6 +271,8 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
       uint8_t len = strlen( pars->paramStr(1) );
       if( len > 0 ) {
         levelOT1 = atoi( pars->paramStr(1) );
+        if( levelOT1 > MAX_OT1 ) levelOT1 = MAX_OT1;  // don't allow OT1 to exceed maximum
+        if( levelOT1 < MIN_OT1 & levelOT1 != 0 ) levelOT1 = MIN_OT1;  // don't allow to set less than minimum unless setting to zero
   //      ssr.Out( levelOT1, levelOT2 );
         output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
         #ifdef ACKS_ON
@@ -297,7 +300,8 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     if( strcmp( pars->paramStr(1), "UP" ) == 0 ) {
       levelOT2 = levelOT2 + ANALOGUE_STEP;
-      if( levelOT2 > MAX_OT2 ) levelOT2 = MAX_OT2;
+      if( levelOT2 > MAX_OT2 ) levelOT2 = MAX_OT2; // don't allow OT2 to exceed maximum
+      if( levelOT2 < MIN_OT2 ) levelOT2 = MIN_OT2; // don't allow OT2 to turn on less than minimum
       output_level_pac( levelOT2 );
       #ifdef ACKS_ON
       Serial.print("# OT2 level set to "); Serial.println( levelOT2 );
@@ -306,7 +310,7 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
     }
     else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
       levelOT2 = levelOT2 - ANALOGUE_STEP;
-      if( levelOT2 < MIN_OT2 & levelOT2 != 0 ) levelOT2 = MIN_OT2;
+      if( levelOT2 < MIN_OT2 & levelOT2 != 0 ) levelOT2 = 0;  // turn off if selecting less than minimum. or use levelOT2 = MIN_OT2 ?
       output_level_pac( levelOT2 );
       #ifdef ACKS_ON
       Serial.print("# OT2 level set to "); Serial.println( levelOT2 );
@@ -317,6 +321,8 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
       uint8_t len = strlen( pars->paramStr(1) );
       if( len > 0 ) {
         levelOT2 = atoi( pars->paramStr(1) );
+        if( levelOT2 > MAX_OT2 ) levelOT2 = MAX_OT2;  // don't allow OT2 to exceed maximum
+        if( levelOT2 < MIN_OT2 & levelOT2 != 0 ) levelOT2 = MIN_OT2;  // don't allow to set less than minimum unless setting to zero
   //      ssr.Out( levelOT1, levelOT2 );
         output_level_pac( levelOT2 );
         #ifdef ACKS_ON
@@ -577,6 +583,8 @@ boolean powerCmnd::doCommand( CmndParser* pars ) {
     uint8_t len = strlen( pars->paramStr(1) );
     if( len > 0 ) {
       levelOT1 = atoi( pars->paramStr(1) );
+      if( levelOT1 > MAX_OT1 ) levelOT1 = MAX_OT1;  // don't allow OT1 to exceed maximum
+      if( levelOT1 < MIN_OT1 & levelOT1 != 0 ) levelOT1 = MIN_OT1;  // don't allow to set less than minimum unless setting to zero
       //ssr.Out( levelOT1, levelOT2 );
       output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
       #ifdef ACKS_ON
@@ -605,6 +613,8 @@ boolean fanCmnd::doCommand( CmndParser* pars ) {
     uint8_t len = strlen( pars->paramStr(1) );
     if( len > 0 ) {
       levelOT2 = atoi( pars->paramStr(1) );
+      if( levelOT2 > MAX_OT2 ) levelOT2 = MAX_OT2;  // don't allow OT2 to exceed maximum
+      if( levelOT2 < MIN_OT2 & levelOT2 != 0 ) levelOT2 = MIN_OT2;  // don't allow to set less than minimum unless setting to zero
       //ssr.Out( levelOT1, levelOT2 );
       output_level_pac( levelOT2 );
       #ifdef ACKS_ON
