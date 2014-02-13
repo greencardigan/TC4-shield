@@ -20,6 +20,11 @@
 #define TC_TYPE3 typeK  // thermocouple on TC3
 #define TC_TYPE4 typeK  // thermocouple on TC4
 
+//#define ROASTLOGGER
+#define ARTISAN
+//#define PBOURBON
+
+
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
 #define LCD_4x20 // if using a 4x20 LCD instead of a 2x16
@@ -41,17 +46,17 @@
 
 #define NUM_PROFILES 2 // number of profiles stored in EEPROM
 
-#define MIN_OT1 0 // Set OT1 output % for lower limit of potentiometer range. Does not limit serial commands or PID
-#define MAX_OT1 100 // Set OT1 output % for upper limit of potentiometer range. Does not limit serial commands or PID
+#define MIN_OT1 0 // Set OT1 output % for lower limit for OT1.  0% power will always be available
+#define MAX_OT1 100 // Set OT1 output % for upper limit for OT1
 
-#define MIN_OT2 10 // Set OT2 output % for lower limit of potentiometer range. Does not limit serial commands
-#define MAX_OT2 100 // Set OT2 output % for upper limit of potentiometer range. Does not limit serial commands
+#define MIN_OT2 10 // Set OT2 output % for lower limit for OT2.  0% power will always be available
+#define MAX_OT2 100 // Set OT2 output % for upper limit for OT2
 
 #define OT1_CUTOFF 10 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
 
 #define OT2_AUTO_COOL 15 // Set OT2 output % for auto cool when using PID;STOP command
 
-//#define COMMAND_ECHO // Echo all serial commands to LCD
+#define COMMAND_ECHO // Echo all serial commands to LCD
 
 #define BAUD 19200  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for BT

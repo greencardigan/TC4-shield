@@ -189,7 +189,7 @@ readCmnd::readCmnd() :
 
 boolean readCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-    logger();
+    artisan_logger = true;
     return true;
   }
   else {
@@ -539,7 +539,7 @@ resetCmnd::resetCmnd() :
 
 boolean resetCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-    pBourbon = true;
+    //pBourbon = true;
     counter = 0;
     Serial.println( "# Reset" ); // respond to pBourbon reset command
     return true;
@@ -560,7 +560,7 @@ loadCmnd::loadCmnd() :
 
 boolean loadCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-    roastlogger = true;
+    //roastlogger = true;
     counter = 1;
     return true;
   }

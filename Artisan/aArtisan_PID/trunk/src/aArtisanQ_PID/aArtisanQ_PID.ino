@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 4_1"
+#define BANNER_ARTISAN "aArtisanQ_PID 4_3"
 
 // Revision history:
 // 20110408 Created.
@@ -68,6 +68,8 @@
 // 20111031 Created.
 // ----------- aArtisanQ beta1
 // 20111101 Beta 1 release
+
+
 // ----------- aArtisanQ_PID (Brad Collins)
 // 20120915 Created.
 //          Added PID Library
@@ -97,15 +99,19 @@
 // 20121213 Added UP and DOWN parameters for OT1 and OT2 commands.  Increments or decrements power levels by 5%
 // 20130116 Added user adjustable analogue input rounding (ANALOGUE_STEP) in user.h
 // 20130119 aArtisanQ_PID release 3_5
-// 20130119 Added code to allow for additional LCD display modes
+//          Added code to allow for additional LCD display modes
 // 20130120 Added ability to change roast profile using LCD and buttons
 // 20130121 Tidied up button press code
 // 20130203 Permits use of different TC types on individual channels as in aArtisan 2.10
-// 20130203 Updated temperature sample filtering to match aArtisan 2.10
+//          Updated temperature sample filtering to match aArtisan 2.10
 // 20130406 Added GO and STOP commands to use with Artisan 'Charge' and 'End' buttons
 // 20140127 aArtisanQ_PID release 4_0 created
-// 20140127 Added support for Roastlogger roasting software (responds to LOAD, POWER and FAN commands. Sends rorT1=, T1=, rorT2=, T2= and power levels to roastlogger)
+//          Added support for Roastlogger roasting software (responds to LOAD, POWER and FAN commands. Sends rorT1=, T1=, rorT2=, T2= and power levels to roastlogger)
 // 20140128 Improved handling of heater and fan power limits
+// 20140213 aArtisanQ_PID release 4_2
+// 20140214 Added option in useh.h to define software mode (Artisan, Roastlogger or pBourbon)
+//          Fixed? bug causing crashes when receiving READ commands
+// 20140214 aArtisanQ_PID release 4_3
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -197,8 +203,9 @@ uint32_t checktime;
 
 #endif
 
-boolean pBourbon = false; // set initial state for pBourbon flag
-boolean roastlogger = false; // set initial state for roastlogger flag
+boolean artisan_logger = false;
+//boolean pBourbon = false; // set initial state for pBourbon flag
+//boolean roastlogger = false; // set initial state for roastlogger flag
 uint32_t counter; // second counter
 uint32_t next_loop_time; // 
 boolean first;
@@ -289,69 +296,100 @@ float convertUnits ( float t ) {
 }
 
 // ------------------------------------------------------------------
-void logger()
-{
-  if( roastlogger == true) { // CHANNEL ASSIGNMENT MAY NEED FIXING AS REVERSED FROM ARTISAN
-    for( uint8_t jj = 0; jj < NC; ++jj ) {
-      uint8_t k = actv[jj];
-      if( k > 0 ) {
-        --k;
-        Serial.print("rorT");
-        Serial.print(k+1);
-        Serial.print("=");
-        Serial.println( RoR[k], DP );
-        Serial.print("T");
-        Serial.print(k+1);
-        Serial.print("=");
-        Serial.println( convertUnits( T[k] ) );
-      }
+void logger() {
+
+#ifdef ARTISAN
+  // print ambient
+  Serial.print( convertUnits( AT ), DP );
+  // print active channels
+  for( uint8_t jj = 0; jj < NC; ++jj ) {
+    uint8_t k = actv[jj];
+    if( k > 0 ) {
+      --k;
+      Serial.print(",");
+      Serial.print( convertUnits( T[k] ) );
+
     }
-    Serial.print("Power%=");
-    if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
-      Serial.println( 0 );
-    }
-    else {  
-      Serial.println( levelOT1 );
-    }
-    Serial.print("Fan=");
-    Serial.println( levelOT2 );
   }
-  else { // Artisan or pBourbon
-    if( pBourbon == true ) {
-      // print counter
-      Serial.print( counter );
-      Serial.print( "," );
-    }
-    // print ambient
-    Serial.print( convertUnits( AT ), DP );
-    // print active channels
-    for( uint8_t jj = 0; jj < NC; ++jj ) {
-      uint8_t k = actv[jj];
-      if( k > 0 ) {
-        --k;
-        Serial.print(",");
-        Serial.print( convertUnits( T[k] ) );
-        if( pBourbon == true ) {
-          Serial.print(",");
-          Serial.print( RoR[k], DP );
-        }
-      }
-    }
     
   #ifdef PLOT_POWER
-    Serial.print(",");
-    if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
-      Serial.print( 0 );
-    }
-    else {  
-      Serial.print( levelOT1 );
-    }
-    Serial.print(",");
-    Serial.print( levelOT2 );
+  Serial.print(",");
+  if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+    Serial.print( 0 );
+  }
+  else {  
+    Serial.print( levelOT1 );
+  }
+  Serial.print(",");
+  Serial.print( levelOT2 );
   #endif  
     
-    Serial.println();
+  Serial.println();
+
+#endif
+
+#ifdef ROASTLOGGER
+  for( uint8_t jj = 0; jj < NC; ++jj ) {
+    uint8_t k = actv[jj];
+    if( k > 0 ) {
+      --k;
+      Serial.print("rorT");
+      Serial.print(k+1);
+      Serial.print("=");
+      Serial.println( RoR[k], DP );
+      Serial.print("T");
+      Serial.print(k+1);
+      Serial.print("=");
+      Serial.println( convertUnits( T[k] ) );
+    }
   }
+  Serial.print("Power%=");
+  if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+    Serial.println( 0 );
+  }
+  else {  
+    Serial.println( levelOT1 );
+  }
+  Serial.print("Fan=");
+  Serial.println( levelOT2 );
+#endif
+
+#ifdef PBOURBON
+
+  // print counter
+  Serial.print( counter );
+  Serial.print( "," );
+
+  // print ambient
+  Serial.print( convertUnits( AT ), DP );
+  // print active channels
+  for( uint8_t jj = 0; jj < NC; ++jj ) {
+    uint8_t k = actv[jj];
+    if( k > 0 ) {
+      --k;
+      Serial.print(",");
+      Serial.print( convertUnits( T[k] ) );
+      Serial.print(",");
+      Serial.print( RoR[k], DP );
+    }
+  }
+    
+  #ifdef PLOT_POWER
+  Serial.print(",");
+  if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+    Serial.print( 0 );
+  }
+  else {  
+    Serial.print( levelOT1 );
+  }
+  Serial.print(",");
+  Serial.print( levelOT2 );
+  #endif  
+    
+  Serial.println();
+
+#endif
+
 }
 
 // --------------------------------------------------------------------------
@@ -962,7 +1000,7 @@ void setup()
 
 #ifdef PID_CONTROL
   myPID.SetSampleTime(1000); // set sample time to 1 second
-  myPID.SetOutputLimits(0, 100); // set output limits to 0 to 100 for OT2
+  myPID.SetOutputLimits(MIN_OT1, MAX_OT1); // set output limits to user defined limits
   myPID.SetControllerDirection(DIRECT); // set PID to be direct acting mode. Increase in output leads to increase in input
   myPID.SetTunings(PRO, INT, DER); // set initial PID tuning values
   myPID.SetMode(MANUAL); // start with PID control off
@@ -1019,7 +1057,15 @@ void loop()
   #ifdef LCD
     updateLCD();
   #endif
-  if( pBourbon == true || roastlogger == true ) logger(); // send data every second to pBourbon
+  #if defined ROASTLOGGER || defined PBOURBON
+    logger(); // send data every second to pBourbon
+  #endif
+  #if defined ARTISAN
+    if( artisan_logger == true ) {
+      artisan_logger = false;
+      logger();
+    }
+  #endif
 //  Serial.println( next_loop_time - millis() ); // how much time spare in loop. approx 350ms
   while( millis() < next_loop_time ) {
   #ifdef LCDAPTER

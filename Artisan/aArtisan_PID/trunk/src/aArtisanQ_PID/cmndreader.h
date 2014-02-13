@@ -111,8 +111,9 @@ extern PID myPID;
 extern uint32_t counter;
 extern int profile_number;
 extern void setProfile();
-extern boolean pBourbon;
-extern boolean roastlogger;
+//extern boolean pBourbon;
+//extern boolean roastlogger;
+extern boolean artisan_logger;
 
 // class declarations for commands
 
