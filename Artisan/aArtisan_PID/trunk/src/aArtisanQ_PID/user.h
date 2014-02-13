@@ -56,7 +56,7 @@
 
 #define OT2_AUTO_COOL 15 // Set OT2 output % for auto cool when using PID;STOP command
 
-#define COMMAND_ECHO // Echo all serial commands to LCD
+//#define COMMAND_ECHO // Echo all serial commands to LCD
 
 #define BAUD 19200  // serial baud rate
 #define BT_FILTER 10 // filtering level (percent) for BT
