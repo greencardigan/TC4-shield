@@ -1,6 +1,9 @@
 RoastLoggerTC4
 --------------
 
+RoastLoggerTC4 version 2.1  23-March-2014 by Jim Gallt
+ - temperature scale selectable at compile time (edit user.h)
+
 RoastLoggerTC4  version 2.0    10 July 2012 by Jim Gallt and Tom Coxon
  - general release of software with standalone capability (see below)
  - default fan PWM frequency set to 61Hz for best performance with HTC interface
