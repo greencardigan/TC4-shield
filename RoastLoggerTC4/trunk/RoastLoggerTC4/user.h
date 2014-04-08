@@ -7,7 +7,7 @@
 // First, load and edit this sketch in the Arduino IDE.
 // Next compile the sketch and upload it to the Arduino.
 
-//Select default units here - to switch at runtime use jumper on ANLG2 
+//Select default units here (selectable at runtime via command from RoastLogger) 
 #define CELSIUS false
 //#define CELSIUS true
 

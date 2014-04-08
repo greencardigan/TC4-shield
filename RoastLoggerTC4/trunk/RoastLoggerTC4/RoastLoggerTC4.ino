@@ -71,7 +71,7 @@
 //#define LOGIC_ANALYZER 
 
 #define BANNER_RL1 "RoastLoggerTC4"
-#define BANNER_RL2 "version 2.1"
+#define BANNER_RL2 "version 3RC"
 
 // Revision history: - of RoastLoggerTC4
 //  20120112:  Version 0.3 - Released for testing
@@ -98,6 +98,8 @@
 //  20120710   Version 2.0   Release supports standalone operation using LCDapter buttons
 //                           Set default fan PWM frequency to 61Hz (7808 is too fast for HTC controller)
 //  20130117   Version 2.1   Made the choice of temperature scale selectable in user.h
+//  20140408   Version 3RC   Added slew rate limitations on IO3 (fan)
+//                           Added support for runtime selectable temperature scale
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -125,6 +127,7 @@
 #define MAX_COMMAND 80 // max length of a command string
 #define LOOPTIME 1000 // cycle time, in ms
 
+// no longer used, but keep for legacy users
 #define ANLG2 A1 // arduino pin A1
 #define UNIT_SEL ANLG2 // select temperature scale
 
@@ -133,6 +136,13 @@
 #define CMD_PCCONTROL "PCCONTROL"
 #define CMD_ARDUINOCONTROL "ARDUINOCONTROL"
 #define CMD_LOAD "LOAD"
+#define CMD_TEMPF "TEMPF"
+#define CMD_TEMPC "TEMPC"
+
+// fan slew rate limitations (on IO3)
+#define MAX_SLEW 25 // percent per second
+#define SLEW_STEP 5 // increase in steps of 5% for smooth transition
+#define SLEW_STEP_TIME (uint32_t)(SLEW_STEP * 1000 / MAX_SLEW) // min ms delay between steps
 
 #ifdef LOGIC_ANALYZER
 #define BLIP_PIN 2  
@@ -169,9 +179,12 @@ uint8_t chan_map[NCHAN] = { LOGCHAN1, LOGCHAN2 };
 
 //RoastLogger global variables for heater, fan power %
 int8_t heater; // power for 1st output (heater)
-int8_t fan; // power for 2nd output (fan)
+int8_t current_fan; // power for 2nd output (fan) - instantaneous value
+int8_t target_fan; // user-selected fan output
+uint32_t last_fan_change; // ms time value when fan output was last increased
 PWM16 output1; // 16-bit timer for SSR output on Ot1 and Ot2
 PWM_IO3 io3; // 8-bit timer for fan control on IO3
+
 
 // used in main loop
 float timestamp;
@@ -184,7 +197,7 @@ float reftime; // reference for measuring elapsed time
 float RoR_cur,t1_cur,t2_cur;
 
 // temperature units selection
-boolean celsius = CELSIUS;
+boolean celsius = CELSIUS;  // select the default units in user.h
 
 char command[MAX_COMMAND+1]; // input buffer for commands from the serial port
 
@@ -244,7 +257,7 @@ void logger()
   Serial.print("Power%=");
   Serial.println(heater);
   Serial.print("Fan=");
-  Serial.println(fan);
+  Serial.println(current_fan);
 }
 
 // -------------------------------------
@@ -252,6 +265,33 @@ void append( char* str, char c ) { // reinventing the wheel
   int len = strlen( str );
   str[len] = toupper(c);
   str[len+1] = '\0';
+}
+
+// -------------------------------------
+void set_fan_level( uint8_t new_fan ) {
+  if( new_fan >= 0 && new_fan < 101 ) {  // screen out bogus values
+    float pow = 2.55 * new_fan;  // output values are 0 to 255
+    io3.Out( round( pow ) ); // set the output level
+    current_fan = new_fan; // record the present output level
+    last_fan_change = millis(); // record the time of the last level change
+  }
+}
+
+// -------------------------------------
+// limits the rate of increase of fan output
+void slew_fan() {
+  if( target_fan < current_fan ) {
+    set_fan_level( target_fan ); // no limitation if decreasing
+  }
+  else if( target_fan > current_fan ) { // limit the skew rate if increasing level
+    uint8_t delta_fan = target_fan - current_fan; // remaining requested increase in fan level
+    if( delta_fan > SLEW_STEP )  // place a limitation on the step size
+      delta_fan = SLEW_STEP;
+    uint32_t delta_fan_ms = millis() - last_fan_change; // ms since last step increase
+    if( delta_fan_ms >= SLEW_STEP_TIME ) { // only if enough time has gone by
+      set_fan_level( current_fan + delta_fan ); // increase the fan level
+    }
+  }
 }
 
 // -------------------------------------
@@ -272,12 +312,7 @@ void processCommand() {  // a newline character has been received, so process th
   else if (key != NULL && key.equals(CMD_FAN)) {
     val = strtok_r(NULL, "=", &c);
     if (val != NULL) {
-      fan = atoi(val); 
-      // fan = roundOutput( fan );    
-      if (fan >= 0 && fan <101) {  
-        float pow = 2.55 * fan;  // output values are 0 to 255
-        io3.Out( round( pow ) );   
-      }
+      target_fan = atoi(val);  // set new target fan output level
     }
   }
   else if (key != NULL && key.equals(CMD_PCCONTROL)) { // placeholder
@@ -287,6 +322,15 @@ void processCommand() {  // a newline character has been received, so process th
   else if (key != NULL && key.equals(CMD_LOAD)) {
     resetTimer();  // reset the timer in response to message from host
   }
+  else if (key != NULL && key.equals(CMD_TEMPF)) {
+    //select Fahrenheit
+    celsius = false;
+  }
+  else if (key != NULL && key.equals(CMD_TEMPC)) {
+    // select Celsius
+    celsius = true;
+  }
+  
 }
 
 // -------------------------------------
@@ -324,6 +368,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
     tod = millis();
     while( millis() - tod < MIN_DELAY ) {
       checkSerial(); // check for serial input
+      slew_fan(); // keep the fan smoothly increasing in speed
       HIDevents(); // check for interface events
     }
 
@@ -356,8 +401,7 @@ void HIDevents() {
       output1.Out( heater, 0 );
     }
     if( hid.chgLevel_2() ) {
-      fan = hid.getLevel_2();
-      io3.Out( 2.55* fan ); // output values range from 0 to 255
+      target_fan = hid.getLevel_2();
     }
   }
 }
@@ -378,8 +422,8 @@ void setup()
   Wire.begin(); 
 
   // initialize values
-  heater = 0;
-  fan = 0;
+  heater = 0;  // heater is off by default
+  target_fan = 0; // fan is off by default
   t1_cur = 0.0;
   t2_cur = 0.0;
   RoR_cur = 0.0;
@@ -427,9 +471,9 @@ void setup()
   output1.Out( heater, 0 ); // heater is off by default
   
   io3.Setup( PWM_MODE, PWM_PRESCALE );
-  io3.Out( fan ); // fan is off by default
-  
-  // set up ANLG2 input pin for temperature units selection
+  set_fan_level( target_fan );  // fan is off by default
+
+  // set up ANLG2 input pin for temperature units selection (keep this legacy code for safety)
   pinMode( UNIT_SEL, INPUT );
   digitalWrite( UNIT_SEL, HIGH ); // enable pullup
   
@@ -439,17 +483,18 @@ void setup()
 // -----------------------------------------------------------------
 void loop() {
   float idletime;
-  boolean override; // switches temperature scale from default
+//  boolean override; // switches temperature scale from default
   
-  checkSerial();
-  HIDevents();
-  thisLoop = millis();
+  checkSerial(); // keep reading the incoming serial data
+  slew_fan(); // ramp up the fan speed if slewing
+  HIDevents(); // check the LCD keypad
+  thisLoop = millis(); // timestamp for start of this loop
  
 
   if( thisLoop - lastLoop >= LOOPTIME ) { // time to take another sample
-    override = digitalRead( UNIT_SEL ) == LOW;  // use jumper to drive low and select fahrenheit
-    if( override ) celsius = !CELSIUS;
-    else celsius = CELSIUS;
+//    override = digitalRead( UNIT_SEL ) == LOW;  // use jumper to drive low and select non-default
+//    if( override ) celsius = !CELSIUS;
+//    else celsius = CELSIUS;
     if( first )
       resetTimer();
     lastLoop += LOOPTIME;
@@ -461,7 +506,7 @@ void loop() {
     else {
       logger(); // output results to serial port
     }
-    hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, fan ); // updates values for display
+    hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, target_fan ); // updates values for display
 
     for( int j = 0; j < NCHAN; j++ ) {
       flast[j] = ftemps[j]; // use previous values for calculating RoR

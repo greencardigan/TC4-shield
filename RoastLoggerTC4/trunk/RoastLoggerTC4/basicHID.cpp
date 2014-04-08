@@ -257,7 +257,7 @@ void HIDbase::doButtons() {
       else if( keyPressed( BTN_UP ) && keyChanged( BTN_UP ) ) { // increase the value of level_1
         ledFlash( LED_3 );
         int8_t trial = level_1;
-        trial += 5;
+        trial += STEP1;
         if( trial > 100 ) trial = 100;
         if( trial != level_1 ) {
           level_1 = trial;
@@ -269,7 +269,7 @@ void HIDbase::doButtons() {
       else if( keyPressed( BTN_DOWN ) && keyChanged( BTN_DOWN ) ) { // increase the value of level_1
         ledFlash( LED_3 );
         int8_t trial = level_1;
-        trial -= 5;
+        trial -= STEP1;
         if( trial < 0 ) trial = 0;
         if( trial != level_1 ) {
           level_1 = trial;
@@ -298,7 +298,7 @@ void HIDbase::doButtons() {
       else if( keyPressed( BTN_UP ) && keyChanged( BTN_UP ) ) { // increase the value of level_1
         ledFlash( LED_3 );
         int8_t trial = level_2;
-        trial += 5;
+        trial += STEP2;
         if( trial > 100 ) trial = 100;
         if( trial != level_2 ) {
           level_2 = trial;
@@ -311,7 +311,7 @@ void HIDbase::doButtons() {
       else if( keyPressed( BTN_DOWN ) && keyChanged( BTN_DOWN ) ) { // increase the value of level_1
         ledFlash( LED_3 );
         int8_t trial = level_2;
-        trial -= 5;
+        trial -= STEP2;
         if( trial < 0 ) trial = 0;
         if( trial != level_2 ) {
           level_2 = trial;

@@ -94,6 +94,9 @@
 
 #define ALL_FIELDS ( (1 << T1_BIT) | (1 << T2_BIT) | (1 << ROR_BIT) | (1 << TIMER_BIT) \
                    | (1 << LEVEL_1_BIT) | (1 << LEVEL_2_BIT) )
+                   
+#define STEP1 10 // step change in level 1 when key pressed
+#define STEP2 10 // step change in level 2 when key pressed
 
 
 // --------------------------
