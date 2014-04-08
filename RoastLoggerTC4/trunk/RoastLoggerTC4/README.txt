@@ -1,6 +1,13 @@
 RoastLoggerTC4
 --------------
 
+RoastLoggerTC4 version 3RC  08-April-2014 by Jim Gallt
+ - temperature scale selectable at runtime via commands TEMPF and
+   TEMPC from RoastLogger
+ - slew rate control on DC fans on IO3 (max. 25% increase per second)
+ - 10% steps (vs 5%) when keys pressed in standalone mode
+ - jumper on ANLG2 no longer supported for temperature scale toggle
+
 RoastLoggerTC4 version 2.1  23-March-2014 by Jim Gallt
  - temperature scale selectable at compile time (edit user.h)
 
