@@ -38,7 +38,7 @@
 
 // *** BSD License ***
 // ------------------------------------------------------------------------------------------
-// Copyright (c) 2011, 2012, MLG Properties, LLC
+// Copyright (c) 2011, 2012, 2014 MLG Properties, LLC
 // All rights reserved.
 //
 // Contributor:  Jim Gallt
@@ -71,7 +71,7 @@
 //#define LOGIC_ANALYZER 
 
 #define BANNER_RL1 "RoastLoggerTC4"
-#define BANNER_RL2 "version 3RC"
+#define BANNER_RL2 "version 3RC2"
 
 // Revision history: - of RoastLoggerTC4
 //  20120112:  Version 0.3 - Released for testing
@@ -100,6 +100,7 @@
 //  20130117   Version 2.1   Made the choice of temperature scale selectable in user.h
 //  20140408   Version 3RC   Added slew rate limitations on IO3 (fan)
 //                           Added support for runtime selectable temperature scale
+//  20140409   Version 3RC2  ANLG2 port (temp scale select) checked only at start
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -127,7 +128,7 @@
 #define MAX_COMMAND 80 // max length of a command string
 #define LOOPTIME 1000 // cycle time, in ms
 
-// no longer used, but keep for legacy users
+// hardware override of default temperature scale
 #define ANLG2 A1 // arduino pin A1
 #define UNIT_SEL ANLG2 // select temperature scale
 
@@ -412,6 +413,14 @@ void HIDevents() {
 void setup()
 {
   delay(10); // short delay for startup
+  
+  // use ANLG2 input pin for temperature units selection
+  pinMode( UNIT_SEL, INPUT );
+  digitalWrite( UNIT_SEL, HIGH ); // enable pullup
+  boolean override = digitalRead( UNIT_SEL ) == LOW;  // use jumper to drive low and select non-default
+  if( override ) celsius = !CELSIUS;
+  else celsius = CELSIUS;
+
   Serial.begin(BAUD); // enable serial right away to avoid buffer overflows
 
 #ifdef LOGIC_ANALYZER
@@ -472,19 +481,14 @@ void setup()
   
   io3.Setup( PWM_MODE, PWM_PRESCALE );
   set_fan_level( target_fan );  // fan is off by default
-
-  // set up ANLG2 input pin for temperature units selection (keep this legacy code for safety)
-  pinMode( UNIT_SEL, INPUT );
-  digitalWrite( UNIT_SEL, HIGH ); // enable pullup
-  
+ 
   first = true;
 }
 
 // -----------------------------------------------------------------
 void loop() {
   float idletime;
-//  boolean override; // switches temperature scale from default
-  
+
   checkSerial(); // keep reading the incoming serial data
   slew_fan(); // ramp up the fan speed if slewing
   HIDevents(); // check the LCD keypad
@@ -492,9 +496,6 @@ void loop() {
  
 
   if( thisLoop - lastLoop >= LOOPTIME ) { // time to take another sample
-//    override = digitalRead( UNIT_SEL ) == LOW;  // use jumper to drive low and select non-default
-//    if( override ) celsius = !CELSIUS;
-//    else celsius = CELSIUS;
     if( first )
       resetTimer();
     lastLoop += LOOPTIME;
