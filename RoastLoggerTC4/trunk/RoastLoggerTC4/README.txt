@@ -1,6 +1,10 @@
 RoastLoggerTC4
 --------------
 
+RoastLoggerTC4 version 3RC2 09-April-2014 by Jim Gallt
+ - restored operation of ANLG2 jumper to override default temp scale
+ - but now ANLG2 is only read once, at startup
+
 RoastLoggerTC4 version 3RC  08-April-2014 by Jim Gallt
  - temperature scale selectable at runtime via commands TEMPF and
    TEMPC from RoastLogger
