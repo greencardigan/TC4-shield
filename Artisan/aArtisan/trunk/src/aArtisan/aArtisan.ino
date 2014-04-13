@@ -35,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V2.10"
+#define BANNER_ARTISAN "aARTISAN V3RC1"
 
 // Revision history:
 // 20110408 Created.
@@ -67,6 +67,11 @@
 //          Raw ADC conversions are filtered before converting to temperatures.
 // ------------ Version 2.10
 // 20130125 Permits use of different TC types on individual channels
+// ------------- 13-April 2014 Version 3RC1
+//          Increase output precision to 2 decimal places
+//          Increases serial baud rate to 115,200
+//          Places limitations on fan ramp-up rate (slew rate) with new DCFAN command
+//          Abandon support for legacy rf2000 and rc2000 commands
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -94,7 +99,7 @@
 
 // ------------------------ other compile directives
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
-#define DP 1  // decimal places for output on serial port
+#define DP 2  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 #define DELIM "; ," // command line parameter delimiters
 
@@ -173,7 +178,7 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
     checkSerial();
-    // add future code here to detect LCDapter button presses, etc. ?
+    dcfan.slew_fan(); // keep the fan smoothly increasing in speed
   }
 }
 
@@ -194,7 +199,7 @@ void logger()
     if( k > 0 ) {
       --k;
       Serial.print(",");
-      Serial.print( convertUnits( T[k] ), 1 );
+      Serial.print( convertUnits( T[k] ), DP );
     }
   }
   Serial.println();
@@ -342,10 +347,15 @@ void setup()
   ci.addCommand( &io3 );
   ci.addCommand( &ot2 );
   ci.addCommand( &ot1 );
+/*  
   ci.addCommand( &rf2000 );
   ci.addCommand( &rc2000 );
+*/  
   ci.addCommand( &reader );
+  ci.addCommand( &dcfan );
 
+  dcfan.init(); // initialize conditions for dcfan
+  
 #ifdef LCD
   delay( 500 );
   lcd.clear();

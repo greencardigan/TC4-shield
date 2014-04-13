@@ -8,7 +8,8 @@
 // First, load and edit this sketch in the Arduino IDE.
 // Next compile the sketch and upload it to the Arduino.
 
-// Version 1.10
+// --------------Version 3RC1 13-April-2014
+//  changed serial baud rate to 115,200
 
 #ifndef USER_H
 #define USER_H
@@ -25,7 +26,7 @@
 #define LCDAPTER // if the I2C LCDapter board is to be used
 //#define CELSIUS // controls only the initial conditions
 
-#define BAUD 19200  // serial baud rate
+#define BAUD 115200  // serial baud rate (version 3)
 #define BT_FILTER 10 // filtering level (percent) for BT
 #define ET_FILTER 10 // filtering level (percent) for ET
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings

@@ -35,7 +35,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-// Version 1.10
+// --------------Version 3RC1 13-April-2014
+//  added DCFAN command to limit fan slew rate
+//  abandoned support for the legacy rf2000, rc2000 commands
 
 #ifndef CMNDREADER_H
 #define CMNDREADER_H
@@ -47,17 +49,25 @@
 
 // ----------------------- commands
 #define READ_CMD "READ" // triggers the TC4 to output current temps on serial line
+/*
 #define RF2000_CMD "RF2000" // legacy code
 #define RC2000_CMD "RC2000" // legacy code
+*/
 #define UNITS_CMD "UNITS" // changes units, F or C
 #define CHAN_CMD "CHAN" // maps logical channels to physical channels
 #define OT1_CMD "OT1" // 0 to 100 percent output on SSR drive OT1
 #define OT2_CMD "OT2" // 0 to 100 percent output on SSR drive OT2
 #define IO3_CMD "IO3" // 0 to 100 percent PWM 5V output on IO3
+#define DCFAN_CMD "DCFAN" // 0 to 100 percent PWM 5V output on IO3, with slew rate checks
 #define DIGITAL_WRITE_CMD "DWRITE" // turn digital pin LOW or HIGH
 #define ANALOG_WRITE_CMD "AWRITE" // write a value 0 to 255 to PWM pin
 #define IO3 3 // use DIO3 for PWM output
+#define FAN_PORT 3 // use DI03 for PWM fan output
 
+// -------------------------- slew rate limitations for fan control
+#define MAX_SLEW 25 // percent per second
+#define SLEW_STEP 5 // increase in steps of 5% for smooth transition
+#define SLEW_STEP_TIME (uint32_t)(SLEW_STEP * 1000 / MAX_SLEW) // min ms delay between steps
 
 // forward declarations
 class dwriteCmnd;
@@ -67,9 +77,12 @@ class chanCmnd;
 class ot1Cmnd;
 class ot2Cmnd;
 class io3Cmnd;
+class dcfanCmnd;
 class unitsCmnd;
+/*
 class rf2000Cmnd;
 class rc2000Cmnd;
+*/
 
 // external declarations of class objects
 extern readCmnd reader;
@@ -79,9 +92,12 @@ extern chanCmnd chan;
 extern ot1Cmnd ot1;
 extern ot2Cmnd ot2;
 extern io3Cmnd io3;
+extern unitsCmnd units;
+extern dcfanCmnd dcfan;
+/*
 extern rf2000Cmnd rf2000;
 extern rc2000Cmnd rc2000;
-extern unitsCmnd units;
+*/
 
 // extern declarations for functions, variables in the main program
 extern PWM16 ssr;
@@ -135,12 +151,26 @@ class io3Cmnd : public CmndBase {
     virtual boolean doCommand( CmndParser* pars );
 };
 
+class dcfanCmnd : public CmndBase {
+  protected:
+    uint8_t target; // duty cycle value requested by user
+    uint8_t current; // instantaneous value
+    uint32_t last_fan_change; // ms value when duty cycle last updated
+  public:
+    dcfanCmnd();
+    void init();  // initialize conditions
+    virtual boolean doCommand( CmndParser* pars ); // records the target rate only
+    void set_fan( uint8_t duty ); // sets the fan output duty cycle
+    void slew_fan(); // smoothly ramp up the fan speed
+};
+
 class unitsCmnd : public CmndBase {
   public:
     unitsCmnd();
     virtual boolean doCommand( CmndParser* pars );
 };
 
+/*
 class rf2000Cmnd : public CmndBase {
   public:
     rf2000Cmnd();
@@ -152,6 +182,7 @@ class rc2000Cmnd : public CmndBase {
     rc2000Cmnd();
     virtual boolean doCommand( CmndParser* pars );
 };
+*/
 
 #endif
 

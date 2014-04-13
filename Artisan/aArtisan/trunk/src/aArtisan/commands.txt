@@ -6,6 +6,15 @@ Notes:
  2. Delimiters between parameters may be comma, space, semicolon
  3. First four characters (max) of command name are significant
 
+DCFAN,duty   (added 13-April 2014)
+----------
+where duty = 0 to 100 (percent output)
+Changes the PWM duty cycle on FAN_PORT to duty.
+By default, FAN_PORT is DI03 on Arduino (same as IO3 port).
+Limits the increase in duty to 25 points per second to
+address fan inrush current on Hottop (and possibly other) roasters
+No response from TC4 device.
+
 CHAN,ijkl
 -----------
 where i,j,k,l = a decimal value 0 to 4 representing a physical port
@@ -33,19 +42,23 @@ in logical channel order: ambient,chan1,chan2,chan3,chan4
 OT1,duty
 -------
 where duty = 0 to 100 (percent output)
-Changes the PWM duty cycle on OT1 to p.
+Changes the PWM duty cycle on OT1 to duty.
 No response from TC4 device.
 
 OT2,duty
 -------
 where duty = 0 to 100 (percent output)
-Changes the PWM duty cycle on OT2 to p.
+Changes the PWM duty cycle on OT2 to duty.
 No response from TC4 device.
 
 IO3,duty
 -------
 where duty = 0 to 100 (percent output)
-Changes the PWM duty cycle on IO3 to p.
+Changes the PWM duty cycle on IO3 to duty.
+Unlike the DCFAN command, the duty cycle is increased immmediately.
+SUDDEN INCREASES IN FAN SPEED IS KNOWN TO CAUSE PROBLEMS ON 
+SOME HOTTOP ROASTERS, SO USERS ARE ADVISED TO USE THE DCFAN COMMAND
+INSTEAD.
 No response from TC4 device.
 
 DWRITE,pin,val
@@ -66,6 +79,7 @@ No response from the TC4 device.
 
 Jim Gallt
 12-DEC-2011
+rev 13-April-2014
 
 
 
