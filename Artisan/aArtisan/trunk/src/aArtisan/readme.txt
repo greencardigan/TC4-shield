@@ -1,6 +1,11 @@
 aArtisan.ino
 -------------
 
+Release 3.00 15-April-2014
+--------------------------------------
+- tested and ready for release
+- fixes intermittent Hottop controller resets due to fan current
+
 Release 3RC1 for testing 13-April-2014
 --------------------------------------
 - changes baud rate to 115,200
