@@ -10,6 +10,7 @@
 
 // --------------Version 3RC1 13-April-2014
 //  changed serial baud rate to 115,200
+// ------------------- 15-April-2014 Release version 3.0
 
 #ifndef USER_H
 #define USER_H

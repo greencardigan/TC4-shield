@@ -35,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V3RC1"
+#define BANNER_ARTISAN "aARTISAN V3.0"
 
 // Revision history:
 // 20110408 Created.
@@ -72,6 +72,7 @@
 //          Increases serial baud rate to 115,200
 //          Places limitations on fan ramp-up rate (slew rate) with new DCFAN command
 //          Abandon support for legacy rf2000 and rc2000 commands
+// ------------- 15-April-2014 Release Version 3.0
 
 // this library included with the arduino distribution
 #include <Wire.h>

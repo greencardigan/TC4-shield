@@ -38,6 +38,7 @@
 // --------------Version 3RC1 13-April-2014
 //  added DCFAN command to limit fan slew rate
 //  abandoned support for the legacy rf2000, rc2000 commands
+// ------------------- 15-April-2014 Release version 3.0
 
 #ifndef CMNDREADER_H
 #define CMNDREADER_H
