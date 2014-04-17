@@ -35,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V3.0"
+#define BANNER_ARTISAN "aARTISAN V3PRC1"
 
 // Revision history:
 // 20110408 Created.
@@ -73,6 +73,8 @@
 //          Places limitations on fan ramp-up rate (slew rate) with new DCFAN command
 //          Abandon support for legacy rf2000 and rc2000 commands
 // ------------- 15-April-2014 Release Version 3.0
+// --------------17-April-2014
+//          PID commands added, limited testing done.
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -94,6 +96,8 @@
 #include <thermocouple.h> // type K, type J, and type T thermocouple support
 #include <cADC.h> // MCP3424
 #include <PWM16.h> // for SSR output
+#include <PID_v1.h> // Brett Beauregard's PID library (GPLv3)
+#include <mcEEPROM.h> // EEPROM calibration data
 #ifdef LCD
 #include <cLCD.h> // required only if LCD is used
 #endif
@@ -102,13 +106,10 @@
 #define MIN_DELAY 300   // ms between ADC samples (tested OK at 270)
 #define DP 2  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
-#define DELIM "; ," // command line parameter delimiters
+#define DELIM "; ,=" // command line parameter delimiters
 
-#ifdef EEPROM_ARTISAN // optional code if EEPROM flag is active
-#include <mcEEPROM.h>
 mcEEPROM eeprom;
 calBlock caldata;
-#endif
 
 float AT; // ambient temp
 float T[NC];  // final output values referenced to physical channels 0-3
@@ -128,6 +129,12 @@ ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NC]; // filter for logged ET, BT
 PWM16 ssr;  // object for SSR output on OT1, OT2
 CmndInterp ci( DELIM ); // command interpreter object
+
+//Define PID Variables we'll be connecting to
+double Setpoint = 0, Input, Output;
+//Specify the links and initial tuning parameters
+PID myPID(&Input, &Output, &Setpoint, PRO, INT, DER, DIRECT);
+uint8_t pid_chan = PID_CHAN; // identify PV
 
 // array of thermocouple types
 tcBase * tcp[4];
@@ -180,6 +187,7 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
   while( millis() < tod + ms ) {
     checkSerial();
     dcfan.slew_fan(); // keep the fan smoothly increasing in speed
+    doPID();  // update output if PID is running
   }
 }
 
@@ -197,6 +205,7 @@ void logger()
 // print active channels
   for( uint8_t jj = 0; jj < NC; ++jj ) {
     uint8_t k = actv[jj];
+    // jj = logical channel, k = physical channel
     if( k > 0 ) {
       --k;
       Serial.print(",");
@@ -220,6 +229,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
  
   for( uint8_t jj = 0; jj < NC; jj++ ) { // one-shot conversions on both chips
     uint8_t k = actv[jj]; // map logical channels to physical ADC channels
+    // jj = logical channel; k = physical channel
     if( k > 0 ) {
       --k;
       tc = tcp[k]; // each channel may have its own TC type
@@ -285,6 +295,25 @@ void updateLCD() {
 }
 #endif
 
+// ---------------------- PID calculations
+void doPID() {
+  if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode calc new output and assign to OT1
+    // pid_chan is 1, 2, 3, or 4, based on the order of temperature reading outputs
+    // Order of temperature channel outputs is set by the "chan" command
+    uint8_t k = actv[pid_chan - 1];  // k = physical channel corresponding with logical channel
+    if( k != 0 ) --k; // adjust for 0-based array index
+    // Input is the SV for the PID algorithm
+    Input = convertUnits( T[k] );
+    myPID.Compute();  // do PID calcs
+    levelOT1 = Output; // update OT1 based on PID output
+    #ifdef ACKS_ON
+    Serial.print("# PID input = " ); Serial.print( Input ); Serial.print( "  ");
+    Serial.print("# PID output = " ); Serial.println( levelOT1 );
+    #endif
+    ssr.Out( levelOT1, levelOT2 );
+  }
+}
+
 // ------------------------------------------------------------------------
 // MAIN
 //
@@ -310,13 +339,25 @@ void setup()
   adc.setCal( CAL_GAIN, UV_OFFSET );
   amb.setOffset( AMB_OFFSET );
 
-#ifdef EEPROM_ARTISAN
-  // read calibration and identification data from eeprom
+// read calibration and identification data from eeprom
   if( readCalBlock( eeprom, caldata ) ) {
+    #ifdef ACKS_ON
+    Serial.println("# EEPROM data read: ");
+    Serial.print("# ");
+    Serial.print( caldata.PCB); Serial.print("  ");
+    Serial.println( caldata.version );
+    Serial.print("# ");
+    Serial.print( caldata.cal_gain, 4 ); Serial.print("  ");
+    Serial.println( caldata.K_offset, 2 );
+    #endif
     adc.setCal( caldata.cal_gain, caldata.cal_offset );
     amb.setOffset( caldata.K_offset );
   }
-#endif
+  else { // if there was a problem with EEPROM read, then use default values
+//    Serial.println("# Failed to read EEPROM.  Using default calibration data. ");
+    adc.setCal( CAL_GAIN, UV_OFFSET );
+    amb.setOffset( AMB_OFFSET );
+  }   
 
   // initialize filters on all channels
   fT[0].init( ET_FILTER ); // digital filtering on ET
@@ -354,8 +395,16 @@ void setup()
 */  
   ci.addCommand( &reader );
   ci.addCommand( &dcfan );
+  ci.addCommand( &pid );
 
   dcfan.init(); // initialize conditions for dcfan
+  
+// initialize PID
+  myPID.SetSampleTime(1000); // set sample time to 1 second
+  myPID.SetOutputLimits(MIN_OT1, MAX_OT1); // set output limits to user defined limits
+  myPID.SetControllerDirection(DIRECT); // set PID to be direct acting mode. Increase in output leads to increase in input
+  myPID.SetTunings(PRO, INT, DER); // set initial PID tuning values
+  myPID.SetMode(MANUAL); // start with PID control off
   
 #ifdef LCD
   delay( 500 );
@@ -371,5 +420,6 @@ void loop()
   updateLCD();
   #endif
   checkSerial();  // Has a command been received?
+  doPID(); // perform PID calculations if enabled
 }
 

@@ -1,6 +1,11 @@
 aArtisan.ino
 -------------
 
+Version 3PRC1 17-April-2014
+---------------------------
+- added basic PID functionality
+- testing needed
+
 Release 3.00 15-April-2014
 --------------------------------------
 - tested and ready for release

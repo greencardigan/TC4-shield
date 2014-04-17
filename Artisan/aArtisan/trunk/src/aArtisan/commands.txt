@@ -3,8 +3,35 @@ Serial Commands for aArtisan
 
 Notes:
  1. Terminate all command strings with newline, i.e. /n
- 2. Delimiters between parameters may be comma, space, semicolon
+ 2. Delimiters between parameters may be comma, space, semicolon, or equals sign
  3. First four characters (max) of command name are significant
+
+PID,T,ppp,iii,ddd
+-----------------
+Sets new PID parameters:
+ppp = proportional coefficient Kp
+iii = integral coefficient Ki
+ddd = derivative coefficient Kd
+
+PID,SV,vvv
+----------
+Establishes new PID setpoint (vvv = set value)
+
+PID,ON and PID,OFF
+------------------
+Turns the PID on or off.  PID always operates on OT1.
+Turning the PID off will result in output on OT1 being turned off.
+
+PID,CHAN,i
+----------
+Sets the input for the PID controller.
+i = logical input channel, i.e. the PID controller will
+use the i'th temperature from the temperature output stream.
+Example:
+ CHAN,2100
+ PID,CHAN,2
+  this results in the sensor connected to physical port TC1 being
+  used by the PID, as TC1 is the second reading in the output stream
 
 DCFAN,duty   (added 13-April 2014)
 ----------
@@ -80,6 +107,7 @@ No response from the TC4 device.
 Jim Gallt
 12-DEC-2011
 rev 13-April-2014
+rev 17-April-2014
 
 
 

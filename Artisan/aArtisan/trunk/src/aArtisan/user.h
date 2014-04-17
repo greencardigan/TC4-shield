@@ -11,6 +11,8 @@
 // --------------Version 3RC1 13-April-2014
 //  changed serial baud rate to 115,200
 // ------------------- 15-April-2014 Release version 3.0
+// --------------17-April-2014
+//          PID commands added, limited testing done.
 
 #ifndef USER_H
 #define USER_H
@@ -22,10 +24,23 @@
 #define TC_TYPE3 typeK  // thermocouple on TC3
 #define TC_TYPE4 typeK  // thermocouple on TC4
 
-#define EEPROM_ARTISAN // comment this line out if no calibration information stored in 64K EEPROM
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
 //#define CELSIUS // controls only the initial conditions
+
+#define PID_CHAN 1 // logical channel for PID input (default 1st temp in output stream)
+#define PRO 5.00 // initial proportional parameter (Pb = 100 / PRO)
+#define INT 0.15 // initial integral parameter
+#define DER 0.00 // initial derivative parameter
+#define MIN_OT1 0 // Set OT1 output % for lower limit for OT1.  0% power will always be available
+#define MAX_OT1 100 // Set OT1 output % for upper limit for OT1
+
+//#define MIN_OT2 10 // Set OT2 output % for lower limit for OT2.  0% power will always be available
+//#define MAX_OT2 100 // Set OT2 output % for upper limit for OT2
+
+//#define OT1_CUTOFF 10 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
+
+//#define OT2_AUTO_COOL 15 // Set OT2 output % for auto cool when using PID;STOP command
 
 #define BAUD 115200  // serial baud rate (version 3)
 #define BT_FILTER 10 // filtering level (percent) for BT

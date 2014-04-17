@@ -39,6 +39,9 @@
 //  added DCFAN command that limits fan slew rate
 //  abandoned support for the legacy rf2000, rc2000 commands
 // ------------------- 15-April-2014 Release version 3.0
+// --------------17-April-2014
+//          PID commands added, limited testing done.
+
 
 #include "cmndreader.h"
 
@@ -52,6 +55,7 @@ ot2Cmnd ot2;
 io3Cmnd io3;
 dcfanCmnd dcfan;
 unitsCmnd units;
+pidCmnd pid;
 /*
 rf2000Cmnd rf2000;
 rc2000Cmnd rc2000;
@@ -397,6 +401,125 @@ boolean unitsCmnd::doCommand( CmndParser* pars ) {
   }
 // else  
   return false; // revised 26-Jan-2012 to eliminate compiler warning
+}
+
+// ----------------------------- pidCmnd
+// constructor
+pidCmnd::pidCmnd() :
+  CmndBase( PID_CMD ) {
+}
+
+// execute the PID command
+// PID;ON\n ;OFF\n ;T;ddd;ddd;ddd\n ;SV;ddd\n ;CHAN;ddd\n
+
+boolean pidCmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
+    if( strcmp( pars->paramStr(1), "ON" ) == 0 ) {
+     Output = 0; // turn PID output off, otherwise Iterm accumulates (this looks like a bug)
+     myPID.SetMode(1);  // set to AUTO mode
+      #ifdef ACKS_ON
+      Serial.print("# PID turned ON");
+      //Serial.print( "  Kp = ", myPID.GetKP() );
+      //Serial.print( "  Ki = ", myPID.GetKI() );
+      //Serial.print( "  Kd = ", myPID.GetKD() );
+      //Serial.println();
+      #endif
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "OFF" ) == 0 ) {
+      myPID.SetMode(0);  // set to MANUAL mode
+      levelOT1 = 0; // turn off output
+      ssr.Out( levelOT1, levelOT2 );
+      #ifdef ACKS_ON
+      Serial.println("# PID turned OFF");
+      #endif
+      return true;
+    }
+/*    
+    else if( strcmp( pars->paramStr(1), "TIME" ) == 0 ) {
+      counter = 0; // reset TC4 timer
+      #ifdef ACKS_ON
+      Serial.println("# PID time reset");
+      #endif
+      return true;
+    }
+*/
+/*
+    else if( strcmp( pars->paramStr(1), "GO" ) == 0 ) {
+      #ifdef PID_CONTROL
+        counter = 0; // reset TC4 timer
+        myPID.SetMode(1); // turn PID on
+        #ifdef ACKS_ON
+        Serial.println("# PID Roast Start");
+        #endif
+      #endif
+      return true;
+    }
+*/
+/*
+    else if( strcmp( pars->paramStr(1), "STOP" ) == 0 ) {
+      #ifdef PID_CONTROL
+        myPID.SetMode(0); // turn PID off
+        levelOT1 = 0;
+        output_level_icc( levelOT1 );  // Turn OT1 (heater) off
+        levelOT2 = OT2_AUTO_COOL;
+        output_level_pac( levelOT2 ); // Set fan to auto cool level
+        #ifdef ACKS_ON
+        Serial.println("# PID Roast Stop");
+        #endif
+      #endif
+      return true;
+    }
+*/
+/*
+    else if( pars->paramStr(1)[0] == 'P' ) {
+      #ifdef PID_CONTROL
+      profile_number = atoi( pars->paramStr(1) + 1 );
+      setProfile();
+      #ifdef ACKS_ON
+      Serial.print("# Profile number ");
+      Serial.print( profile_number );
+      Serial.println(" selected");
+      #endif
+      #endif
+      return true;
+    }
+*/
+    else if( strcmp( pars->paramStr(1), "T" ) == 0 ) {
+      double kp, ki, kd;
+      kp = atof( pars->paramStr(2) );
+      ki = atof( pars->paramStr(3) );
+      kd = atof( pars->paramStr(4) );
+      myPID.SetTunings( kp, ki, kd );
+      #ifdef ACKS_ON
+      Serial.print("# PID Tunings set.  "); 
+      Serial.print("Kp = "); 
+      Serial.print(myPID.GetKp()); 
+      Serial.print(",  Ki = "); 
+      Serial.print(myPID.GetKi()); 
+      Serial.print(",  Kd = "); 
+      Serial.println(myPID.GetKd());
+      #endif
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "SV" ) == 0 ) {
+      Setpoint = atof( pars->paramStr(2) );
+      #ifdef ACKS_ON
+      Serial.print("# PID Setpoint = "); Serial.println(Setpoint);
+      #endif
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "CHAN" ) == 0 ) {
+      pid_chan = atoi( pars->paramStr(2) );
+      #ifdef ACKS_ON
+      Serial.print("# PID channel = "); Serial.println(pid_chan);
+      #endif
+      return true;
+    }
+  }
+  else {
+    return false;
+  }
 }
 
 /*

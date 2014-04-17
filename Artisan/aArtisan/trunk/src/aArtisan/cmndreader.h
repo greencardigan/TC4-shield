@@ -39,12 +39,15 @@
 //  added DCFAN command to limit fan slew rate
 //  abandoned support for the legacy rf2000, rc2000 commands
 // ------------------- 15-April-2014 Release version 3.0
+// --------------17-April-2014
+//          PID commands added, limited testing done.
 
 #ifndef CMNDREADER_H
 #define CMNDREADER_H
 
 #include <cmndproc.h>
 #include <PWM16.h>
+#include <PID_v1.h>
 
 #include "user.h"
 
@@ -62,6 +65,7 @@
 #define DCFAN_CMD "DCFAN" // 0 to 100 percent PWM 5V output on IO3, with slew rate checks
 #define DIGITAL_WRITE_CMD "DWRITE" // turn digital pin LOW or HIGH
 #define ANALOG_WRITE_CMD "AWRITE" // write a value 0 to 255 to PWM pin
+#define PID_CMD "PID" // turn PID ON or OFF
 #define IO3 3 // use DIO3 for PWM output
 #define FAN_PORT 3 // use DI03 for PWM fan output
 
@@ -80,6 +84,7 @@ class ot2Cmnd;
 class io3Cmnd;
 class dcfanCmnd;
 class unitsCmnd;
+class pidCmnd;
 /*
 class rf2000Cmnd;
 class rc2000Cmnd;
@@ -95,6 +100,7 @@ extern ot2Cmnd ot2;
 extern io3Cmnd io3;
 extern unitsCmnd units;
 extern dcfanCmnd dcfan;
+extern pidCmnd pid;
 /*
 extern rf2000Cmnd rf2000;
 extern rc2000Cmnd rc2000;
@@ -107,6 +113,10 @@ extern int levelOT2;
 extern void logger();
 extern boolean Cscale;
 extern uint8_t actv[NC];
+extern PID myPID;
+extern double Setpoint;
+extern double Output;
+extern uint8_t pid_chan;
 
 // class declarations for commands
 
@@ -168,6 +178,12 @@ class dcfanCmnd : public CmndBase {
 class unitsCmnd : public CmndBase {
   public:
     unitsCmnd();
+    virtual boolean doCommand( CmndParser* pars );
+};
+
+class pidCmnd : public CmndBase {
+  public:
+    pidCmnd();
     virtual boolean doCommand( CmndParser* pars );
 };
 
