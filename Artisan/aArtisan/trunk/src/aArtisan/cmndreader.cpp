@@ -279,7 +279,7 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
       levelOT2 = atoi( pars->paramStr(1) );
       ssr.Out( levelOT1, levelOT2 );
       #ifdef ACKS_ON
-      Serial.print("# OT2 level set to "); Serial.println( levelOT1 );
+      Serial.print("# OT2 level set to "); Serial.println( levelOT2 );
       #endif
     }
     return true;
