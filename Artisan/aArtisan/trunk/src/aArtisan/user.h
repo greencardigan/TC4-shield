@@ -13,6 +13,8 @@
 // ------------------- 15-April-2014 Release version 3.0
 // --------------17-April-2014
 //          PID commands added, limited testing done.
+// --------------19-April-2014
+//          Added PID,CT command for adjustable sample time
 
 #ifndef USER_H
 #define USER_H
@@ -29,6 +31,7 @@
 //#define CELSIUS // controls only the initial conditions
 
 #define PID_CHAN 1 // logical channel for PID input (default 1st temp in output stream)
+#define CT 1000 // cycle time for the PID, in ms
 #define PRO 5.00 // initial proportional parameter (Pb = 100 / PRO)
 #define INT 0.15 // initial integral parameter
 #define DER 0.00 // initial derivative parameter
@@ -37,9 +40,7 @@
 
 //#define MIN_OT2 10 // Set OT2 output % for lower limit for OT2.  0% power will always be available
 //#define MAX_OT2 100 // Set OT2 output % for upper limit for OT2
-
 //#define OT1_CUTOFF 10 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
-
 //#define OT2_AUTO_COOL 15 // Set OT2 output % for auto cool when using PID;STOP command
 
 #define BAUD 115200  // serial baud rate (version 3)
@@ -52,7 +53,14 @@
 #define UV_OFFSET 0 // you may subsitute a known value for uV offset in ADC
 #define AMB_OFFSET 0.0 // you may substitute a known value for amb temp offset (Celsius)
 
-#define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR's on OT1, OT2
+// choose one of the following for the PWM time base for heater output
+//#define TIME_BASE pwmN4sec  // recommended for Hottop D which has mechanical relay
+//#define TIME_BASE pwmN2sec
+#define TIME_BASE pwmN1Hz
+//#define TIME_BASE pwmN2Hz
+//#define TIME_BASE pwmN4Hz
+//#define TIME_BASE pwmN8Hz 
+
 #define NC 4 // maximum number of physical channels on the TC4
 
 // Useful for debugging only -- leave inactive otherwise

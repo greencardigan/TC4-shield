@@ -33,6 +33,10 @@ Example:
   this results in the sensor connected to physical port TC1 being
   used by the PID, as TC1 is the second reading in the output stream
 
+PID,CT,mmm
+-----------------
+Sets new PID cycle time, in ms, to mmm
+
 DCFAN,duty   (added 13-April 2014)
 ----------
 where duty = 0 to 100 (percent output)

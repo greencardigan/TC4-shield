@@ -1,6 +1,10 @@
 aArtisan.ino
 -------------
 
+Version 3PRC2 19-April-2014
+---------------------------
+- added adjustable cycle time for PID
+
 Version 3PRC1 17-April-2014
 ---------------------------
 - added basic PID functionality

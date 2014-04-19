@@ -41,6 +41,8 @@
 // ------------------- 15-April-2014 Release version 3.0
 // --------------17-April-2014
 //          PID commands added, limited testing done.
+// --------------19-April-2014
+//          Added PID,CT command for adjustable sample time
 
 
 #include "cmndreader.h"
@@ -410,13 +412,13 @@ pidCmnd::pidCmnd() :
 }
 
 // execute the PID command
-// PID;ON\n ;OFF\n ;T;ddd;ddd;ddd\n ;SV;ddd\n ;CHAN;ddd\n
+// PID;ON\n ;OFF\n ;T;ddd;ddd;ddd\n ;SV;ddd\n ;CHAN;ddd\n; CT;mmm\n
 
 boolean pidCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     if( strcmp( pars->paramStr(1), "ON" ) == 0 ) {
      Output = 0; // turn PID output off, otherwise Iterm accumulates (this looks like a bug)
-     myPID.SetMode(1);  // set to AUTO mode
+     myPID.SetMode( AUTOMATIC );
       #ifdef ACKS_ON
       Serial.print("# PID turned ON");
       //Serial.print( "  Kp = ", myPID.GetKP() );
@@ -427,8 +429,9 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       return true;
     }
     else if( strcmp( pars->paramStr(1), "OFF" ) == 0 ) {
-      myPID.SetMode(0);  // set to MANUAL mode
-      levelOT1 = 0; // turn off output
+      Output = 0; // to make sure Iterm is not accumulated
+      myPID.SetMode( MANUAL );
+      levelOT1 = 0; // turn off output at hardware level
       ssr.Out( levelOT1, levelOT2 );
       #ifdef ACKS_ON
       Serial.println("# PID turned OFF");
@@ -505,7 +508,15 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
     else if( strcmp( pars->paramStr(1), "SV" ) == 0 ) {
       Setpoint = atof( pars->paramStr(2) );
       #ifdef ACKS_ON
-      Serial.print("# PID Setpoint = "); Serial.println(Setpoint);
+      Serial.print("# PID setpoint = "); Serial.println(Setpoint);
+      #endif
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "CT" ) == 0 ) {
+      uint16_t ct = atof( pars->paramStr(2) );
+      myPID.SetSampleTime( ct );
+      #ifdef ACKS_ON
+      Serial.print("# PID cycle (ms) = "); Serial.println(ct);
       #endif
       return true;
     }

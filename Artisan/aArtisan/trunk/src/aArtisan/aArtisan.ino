@@ -35,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V3PRC1"
+#define BANNER_ARTISAN "aARTISAN V3PRC2"
 
 // Revision history:
 // 20110408 Created.
@@ -75,6 +75,8 @@
 // ------------- 15-April-2014 Release Version 3.0
 // --------------17-April-2014
 //          PID commands added, limited testing done.
+// --------------19-April-2014
+//          Added PID,CT command for adjustable sample time
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -400,7 +402,7 @@ void setup()
   dcfan.init(); // initialize conditions for dcfan
   
 // initialize PID
-  myPID.SetSampleTime(1000); // set sample time to 1 second
+  myPID.SetSampleTime(CT); // set sample time to default in user.h
   myPID.SetOutputLimits(MIN_OT1, MAX_OT1); // set output limits to user defined limits
   myPID.SetControllerDirection(DIRECT); // set PID to be direct acting mode. Increase in output leads to increase in input
   myPID.SetTunings(PRO, INT, DER); // set initial PID tuning values
