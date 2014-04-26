@@ -46,6 +46,7 @@
 // 20110601 version 1.00 : created library
 // 20120126 version 1.01 : improved handling of CR and LF
 // 20120126 version 1.02 : updated for Arduino 1.0 compatibility
+// 20140426 version 1.03 : allows 5 tokens, 5 char per token
 
 #ifndef CMNDPROC_H
 #define CMNDPROC_H
@@ -56,8 +57,8 @@
 #include <WProgram.h>
 #endif
 
-#define MAX_TOKENS 4  // maximum number of tokens in a command line
-#define MAX_TOKEN_LEN 4  // max characters read per token (input may be longer)
+#define MAX_TOKENS 5  // maximum number of tokens in a command line
+#define MAX_TOKEN_LEN 5  // max characters read per token (input may be longer)
 #define MAX_CMND_LEN 40 // max overall characters in a command line
 #define MAX_DLMTR 4 // max number of delimiter characters
 #define MAX_RESULT_LEN 9 // max length of result string sent back to caller
