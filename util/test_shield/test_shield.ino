@@ -1,5 +1,5 @@
 // init_shield
-// version 2.00
+// version 2.1, 17-Sept-2014, JGG
 
 #define OT1 9
 #define OT2 10
@@ -25,15 +25,6 @@
 #define ADC_GAIN ADC_GAIN_8
 #define AMB_BITS AMB_BITS_12
 #define CELSIUS
-
-calBlock infotx = {
-  "TC4_SHIELD",
-  "5.31",  // edit this field to comply with the version of your TC4 board
-  1.0034, // gain
-  0, // uV offset
-  -0.1, // type T offset temp
-  -0.1 // type K offset temp
-};
 
 calBlock inforx = {
   "",
@@ -61,10 +52,7 @@ void setup() {
   Serial.begin(57600);
   Wire.begin();
   
-// overwrite contents of EEPROM calibration block
-//  ep.write( 0, (uint8_t*) &infotx, sizeof( infotx ) );
-
-// read it back
+// read contents of EEPROM calibration block
   ep.read( 0, (uint8_t*) &inforx, sizeof( inforx ) );
   Serial.println(inforx.PCB);
   Serial.println(inforx.version);
