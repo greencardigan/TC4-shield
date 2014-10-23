@@ -43,6 +43,8 @@
 //          PID commands added, limited testing done.
 // --------------19-April-2014
 //          Added PID,CT command for adjustable sample time
+// --------------22-October-2014
+//          Added outputs for heater level, fan level, and SV
 
 
 #include "cmndreader.h"
@@ -303,7 +305,7 @@ io3Cmnd::io3Cmnd() :
 boolean io3Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     uint8_t len = strlen( pars->paramStr(1) );
-    int levelIO3;
+    // int levelIO3;
     if( len > 0 ) {
       levelIO3 = atoi( pars->paramStr(1) );
       float pow = 2.55 * levelIO3;
@@ -348,6 +350,7 @@ void dcfanCmnd::slew_fan() { // limit fan speed increases
 
 void dcfanCmnd::set_fan( uint8_t duty ) { // sets the fan speed
   if( duty >= 0 && duty < 101 ) { // screen out bogus values
+    levelIO3 = duty;
     float pow = 2.55 * duty;
     analogWrite( FAN_PORT, round( pow ) );
     current = duty;

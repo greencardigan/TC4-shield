@@ -15,6 +15,8 @@
 //          PID commands added, limited testing done.
 // --------------19-April-2014
 //          Added PID,CT command for adjustable sample time
+// --------------22-October-2014
+//          Added outputs for heater level, fan level, and SV
 
 #ifndef USER_H
 #define USER_H
@@ -28,15 +30,21 @@
 
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
-//#define CELSIUS // controls only the initial conditions
+//#define CELSIUS // controls only the initial conditions (default is F)
 
-#define PID_CHAN 1 // logical channel for PID input (default 1st temp in output stream)
+#define PID_CHAN 1 // default logical channel for PID input, selectable by PID CHAN command
 #define CT 1000 // cycle time for the PID, in ms
 #define PRO 5.00 // initial proportional parameter (Pb = 100 / PRO)
 #define INT 0.15 // initial integral parameter
 #define DER 0.00 // initial derivative parameter
 #define MIN_OT1 0 // Set OT1 output % for lower limit for OT1.  0% power will always be available
 #define MAX_OT1 100 // Set OT1 output % for upper limit for OT1
+
+// If needed adjust these to control what gets streamed back to Artisan when PID mode is active
+// These have no effect on operation.  They only affect what gets displayed/logged by Artisan
+#define HEATER_DUTY levelOT1 // by default, heater output is assumed levelOT1
+#define FAN_DUTY levelIO3 // by default, fan output is assumed levelIO3
+#define SV Setpoint
 
 //#define MIN_OT2 10 // Set OT2 output % for lower limit for OT2.  0% power will always be available
 //#define MAX_OT2 100 // Set OT2 output % for upper limit for OT2
@@ -53,13 +61,17 @@
 #define UV_OFFSET 0 // you may subsitute a known value for uV offset in ADC
 #define AMB_OFFSET 0.0 // you may substitute a known value for amb temp offset (Celsius)
 
-// choose one of the following for the PWM time base for heater output
+// choose one of the following for the PWM time base for heater output on OT1 or OT2
 //#define TIME_BASE pwmN4sec  // recommended for Hottop D which has mechanical relay
 //#define TIME_BASE pwmN2sec
-#define TIME_BASE pwmN1Hz
+#define TIME_BASE pwmN1Hz  // recommended for most electric heaters controlled by standard SSR
 //#define TIME_BASE pwmN2Hz
 //#define TIME_BASE pwmN4Hz
 //#define TIME_BASE pwmN8Hz 
+//#define TIME_BASE 15 // should result in around 977 Hz (TODO these need testing)
+//#define TIME_BASE 7 // approx. 1.95kHz
+//#define TIME_BASE 6 // approx. 2.2kHz
+//#define TIME_BASE 3 // approx. 3.9kHz
 
 #define NC 4 // maximum number of physical channels on the TC4
 
@@ -69,11 +81,11 @@
 // This turns on the "# xxxxxxx\n" acknowledgements after commands
 //#define ACKS_ON
 
-/* Correspondence between k values and Watlow conventional (needs verification testing)
+/* Correspondence between k values (gains) and Watlow conventional (needs verification testing)
 -----------------------------------------------
 kp = 100 / Pb (Pb is in degrees)
 ki = 0.0167 * rE * kp (rE is resets per minute)
-kd = 60 * ra * kp (rA is in minutes)
+kd = 60 * rA * kp (rA is in minutes)
 ------------------------------------------------
 Example:
 Pb = 9F ---> kp = 11.1 percent per degree

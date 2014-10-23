@@ -6,21 +6,24 @@ Notes:
  2. Delimiters between parameters may be comma, space, semicolon, or equals sign
  3. First four characters (max) of command name are significant
 
+(PID commands added April 2014)
+
 PID,T,ppp,iii,ddd
 -----------------
-Sets new PID parameters:
+Sets new PID parameters ("T" is for "tuning"):
 ppp = proportional coefficient Kp
 iii = integral coefficient Ki
 ddd = derivative coefficient Kd
 
 PID,SV,vvv
 ----------
-Establishes new PID setpoint (vvv = set value)
+Establishes new PID setpoint (vvv = set value, or SV)
 
 PID,ON and PID,OFF
 ------------------
 Turns the PID on or off.  PID always operates on OT1.
 Turning the PID off will result in output on OT1 being turned off.
+When PID is ON, additional values are streamed to serial:  heater duty, fan duty, SV
 
 PID,CHAN,i
 ----------
@@ -113,6 +116,8 @@ Jim Gallt
 12-DEC-2011
 rev 13-April-2014
 rev 17-April-2014
+rev 23-Oct-2014
+
 
 
 

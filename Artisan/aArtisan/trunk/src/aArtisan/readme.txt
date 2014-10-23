@@ -1,6 +1,10 @@
 aArtisan.ino
 -------------
 
+version 3PRC3 23-October-2014
+-----------------------------
+- added serial output for heater duty, fan duty, and SV when PID is ON
+
 Version 3PRC2 19-April-2014
 ---------------------------
 - added adjustable cycle time for PID

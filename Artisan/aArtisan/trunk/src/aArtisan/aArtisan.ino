@@ -35,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V3PRC2"
+#define BANNER_ARTISAN "aARTISAN V3PRC3"
 
 // Revision history:
 // 20110408 Created.
@@ -77,6 +77,8 @@
 //          PID commands added, limited testing done.
 // --------------19-April-2014
 //          Added PID,CT command for adjustable sample time
+// --------------22-October-2014
+//          Added outputs for heater level, fan level, and SV
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -94,7 +96,7 @@
 #endif
 
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
-#include <cmndproc.h> // for command interpreter
+#include <cmndproc.h> // 20140426 version 1.03 or later required
 #include <thermocouple.h> // type K, type J, and type T thermocouple support
 #include <cADC.h> // MCP3424
 #include <PWM16.h> // for SSR output
@@ -116,13 +118,13 @@ calBlock caldata;
 float AT; // ambient temp
 float T[NC];  // final output values referenced to physical channels 0-3
 uint8_t actv[NC];  // identifies channel status, 0 = inactive, n = physical channel + 1
-#ifdef CELSIUS // only affects startup conditions
+#ifdef CELSIUS // only affects startup conditions -- UNITS command determines runtime units
 boolean Cscale = true;
 #else
 boolean Cscale = false;
 #endif
 
-int levelOT1, levelOT2;  // parameters to control output levels
+int levelOT1, levelOT2, levelIO3;  // parameters to control output levels
 uint32_t lcd_count; // for echo display of serial commands
 
 // class objects
@@ -214,6 +216,15 @@ void logger()
       Serial.print( convertUnits( T[k] ), DP );
     }
   }
+// check to see if PID is running, and output additional values if true
+  if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode
+    Serial.print(",");
+    Serial.print( HEATER_DUTY ); 
+    Serial.print(",");
+    Serial.print( FAN_DUTY );
+    Serial.print(",");
+    Serial.print( SV );
+  }  
   Serial.println();
 }
 
@@ -312,7 +323,7 @@ void doPID() {
     Serial.print("# PID input = " ); Serial.print( Input ); Serial.print( "  ");
     Serial.print("# PID output = " ); Serial.println( levelOT1 );
     #endif
-    ssr.Out( levelOT1, levelOT2 );
+    ssr.Out( levelOT1, levelOT2 ); // by default, PID controls the output on OT1
   }
 }
 
@@ -369,7 +380,7 @@ void setup()
   
   // set up output variables
   ssr.Setup( TIME_BASE );
-  levelOT1 = levelOT2 = 0;
+  levelOT1 = levelOT2 = levelIO3 = 0;
   
   // initialize the active channels to default values
   actv[0] = 1;  // ET on TC1

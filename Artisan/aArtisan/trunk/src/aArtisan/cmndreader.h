@@ -41,6 +41,8 @@
 // ------------------- 15-April-2014 Release version 3.0
 // --------------17-April-2014
 //          PID commands added, limited testing done.
+// --------------22-October-2014
+//          Added outputs for heater level, fan level, and SV
 
 #ifndef CMNDREADER_H
 #define CMNDREADER_H
@@ -110,6 +112,7 @@ extern rc2000Cmnd rc2000;
 extern PWM16 ssr;
 extern int levelOT1;
 extern int levelOT2;
+extern int levelIO3;
 extern void logger();
 extern boolean Cscale;
 extern uint8_t actv[NC];
