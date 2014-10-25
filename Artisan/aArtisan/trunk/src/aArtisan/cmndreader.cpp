@@ -45,6 +45,8 @@
 //          Added PID,CT command for adjustable sample time
 // --------------22-October-2014
 //          Added outputs for heater level, fan level, and SV
+// -----25-October-2104
+//          Add pidON and pidOFF methods (Iterm was not being zeroed out when tuning was changed)
 
 
 #include "cmndreader.h"
@@ -414,24 +416,17 @@ pidCmnd::pidCmnd() :
   CmndBase( PID_CMD ) {
 }
 
-// execute the PID command
-// PID;ON\n ;OFF\n ;T;ddd;ddd;ddd\n ;SV;ddd\n ;CHAN;ddd\n; CT;mmm\n
-
-boolean pidCmnd::doCommand( CmndParser* pars ) {
-  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-    if( strcmp( pars->paramStr(1), "ON" ) == 0 ) {
-     Output = 0; // turn PID output off, otherwise Iterm accumulates (this looks like a bug)
+// turn PID off, reset Output to avoid reset windup
+void pidCmnd::pidON() {
+     Output = 0; // turn PID output off, otherwise Iterm accumulates (this looks like a bug in Brett's code)
      myPID.SetMode( AUTOMATIC );
       #ifdef ACKS_ON
-      Serial.print("# PID turned ON");
-      //Serial.print( "  Kp = ", myPID.GetKP() );
-      //Serial.print( "  Ki = ", myPID.GetKI() );
-      //Serial.print( "  Kd = ", myPID.GetKD() );
-      //Serial.println();
+      Serial.println("# PID turned ON");
       #endif
-      return true;
-    }
-    else if( strcmp( pars->paramStr(1), "OFF" ) == 0 ) {
+}
+
+// turn PID on, reset the output levels (we don't care about bumpless)
+void pidCmnd::pidOFF() {
       Output = 0; // to make sure Iterm is not accumulated
       myPID.SetMode( MANUAL );
       levelOT1 = 0; // turn off output at hardware level
@@ -439,6 +434,18 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       #ifdef ACKS_ON
       Serial.println("# PID turned OFF");
       #endif
+}
+
+// execute the PID command
+// PID;ON\n ;OFF\n ;T;ddd;ddd;ddd\n ;SV;ddd\n ;CHAN;ddd\n; CT;mmm\n
+boolean pidCmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
+    if( strcmp( pars->paramStr(1), "ON" ) == 0 ) {
+      pidON();
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "OFF" ) == 0 ) {
+      pidOFF();
       return true;
     }
 /*    
@@ -496,7 +503,10 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       kp = atof( pars->paramStr(2) );
       ki = atof( pars->paramStr(3) );
       kd = atof( pars->paramStr(4) );
+      boolean running = myPID.GetMode() != MANUAL; // check to see if PID is running when parameters are changed
+      if( running ) pidOFF();
       myPID.SetTunings( kp, ki, kd );
+      if( running ) pidON(); // force a reset of the Output value when tuning parameters change
       #ifdef ACKS_ON
       Serial.print("# PID Tunings set.  "); 
       Serial.print("Kp = "); 

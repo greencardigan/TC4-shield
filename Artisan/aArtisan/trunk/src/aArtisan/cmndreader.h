@@ -188,6 +188,8 @@ class pidCmnd : public CmndBase {
   public:
     pidCmnd();
     virtual boolean doCommand( CmndParser* pars );
+    void pidOFF(); // puts PID in MANUAL mode, resets outputs
+    void pidON(); // puts PID in AUTOMATIC mode
 };
 
 /*
