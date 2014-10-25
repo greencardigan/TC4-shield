@@ -77,6 +77,8 @@
 //          PID commands added, limited testing done.
 // --------------19-April-2014
 //          Added PID,CT command for adjustable sample time
+// -------------- 04-Aug-2014
+//          Code to explicitly turn off pin 13 LED at startup
 // --------------22-October-2014
 //          Added outputs for heater level, fan level, and SV
 
@@ -111,6 +113,7 @@
 #define DP 2  // decimal places for output on serial port
 #define D_MULT 0.001 // multiplier to convert temperatures from int to float
 #define DELIM "; ,=" // command line parameter delimiters
+#define LEDPIN 13 // on board LED
 
 mcEEPROM eeprom;
 calBlock caldata;
@@ -335,6 +338,8 @@ void setup()
   delay(100);
   Wire.begin(); 
   Serial.begin(BAUD);
+  pinMode( LEDPIN, OUTPUT );
+  digitalWrite( LEDPIN, 0 );  // force on board LED pin off
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
 #ifdef LCD
