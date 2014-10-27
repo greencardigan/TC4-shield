@@ -43,6 +43,8 @@
 //          PID commands added, limited testing done.
 // --------------22-October-2014
 //          Added outputs for heater level, fan level, and SV
+// -----25-October-2104
+//          Add pidON and pidOFF methods (Iterm was not being zeroed out when tuning was changed)
 
 #ifndef CMNDREADER_H
 #define CMNDREADER_H

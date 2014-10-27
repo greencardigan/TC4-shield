@@ -47,7 +47,8 @@
 //          Added outputs for heater level, fan level, and SV
 // -----25-October-2104
 //          Add pidON and pidOFF methods (Iterm was not being zeroed out when tuning was changed)
-
+// -----27-October-2104
+//          Fixed typos in comments for pidON and pidOFF
 
 #include "cmndreader.h"
 
@@ -416,7 +417,7 @@ pidCmnd::pidCmnd() :
   CmndBase( PID_CMD ) {
 }
 
-// turn PID off, reset Output to avoid reset windup
+// turn PID on, reset Output to avoid reset windup
 void pidCmnd::pidON() {
      Output = 0; // turn PID output off, otherwise Iterm accumulates (this looks like a bug in Brett's code)
      myPID.SetMode( AUTOMATIC );
@@ -425,7 +426,7 @@ void pidCmnd::pidON() {
       #endif
 }
 
-// turn PID on, reset the output levels (we don't care about bumpless)
+// turn PID off, reset the output levels (we don't care about bumpless)
 void pidCmnd::pidOFF() {
       Output = 0; // to make sure Iterm is not accumulated
       myPID.SetMode( MANUAL );
