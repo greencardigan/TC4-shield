@@ -17,6 +17,8 @@
 //          Added PID,CT command for adjustable sample time
 // --------------22-October-2014
 //          Added outputs for heater level, fan level, and SV
+// -----28-October-2104
+//          Add FILT command for runtime digital filtering levels
 
 #ifndef USER_H
 #define USER_H
@@ -52,9 +54,11 @@
 //#define OT2_AUTO_COOL 15 // Set OT2 output % for auto cool when using PID;STOP command
 
 #define BAUD 115200  // serial baud rate (version 3)
+#define AMB_FILTER 70 // 70% filtering on ambient sensor readings
+
+// initial values for BT and ET filtering (can be changed at runtime using FILT command)
 #define BT_FILTER 10 // filtering level (percent) for BT
 #define ET_FILTER 10 // filtering level (percent) for ET
-#define AMB_FILTER 70 // 70% filtering on ambient sensor readings
 
 // default values for systems without calibration values stored in EEPROM
 #define CAL_GAIN 1.00 // you may substitute a known gain adjustment from calibration

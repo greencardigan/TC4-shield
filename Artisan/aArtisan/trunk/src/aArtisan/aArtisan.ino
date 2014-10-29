@@ -81,6 +81,8 @@
 //          Code to explicitly turn off pin 13 LED at startup
 // --------------22-October-2014
 //          Added outputs for heater level, fan level, and SV
+// -----28-October-2104
+//          Add FILT command for runtime digital filtering levels
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -414,6 +416,7 @@ void setup()
   ci.addCommand( &reader );
   ci.addCommand( &dcfan );
   ci.addCommand( &pid );
+  ci.addCommand( &filt );
 
   dcfan.init(); // initialize conditions for dcfan
   

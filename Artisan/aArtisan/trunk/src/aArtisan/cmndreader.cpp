@@ -49,6 +49,8 @@
 //          Add pidON and pidOFF methods (Iterm was not being zeroed out when tuning was changed)
 // -----27-October-2104
 //          Fixed typos in comments for pidON and pidOFF
+// -----28-October-2104
+//          Add FILT command for runtime digital filtering levels
 
 #include "cmndreader.h"
 
@@ -63,6 +65,7 @@ io3Cmnd io3;
 dcfanCmnd dcfan;
 unitsCmnd units;
 pidCmnd pid;
+filtCmnd filt;
 /*
 rf2000Cmnd rf2000;
 rc2000Cmnd rc2000;
@@ -542,6 +545,38 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       return true;
     }
   }
+  else {
+    return false;
+  }
+}
+
+// ----------------------------- filtCmnd
+// constructor
+filtCmnd::filtCmnd() :
+  CmndBase( FILT_CMD ) {
+}
+
+// execute the FILT command
+// FILT,ppp,ppp,ppp,ppp where ppp = percent filtering on logical channels 1 to 4
+boolean filtCmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 ) { // has the FILT keyword been read?
+    for( uint8_t jj = 0; jj < NC; ++jj ) { // read up to NC values following command keyword
+      uint8_t len = strlen( pars->paramStr(jj+1) );
+      if( len > 0 ) {  // is there a parameter?
+        int filter = atoi( pars->paramStr(jj+1) );  // read filter value
+        uint8_t k = actv[jj];  // convert from logical to physical channel
+        if( k > 0 ) { // is the physical channel active?
+          --k;
+          fT[k].init( filter ); // reset the digital filtering level for physical channel k
+          #ifdef ACKS_ON
+          Serial.print("# Physical channel "); Serial.print( k );
+          Serial.print(" filter set to "); Serial.println( filter );
+          #endif
+        } // end if k > 0
+      } // end if len
+    } // end for
+    return true;
+  } // end if FILT
   else {
     return false;
   }

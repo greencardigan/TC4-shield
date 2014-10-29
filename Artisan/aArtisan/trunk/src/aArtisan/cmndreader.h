@@ -45,12 +45,16 @@
 //          Added outputs for heater level, fan level, and SV
 // -----25-October-2104
 //          Add pidON and pidOFF methods (Iterm was not being zeroed out when tuning was changed)
+// -----28-October-2104
+//          Add FILT command for runtime digital filtering levels
+
 
 #ifndef CMNDREADER_H
 #define CMNDREADER_H
 
 #include <cmndproc.h>
 #include <PWM16.h>
+#include <cADC.h>
 #include <PID_v1.h>
 
 #include "user.h"
@@ -70,6 +74,7 @@
 #define DIGITAL_WRITE_CMD "DWRITE" // turn digital pin LOW or HIGH
 #define ANALOG_WRITE_CMD "AWRITE" // write a value 0 to 255 to PWM pin
 #define PID_CMD "PID" // turn PID ON or OFF
+#define FILT_CMD "FILT" // runtime changes to digital filtering on input channels
 #define IO3 3 // use DIO3 for PWM output
 #define FAN_PORT 3 // use DI03 for PWM fan output
 
@@ -89,6 +94,7 @@ class io3Cmnd;
 class dcfanCmnd;
 class unitsCmnd;
 class pidCmnd;
+class filtCmnd;
 /*
 class rf2000Cmnd;
 class rc2000Cmnd;
@@ -105,6 +111,7 @@ extern io3Cmnd io3;
 extern unitsCmnd units;
 extern dcfanCmnd dcfan;
 extern pidCmnd pid;
+extern filtCmnd filt;
 /*
 extern rf2000Cmnd rf2000;
 extern rc2000Cmnd rc2000;
@@ -122,6 +129,7 @@ extern PID myPID;
 extern double Setpoint;
 extern double Output;
 extern uint8_t pid_chan;
+extern filterRC fT[NC]; // filters for logged ET, BT
 
 // class declarations for commands
 
@@ -192,6 +200,12 @@ class pidCmnd : public CmndBase {
     virtual boolean doCommand( CmndParser* pars );
     void pidOFF(); // puts PID in MANUAL mode, resets outputs
     void pidON(); // puts PID in AUTOMATIC mode
+};
+
+class filtCmnd : public CmndBase {
+  public:
+    filtCmnd();
+    virtual boolean doCommand( CmndParser* pars );
 };
 
 /*

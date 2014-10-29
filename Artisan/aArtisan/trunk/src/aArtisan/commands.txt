@@ -4,9 +4,14 @@ Serial Commands for aArtisan
 Notes:
  1. Terminate all command strings with newline, i.e. /n
  2. Delimiters between parameters may be comma, space, semicolon, or equals sign
- 3. First four characters (max) of command name are significant
+ 3. First five characters (max) of command name are significant
+ 4. A command may have up to 5 parameters, including the keyword
 
-(PID commands added April 2014)
+FILT,lev1,lev2,lev3,lev4
+--------------------
+Sets new digital filtering level (0-100 percent) on logical channels
+1, 2, 3, and 4.
+lev1 = new filtering level for logical channel 1 (etc)
 
 PID,T,ppp,iii,ddd
 -----------------
@@ -117,6 +122,7 @@ Jim Gallt
 rev 13-April-2014
 rev 17-April-2014
 rev 23-Oct-2014
+rev 28-Oct-2014
 
 
 
