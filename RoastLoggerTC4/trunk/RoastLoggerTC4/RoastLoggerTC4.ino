@@ -71,7 +71,7 @@
 //#define LOGIC_ANALYZER 
 
 #define BANNER_RL1 "RoastLoggerTC4"
-#define BANNER_RL2 "version 3.0"
+#define BANNER_RL2 "version 3.1RC"
 
 // Revision history: - of RoastLoggerTC4
 //  20120112:  Version 0.3 - Released for testing
@@ -102,6 +102,7 @@
 //                           Added support for runtime selectable temperature scale
 //  20140409   Version 3RC2  ANLG2 port (temp scale select) checked only at start
 //  20140410   Version 3.0   Added fan variable initializations
+//  20141122   Version 3.1RC Do all computations in F, convert units only to display
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
@@ -227,11 +228,22 @@ void logger()
 {
   uint8_t i;
   float rx;
+  float cf,co;  // temp scale units conversion factor and offset
 
   String rorT1,rorT2;
 
+  // temperature scale conversion
+  if( celsius ) {
+    cf = 1.8;
+    co = 32.0;
+  }
+  else {
+    cf = 1.0;
+    co = 0.0;
+  }
+  
   t1_cur = D_MULT * temps[0];
-  t2_cur = D_MULT * temps[1];  
+  t2_cur = D_MULT * temps[1];
 
   // print temperature, rate for each channel
   i = 0;
@@ -239,9 +251,9 @@ void logger()
     Serial.print("rorT1=");
     RoR_cur = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
     RoR_cur = fRoR[i].doFilter( RoR_cur /  D_MULT ) * D_MULT; // perform post-filtering on RoR values
-    Serial.println( RoR_cur , DP );
+    Serial.println( RoR_cur / cf , DP );
     Serial.print("T1=");
-    Serial.println( t1_cur, DP );
+    Serial.println( ( t1_cur - co ) / cf, DP );
     i++;
   };
 
@@ -249,9 +261,9 @@ void logger()
     Serial.print("rorT2=");
     rx = calcRise( flast[i], ftemps[i], lasttimes[i], ftimes[i] );
     rx = fRoR[i].doFilter( rx / D_MULT ) * D_MULT; // perform post-filtering on RoR values
-    Serial.println( rx , DP );
+    Serial.println( rx / cf, DP );
     Serial.print("T2=");
-    Serial.println( t2_cur, DP );
+    Serial.println( ( t2_cur - co ) / cf, DP );
     i++;
   };
 
@@ -359,7 +371,7 @@ void checkSerial() {  // buffer the input from the serial port
 void get_samples() // this function talks to the amb sensor and ADC via I2C
 {
   int32_t v;
-  float tempC;
+  float tempF;
   uint32_t tod;
 
   for( int j = 0; j < NCHAN; j++ ) { // one-shot conversions on both chips
@@ -377,11 +389,8 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
     ftimes[j] = millis(); // record timestamp for RoR calculations
     amb.readSensor(); // retrieve value from ambient temp register
     v = adc.readuV(); // retrieve microvolt sample from MCP3424
-    tempC = tc[j]->Temp_C( 0.001 * v, amb.getAmbC() ); // convert to Celsius
-    if( celsius )
-      v = round( tempC / D_MULT ); // store results as integers
-    else
-      v = round( C_TO_F( tempC ) / D_MULT ); // store results as integers
+    tempF = tc[j]->Temp_F( 0.001 * v, amb.getAmbF() ); // basic unit is F
+    v = round( tempF / D_MULT ); // store results as integers
     temps[j] = fT[j].doFilter( v ); // apply digital filtering for display/logging
     ftemps[j] =fRise[j].doFilter( v ); // heavier filtering for RoR
   }
@@ -510,8 +519,13 @@ void loop() {
     else {
       logger(); // output results to serial port
     }
-    hid.refresh( t1_cur, t2_cur, RoR_cur, timestamp, heater, target_fan ); // updates values for display
-
+    if( celsius ) {
+      hid.refresh( F_TO_C(t1_cur), F_TO_C(t2_cur), 
+                   RoR_cur / 1.8, timestamp, heater, target_fan ); // updates values for display
+    }
+    else {
+      hid.refresh( t1_cur, t2_cur,RoR_cur, timestamp, heater, target_fan ); // updates values for display
+    }
     for( int j = 0; j < NCHAN; j++ ) {
       flast[j] = ftemps[j]; // use previous values for calculating RoR
       lasttimes[j] = ftimes[j];
