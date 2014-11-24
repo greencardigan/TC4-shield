@@ -71,7 +71,7 @@
 //#define LOGIC_ANALYZER 
 
 #define BANNER_RL1 "RoastLoggerTC4"
-#define BANNER_RL2 "version 3.1RC"
+#define BANNER_RL2 "version 3.1"
 
 // Revision history: - of RoastLoggerTC4
 //  20120112:  Version 0.3 - Released for testing
@@ -103,6 +103,7 @@
 //  20140409   Version 3RC2  ANLG2 port (temp scale select) checked only at start
 //  20140410   Version 3.0   Added fan variable initializations
 //  20141122   Version 3.1RC Do all computations in F, convert units only to display
+//  20141124   Version 3.1   Released
 
 // This code was adapted from the a_logger.pde file provided
 // by Bill Welch.
