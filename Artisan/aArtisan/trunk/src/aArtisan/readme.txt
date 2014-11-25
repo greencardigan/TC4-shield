@@ -1,9 +1,13 @@
 aArtisan.ino
 -------------
 
-version 3PRC3 23-October-2014
+
+version 3PRC3 25-November-2014
 -----------------------------
 - added serial output for heater duty, fan duty, and SV when PID is ON
+- added code to turn off LED on pin 13 (Uno R3 and compatible)
+- streams heater level, fan level, and setpoint (SV) back to Artisan
+- add FILT command for runtime selection of digital filtering
 
 Version 3PRC2 19-April-2014
 ---------------------------
