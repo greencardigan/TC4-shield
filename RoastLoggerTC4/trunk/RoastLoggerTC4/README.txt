@@ -1,6 +1,11 @@
 RoastLoggerTC4
 --------------
 
+RoastLoggerTC4 version 3.1 25-Nov-2014 by Jim Gallt
+ - temperature scale selectable at any time via commands TEMPF and TEMPC
+ - conversion of temperature scale is now bumpless and does not mess up
+   the RoR calculations
+
 RoastLoggerTC4 version 3.0 10-April-2014 by Jim Gallt
  - temperature scale selectable at runtime via commands TEMPF and
    TEMPC from RoastLogger
