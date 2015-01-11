@@ -288,6 +288,7 @@ public class TC4 extends Activity {
 				
 				startLogging = true;
 			    findViewById(R.id.button_14).setEnabled(false); // disable button 14
+			    findViewById(R.id.button_15).setEnabled(true); // enable button 15
 				
 			}
 		});
@@ -508,24 +509,34 @@ public class TC4 extends Activity {
 	        
 	        String filename = check(folder.toString() + "/" + "roast_1.csv");
 	        FileWriter fw = new FileWriter(filename);
-	        int i = 1;
+	        //int i = 1;
 	        for(String s : val){
 	        	fw.append(s);
-	        	if(i==8){
+	        	/*if(i==8){
 	        		fw.append("\n");
 	        		i=0;
 	        	}
 	        	else
 	        		fw.append(",");
-	        	i++;
+	        	i++;*/
 	        }
 	        fw.close();
+	        val.clear();
 	    }
 	
 	protected void prepareToSaveToCSV(String[] values) {
 		for(String s : values){
         	val.add(s);
+        	val.add(",");
         }
+		if (crack) {
+			val.add("Crack");
+		} else {
+			val.add("-");
+		}
+		crack = false;
+		
+		val.add("\n");
 	}
 
 	// The Handler that gets information back from the BluetoothChatService
@@ -571,19 +582,14 @@ public class TC4 extends Activity {
 					String bt_ror = values[5];
 					
 					//change this bit?????
-					if (crack) values[5] = "250";
-					crack = false;
+					//if (crack) values[5] = "250";
+					//crack = false;
 					
 					String heater = values[6];
 					String fan = values[7];
 					
-					if(startLogging) prepareToSaveToCSV(values);
-						
-					if (D)
-						Log.i(TAG, "MESSAGE_SAVE_IN_RAM: ok");
 					
 					
-
 					TextView t;
 					t = (TextView) findViewById(R.id.btValue);
 					t.setText(bt);
@@ -616,7 +622,7 @@ public class TC4 extends Activity {
 					t = (TextView) findViewById(R.id.roastClock);
 					t.setText(roastclock);
 
-					if (x < time) {
+					if (x < time) { // if there has been a time shift or time reset
 						
 
 						int timeShift = time - x + 1;
@@ -648,11 +654,31 @@ public class TC4 extends Activity {
 						time = 0;
 						// update line??? shift back in time?
 						// or clear line data?
-					} else {
-						time = x;
+						
+					    
+						// if time has reset then save log and start a new log
+						if(startLogging & !val.isEmpty()){ // but don't save if there's nothing to save 
+							try {
+								saveToCSV();
+							} catch (IOException e) {
+								Toast.makeText(getApplicationContext(), "error creating file", Toast.LENGTH_LONG).show();
+								e.printStackTrace();
+							}
+						}
+
+						
+						
+					} else { // no time shift or time reset
+						time = x;						
+
 					}
 
-					//LOG DATA into array here??? then write to file at end of roast?
+					//LOG DATA into array here
+
+					if(startLogging) prepareToSaveToCSV(values);
+					
+					if (D)
+						Log.i(TAG, "MESSAGE_SAVE_IN_RAM: ok");
 
 						
 					btVals.add(y1);
