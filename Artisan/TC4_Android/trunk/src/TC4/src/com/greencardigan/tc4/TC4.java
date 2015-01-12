@@ -231,7 +231,9 @@ public class TC4 extends Activity {
 			    //RoastStarted = true;
 			    startLogging = true;
 			   
-			    findViewById(R.id.button_3).setEnabled(true); // enable button 3 (crack marker)
+				Toast.makeText(getApplicationContext(), "Logging Started", Toast.LENGTH_SHORT).show();
+
+				findViewById(R.id.button_3).setEnabled(true); // enable button 3 (crack marker)
 			    findViewById(R.id.button_13).setEnabled(true); //enable end roast button
 			    findViewById(R.id.button_12).setEnabled(false); // disable start roast button after clicked
 			    findViewById(R.id.button_14).setEnabled(false); // disable start roast button after clicked
@@ -240,7 +242,6 @@ public class TC4 extends Activity {
 			   
 				Button button3 = (Button) findViewById(R.id.button_3);
 				button3.setText(getString(R.string.button_3_text1)); // reset button 3 text
-				//button3.setText("FC Start"); //
 
 				// Send a command
 				String message = getString(R.string.button_12_cmd);
@@ -253,8 +254,8 @@ public class TC4 extends Activity {
 		mSendButton.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				
-				//updateGraph = false; // 
+
+				Toast.makeText(getApplicationContext(), "Roast ended but still logging", Toast.LENGTH_LONG).show();
 				
 				findViewById(R.id.button_3).setEnabled(false); // disable crack marker button
 			    findViewById(R.id.button_13).setEnabled(false); // disable end roast button
@@ -287,8 +288,14 @@ public class TC4 extends Activity {
 			public void onClick(View v) {
 				
 				startLogging = true;
+				
+				Toast.makeText(getApplicationContext(), "Logging Started", Toast.LENGTH_SHORT).show();
+				
 			    findViewById(R.id.button_14).setEnabled(false); // disable button 14
 			    findViewById(R.id.button_15).setEnabled(true); // enable button 15
+			    findViewById(R.id.button_3).setEnabled(true); // enable button 3
+				Button button3 = (Button) findViewById(R.id.button_3);
+				button3.setText(getString(R.string.button_3_text1)); // reset button 3 text
 				
 			}
 		});
@@ -298,6 +305,8 @@ public class TC4 extends Activity {
 		mSendButton.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
+
+				Toast.makeText(getApplicationContext(), "Logging Ended", Toast.LENGTH_SHORT).show();
 				
 			    // Here we Save
 				if(startLogging){
@@ -311,6 +320,9 @@ public class TC4 extends Activity {
 				startLogging = false;
 			    findViewById(R.id.button_14).setEnabled(true); // enable button 14
 			    findViewById(R.id.button_15).setEnabled(false); // disable button 15
+			    findViewById(R.id.button_3).setEnabled(false); // disable button 3
+			    
+			    crack_count = 0;
 				
 			}
 		});
@@ -509,19 +521,14 @@ public class TC4 extends Activity {
 	        
 	        String filename = check(folder.toString() + "/" + "roast_1.csv");
 	        FileWriter fw = new FileWriter(filename);
-	        //int i = 1;
 	        for(String s : val){
 	        	fw.append(s);
-	        	/*if(i==8){
-	        		fw.append("\n");
-	        		i=0;
-	        	}
-	        	else
-	        		fw.append(",");
-	        	i++;*/
 	        }
 	        fw.close();
 	        val.clear();
+			
+	        Toast.makeText(getApplicationContext(), "Log saved to " + filename, Toast.LENGTH_LONG).show();
+	        
 	    }
 	
 	protected void prepareToSaveToCSV(String[] values) {
@@ -530,7 +537,13 @@ public class TC4 extends Activity {
         	val.add(",");
         }
 		if (crack) {
-			val.add("Crack");
+			if (crack_count == 1) {
+				val.add("First Crack Start");
+			} else if (crack_count == 2) {
+				val.add("First Crack End ");
+			} else {
+				val.add("Second Crack Start");				
+			}
 		} else {
 			val.add("-");
 		}

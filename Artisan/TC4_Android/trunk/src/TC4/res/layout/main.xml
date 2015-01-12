@@ -209,7 +209,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_3_text1" />
+            android:text="@string/button_3_text1"
+            android:textColor="#663300"
+            android:enabled="false" />
 
         </LinearLayout>
 
@@ -258,28 +260,35 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_12_text" />
+            android:text="@string/button_12_text"
+            android:textColor="#005500" />
 
         <Button
             android:id="@+id/button_13"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_13_text" />
+            android:text="@string/button_13_text"
+            android:enabled="false"
+            android:textColor="#ff0000" />
 
         <Button
             android:id="@+id/button_14"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_14_text" />
-
+            android:text="@string/button_14_text"
+            android:textColor="#005500" />
+        
         <Button
             android:id="@+id/button_15"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_15_text" />
+            android:text="@string/button_15_text"
+            android:enabled="false"
+            android:textColor="#ff0000" />
+        
     </LinearLayout>
 
 </LinearLayout>

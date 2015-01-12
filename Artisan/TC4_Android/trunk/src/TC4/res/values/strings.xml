@@ -59,13 +59,13 @@
     <string name="button_4_text">Fan OFF</string>
     <string name="button_4_cmd">OT2;0</string>
     
-    <string name="button_5_text">Heater UP</string>
+    <string name="button_5_text">Htr UP</string>
     <string name="button_5_cmd">OT1;UP</string>
     
-    <string name="button_6_text">Heater DOWN</string>
+    <string name="button_6_text">Htr DOWN</string>
     <string name="button_6_cmd">OT1;DOWN</string>
     
-    <string name="button_7_text">Heater OFF</string>
+    <string name="button_7_text">Htr OFF</string>
     <string name="button_7_cmd">OT1;0</string>
     
     <string name="button_8_text">PID ON</string>
@@ -80,16 +80,16 @@
     <string name="button_11_text">Profile 2</string>
     <string name="button_11_cmd">PID;P2</string>
     
-    <string name="button_12_text">Start Roast</string>
+    <string name="button_12_text">START Roast</string>
     <string name="button_12_cmd">PID;GO</string>
     
-    <string name="button_13_text">Stop Roast</string>
+    <string name="button_13_text">STOP Roast</string>
     <string name="button_13_cmd">PID;STOP</string>
     
-    <string name="button_14_text">Start Log</string>
+    <string name="button_14_text">START Log</string>
 <!--    <string name="button_14_cmd">Start Log</string> -->  
     
-    <string name="button_15_text">Stop Log</string>
+    <string name="button_15_text">STOP Log</string>
  <!--  <string name="button_15_cmd">RESET</string>  --> 
     
 </resources>
