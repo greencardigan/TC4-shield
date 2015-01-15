@@ -51,45 +51,36 @@
     
     <string name="button_2_text">Fan DOWN</string>
     <string name="button_2_cmd">OT2;DOWN</string>
+       
+    <string name="button_3_text">Fan OFF</string>
+    <string name="button_3_cmd">OT2;0</string>
     
-    <string name="button_3_text1">FC Start</string>
-    <string name="button_3_text2">FC End</string>
-    <string name="button_3_text3">SC Start</string>
+    <string name="button_4_text">Profile 2</string>
+    <string name="button_4_cmd">PID;P2</string>
     
-    <string name="button_4_text">Fan OFF</string>
-    <string name="button_4_cmd">OT2;0</string>
+    <string name="button_5_text">PID ON</string>
+    <string name="button_5_cmd">PID;ON</string>
     
-    <string name="button_5_text">Htr UP</string>
-    <string name="button_5_cmd">OT1;UP</string>
-    
-    <string name="button_6_text">Htr DOWN</string>
-    <string name="button_6_cmd">OT1;DOWN</string>
+	<string name="button_6_text">PID OFF</string>
+    <string name="button_6_cmd">PID;OFF</string>
     
     <string name="button_7_text">Htr OFF</string>
     <string name="button_7_cmd">OT1;0</string>
     
-    <string name="button_8_text">PID ON</string>
-    <string name="button_8_cmd">PID;ON</string>
+    <string name="button_8_text1">FC Start</string>
+    <string name="button_8_text2">FC End</string>
+    <string name="button_8_text3">SC Start</string>
+      
+    <string name="button_9_text">START Roast</string>
+    <string name="button_9_cmd">PID;GO</string>
     
-    <string name="button_9_text">PID OFF</string>
-    <string name="button_9_cmd">PID;OFF</string>
+    <string name="button_10_text">STOP Roast</string>
+    <string name="button_10_cmd">PID;STOP</string>
     
-    <string name="button_10_text">Profile 1</string>
-    <string name="button_10_cmd">PID;P1</string>
+    <string name="button_11_text">START Log</string>
+<!--    <string name="button_11_cmd">Start Log</string> -->  
     
-    <string name="button_11_text">Profile 2</string>
-    <string name="button_11_cmd">PID;P2</string>
-    
-    <string name="button_12_text">START Roast</string>
-    <string name="button_12_cmd">PID;GO</string>
-    
-    <string name="button_13_text">STOP Roast</string>
-    <string name="button_13_cmd">PID;STOP</string>
-    
-    <string name="button_14_text">START Log</string>
-<!--    <string name="button_14_cmd">Start Log</string> -->  
-    
-    <string name="button_15_text">STOP Log</string>
- <!--  <string name="button_15_cmd">RESET</string>  --> 
+    <string name="button_12_text">STOP Log</string>
+ <!--  <string name="button_12_cmd">RESET</string>  --> 
     
 </resources>

@@ -198,21 +198,19 @@
             android:layout_weight="1"
             android:text="@string/button_2_text" />
         <Button
+            android:id="@+id/button_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/button_3_text" />
+        <Button
             android:id="@+id/button_4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/button_4_text" />
-
-        <Button
-            android:id="@+id/button_3"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/button_3_text1"
-            android:textColor="#663300"
-            android:enabled="false" />
-
+        
+ 
         </LinearLayout>
 
     <LinearLayout
@@ -221,18 +219,18 @@
         android:orientation="horizontal" >
 
         <Button
-            android:id="@+id/button_8"
+            android:id="@+id/button_5"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_8_text" />
+            android:text="@string/button_5_text" />
 
         <Button
-            android:id="@+id/button_9"
+            android:id="@+id/button_6"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_9_text" />
+            android:text="@string/button_6_text" />
 
 
         <Button
@@ -242,12 +240,14 @@
             android:layout_weight="1"
             android:text="@string/button_7_text" />
 
-        <Button
-            android:id="@+id/button_11"
+       <Button
+            android:id="@+id/button_8"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_11_text" />
+            android:text="@string/button_8_text1"
+            android:textColor="#663300"
+            android:enabled="false" />
         </LinearLayout>
 
     <LinearLayout
@@ -256,36 +256,36 @@
         android:orientation="horizontal" >
 
         <Button
+            android:id="@+id/button_9"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/button_9_text"
+            android:textColor="#005500" />
+
+        <Button
+            android:id="@+id/button_10"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/button_10_text"
+            android:enabled="false"
+            android:textColor="#ff0000" />
+
+        <Button
+            android:id="@+id/button_11"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/button_11_text"
+            android:textColor="#005500" />
+        
+        <Button
             android:id="@+id/button_12"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/button_12_text"
-            android:textColor="#005500" />
-
-        <Button
-            android:id="@+id/button_13"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/button_13_text"
-            android:enabled="false"
-            android:textColor="#ff0000" />
-
-        <Button
-            android:id="@+id/button_14"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/button_14_text"
-            android:textColor="#005500" />
-        
-        <Button
-            android:id="@+id/button_15"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/button_15_text"
             android:enabled="false"
             android:textColor="#ff0000" />
         
