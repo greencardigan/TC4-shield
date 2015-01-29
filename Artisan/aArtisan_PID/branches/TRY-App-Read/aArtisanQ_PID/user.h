@@ -21,8 +21,8 @@
 #define TC_TYPE4 typeK  // thermocouple on TC4
 
 //#define ROASTLOGGER
-#define ARTISAN
-//#define PBOURBON
+//#define ARTISAN
+#define ANDROID
 
 
 #define LCD // if output on an LCD screen is desired

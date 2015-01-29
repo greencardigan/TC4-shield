@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 4_3"
+#define BANNER_ARTISAN "aArtisanQ_PID Read1"
 
 // Revision history:
 // 20110408 Created.
@@ -95,7 +95,7 @@
 //          Swapped location of T1 and T2 on LCD display and renamed to ET and BT
 // 20121014 Enhanced LCD display code and added support for 4x20 LCDs. Define LCD_4x20 in user.h
 // 20121021 Added optional limits for Analogue1
-// 20121120 Added support for pBourbon logging
+// 20121120 Added support for ANDROID logging
 // 20121213 Added UP and DOWN parameters for OT1 and OT2 commands.  Increments or decrements power levels by 5%
 // 20130116 Added user adjustable analogue input rounding (ANALOGUE_STEP) in user.h
 // 20130119 aArtisanQ_PID release 3_5
@@ -109,7 +109,7 @@
 //          Added support for Roastlogger roasting software (responds to LOAD, POWER and FAN commands. Sends rorT1=, T1=, rorT2=, T2= and power levels to roastlogger)
 // 20140128 Improved handling of heater and fan power limits
 // 20140213 aArtisanQ_PID release 4_2
-// 20140214 Added option in useh.h to define software mode (Artisan, Roastlogger or pBourbon)
+// 20140214 Added option in useh.h to define software mode (Artisan, Roastlogger or ANDROID)
 //          Fixed? bug causing crashes when receiving READ commands
 // 20140214 aArtisanQ_PID release 4_3
 
@@ -204,7 +204,7 @@ uint32_t checktime;
 #endif
 
 boolean artisan_logger = false;
-//boolean pBourbon = false; // set initial state for pBourbon flag
+//boolean ANDROID = false; // set initial state for ANDROID flag
 //boolean roastlogger = false; // set initial state for roastlogger flag
 uint32_t counter; // second counter
 uint32_t next_loop_time; // 
@@ -354,7 +354,7 @@ void logger() {
   Serial.println( levelOT2 );
 #endif
 
-#ifdef PBOURBON
+#ifdef ANDROID
 
   // print counter
   Serial.print( counter );
@@ -1057,10 +1057,10 @@ void loop()
   #ifdef LCD
     updateLCD();
   #endif
-  #if defined ROASTLOGGER || defined PBOURBON
-    logger(); // send data every second to pBourbon
+  #if defined ROASTLOGGER
+    logger(); // send data every second to ANDROID
   #endif
-  #if defined ARTISAN
+  #if defined ARTISAN || defined ANDROID
     if( artisan_logger == true ) {
       artisan_logger = false;
       logger();
