@@ -39,7 +39,7 @@
 #define ROR_CHAN 0 // physical input channel for RoR display on LCD
 
 #define PID_CONTROL // if PID control is allowed to be activated
-#define PID_CHAN 1 // physical channel for PID input
+#define PID_CHAN 0 // physical channel for PID input
 #define PRO 5.00 // initial proportional parameter
 #define INT 0.15 // initial integral parameter
 #define DER 0.00 // initial derivative parameter

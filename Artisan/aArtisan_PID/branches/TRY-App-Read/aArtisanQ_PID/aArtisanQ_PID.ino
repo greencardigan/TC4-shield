@@ -95,7 +95,7 @@
 //          Swapped location of T1 and T2 on LCD display and renamed to ET and BT
 // 20121014 Enhanced LCD display code and added support for 4x20 LCDs. Define LCD_4x20 in user.h
 // 20121021 Added optional limits for Analogue1
-// 20121120 Added support for ANDROID logging
+// 20121120 Added support for pBourbon logging
 // 20121213 Added UP and DOWN parameters for OT1 and OT2 commands.  Increments or decrements power levels by 5%
 // 20130116 Added user adjustable analogue input rounding (ANALOGUE_STEP) in user.h
 // 20130119 aArtisanQ_PID release 3_5
@@ -109,7 +109,7 @@
 //          Added support for Roastlogger roasting software (responds to LOAD, POWER and FAN commands. Sends rorT1=, T1=, rorT2=, T2= and power levels to roastlogger)
 // 20140128 Improved handling of heater and fan power limits
 // 20140213 aArtisanQ_PID release 4_2
-// 20140214 Added option in useh.h to define software mode (Artisan, Roastlogger or ANDROID)
+// 20140214 Added option in user.h to define software mode (Artisan, Roastlogger or pBourbon)
 //          Fixed? bug causing crashes when receiving READ commands
 // 20140214 aArtisanQ_PID release 4_3
 
