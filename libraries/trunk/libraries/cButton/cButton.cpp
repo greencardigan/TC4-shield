@@ -39,6 +39,8 @@
 // Revision history:
 //  20120126: Arduino 1.0 compatibility
 //   (thanks and acknowledgement to Arnaud Kodeck for his code contributions).
+//  20150224:  Changed function result to boolean for anyPressed().
+//             Needed for compatibility with Arduino 1.60
 
 #include "cButton.h"
 
@@ -74,7 +76,7 @@ uint8_t cButtonBase::readButtons() {
   else return 0;  // if a new value was not read, than nothing can change
 }
 
-uint8_t cButtonBase::anyPressed() {
+boolean cButtonBase::anyPressed() {
   return !( stable == 0 );
 }
 
