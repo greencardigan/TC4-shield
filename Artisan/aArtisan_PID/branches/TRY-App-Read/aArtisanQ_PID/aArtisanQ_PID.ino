@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID Read1"
+#define BANNER_ARTISAN "aArtisanQ_PID Read1.1"
 
 // Revision history:
 // 20110408 Created.
@@ -284,7 +284,9 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
   while( millis() < tod + ms ) {
     checkSerial();
     #ifdef LCDAPTER
-      checkButtons();
+      #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID )
+        checkButtons();
+      #endif
     #endif
   }
 }
@@ -1069,7 +1071,9 @@ void loop()
 //  Serial.println( next_loop_time - millis() ); // how much time spare in loop. approx 350ms
   while( millis() < next_loop_time ) {
   #ifdef LCDAPTER
-    checkButtons();
+    #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID )
+      checkButtons();
+    #endif
   #endif
   }
   next_loop_time = next_loop_time + 1000; // add 1 second until next loop

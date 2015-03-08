@@ -20,6 +20,8 @@
 #define TC_TYPE3 typeK  // thermocouple on TC3
 #define TC_TYPE4 typeK  // thermocouple on TC4
 
+// Roasting software being used
+// Comment out all if using TC4 stand alone
 //#define ROASTLOGGER
 //#define ARTISAN
 #define ANDROID
