@@ -20,4 +20,7 @@
     <item android:id="@+id/discoverable"
           android:icon="@android:drawable/ic_menu_mylocation"
           android:title="@string/discoverable" />
+    <item android:id="@+id/settings"
+          android:icon="@android:drawable/ic_menu_manage"
+          android:title="@string/menu_settings" />
 </menu>

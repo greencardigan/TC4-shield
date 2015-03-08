@@ -55,7 +55,10 @@ public class LineGraph {
 				
 		// Add renderers to multiple renderer
 		mRenderer.addSeriesRenderer(renderer1);	
-		mRenderer.addSeriesRenderer(renderer2);	
+		mRenderer.addSeriesRenderer(renderer2);
+		
+		mRenderer.setInScroll(true);
+
 	}
 	
 	public GraphicalView getView(Context context) 

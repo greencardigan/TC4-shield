@@ -23,9 +23,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import org.achartengine.ChartFactory;
 import org.achartengine.GraphicalView;
 
 import android.annotation.SuppressLint;
@@ -38,6 +40,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -60,9 +63,6 @@ import android.widget.Toast;
  * This is the main Activity that displays the current chat session.
  */
 public class TC4 extends Activity {
-
-	 private ScheduledExecutorService scheduleTaskExecutor;
-
 	
 	// Debugging
 	private static final String TAG = "TC4";
@@ -71,7 +71,6 @@ public class TC4 extends Activity {
 	private static boolean crack = false;
 	private static int crack_count = 0;
 	public static ArrayList<String> val = new ArrayList<String>();
-	public static final String PREFS_NAME = "ButtonPrefs";
 	
 	// Message types sent from the BluetoothChatService Handler
 	public static final int MESSAGE_STATE_CHANGE = 1;
@@ -87,6 +86,7 @@ public class TC4 extends Activity {
 	// Intent request codes
 	private static final int REQUEST_CONNECT_DEVICE = 1;
 	private static final int REQUEST_ENABLE_BT = 2;
+	private static final int REQUEST_SETTINGS = 3;
 
 	// Layout Views
 	private TextView mTitle;
@@ -119,27 +119,32 @@ public class TC4 extends Activity {
 
 	private File folder;
 	
-	public String Button1Text = "Fan UP";
-	public String Button1Cmd = "OT2,UP";
-	public String Button2Text = "Fan DOWN";
-	public String Button2Cmd = "OT2,DOWN";
-	public String Button3Text = "Fan OFF";
-	public String Button3Cmd = "OT2,0";
-	public String Button4Text = "P2";
-	public String Button4Cmd = "PID,P2";
-	public String Button5Text = "PID ON";
-	public String Button5Cmd = "PID,ON";
-	public String Button6Text = "PID OFF";
-	public String Button6Cmd = "PID,OFF";
-	public String Button7Text = "Htr OFF";
-	public String Button7Cmd = "OT1,0";
-	//public String Button8Text = "";
-	//public String Button8Cmd = "";
-	//public String Button9Text = "START Roast";
-	public String Button9Cmd = "PID,GO";
-	//public String Button10Text = "STOP Roast";
-	public String Button10Cmd = "PID,STOP";
+	public String Button1Text;
+	public String Button1Cmd;
+	public String Button2Text;
+	public String Button2Cmd;
+	public String Button3Text;
+	public String Button3Cmd;
+	public String Button4Text;
+	public String Button4Cmd;
+	public String Button5Text;
+	public String Button5Cmd;
+	public String Button6Text;
+	public String Button6Cmd;
+	public String Button7Text;
+	public String Button7Cmd;
+	//public String Button8Text;
+	//public String Button8Cmd;
+	//public String Button9Text;
+	public String Button9Cmd;
+	//public String Button10Text;
+	public String Button10Cmd;
 	
+	public long ReadInterval;
+	
+	private ScheduledExecutorService scheduledExecutorService;
+	private ScheduledFuture<?> futureTask;
+	private Runnable myTask;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -147,6 +152,7 @@ public class TC4 extends Activity {
 		if (D)
 			Log.e(TAG, "+++ ON CREATE +++");
 
+		
 		// Set up the window layout
 		requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
 		setContentView(R.layout.main);
@@ -157,35 +163,42 @@ public class TC4 extends Activity {
 		mTitle = (TextView) findViewById(R.id.title_left_text);
 		mTitle.setText(R.string.app_name);
 		mTitle = (TextView) findViewById(R.id.title_right_text);
-		
-	    // Restore preferences
-	    SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
-	    // read prefs for button 1 or use default val if no pref exists
-	    Button1Text = button_settings.getString("Button1Text", Button1Text);		
-	    Button1Cmd = button_settings.getString("Button1Cmd", Button1Cmd);		
-	    Button2Text = button_settings.getString("Button2Text", Button1Text);		
-	    Button2Cmd = button_settings.getString("Button2Cmd", Button1Cmd);		
-	    Button3Text = button_settings.getString("Button3Text", Button3Text);		
-	    Button3Cmd = button_settings.getString("Button3Cmd", Button3Cmd);		
-	    Button4Text = button_settings.getString("Button4Text", Button4Text);		
-	    Button4Cmd = button_settings.getString("Button4Cmd", Button4Cmd);		
-	    Button5Text = button_settings.getString("Button5Text", Button5Text);		
-	    Button5Cmd = button_settings.getString("Button5Cmd", Button5Cmd);		
-	    Button6Text = button_settings.getString("Button6Text", Button6Text);		
-	    Button6Cmd = button_settings.getString("Button6Cmd", Button6Cmd);		
-	    Button7Text = button_settings.getString("Button7Text", Button7Text);		
-	    Button7Cmd = button_settings.getString("Button7Cmd", Button7Cmd);		
-	    //Button8Text = button_settings.getString("Button8Text", Button8Text);		
-	    //Button8Cmd = button_settings.getString("Button8Cmd", Button8Cmd);		
-	    //Button9Text = button_settings.getString("Button9Text", Button9Text);		
-	    Button9Cmd = button_settings.getString("Button9Cmd", Button9Cmd);		
-	    //Button10Text = button_settings.getString("Button10Text", Button10Text);		
-	    Button10Cmd = button_settings.getString("Button10Cmd", Button10Cmd);		
-	    //Button11Text = button_settings.getString("Button11Text", Button11Text);		
-	    //Button11Cmd = button_settings.getString("Button11Cmd", Button11Cmd);		
-	    //Button12Text = button_settings.getString("Button12Text", Button12Text);		
-	    //Button12Cmd = button_settings.getString("Button12Cmd", Button12Cmd);		
+		
+		PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+
+		// Load  Values from Shared Preferences
+		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+		String Pref = sharedPref.getString(preferencefragment.KEY_PREF_READINTERVAL, "1");
+		ReadInterval = Long.valueOf(Pref);
+		
+		Button1Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON1TEXT, "Fan UP");
+		Button1Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON1COMMAND, "OT2;UP");
+		Button2Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON2TEXT, "Fan UP");
+		Button2Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON2COMMAND, "OT2;UP");
+		Button3Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON3TEXT, "Fan OFF");
+		Button3Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON3COMMAND, "OT2;0");
+		Button4Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON4TEXT, "P2");
+		Button4Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON4COMMAND, "PID;P2");
+		Button5Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON5TEXT, "PID ON");
+		Button5Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON5COMMAND, "PID;ON");
+		Button6Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON6TEXT, "PID OFF");
+		Button6Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON6COMMAND, "PID;OFF");
+		Button7Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON7TEXT, "Htr OFF");
+		Button7Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON7COMMAND, "OT1;0");
+		//Button8Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON8TEXT, "");
+		//Button8Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON8COMMAND, "");
+		//Button9Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON9TEXT, "");
+		Button9Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON9COMMAND, "PID;GO");
+		//Button10Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON10TEXT, "");
+		Button10Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON10COMMAND, "PID;STOP");
+		//Button11Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON11TEXT, "");
+		//Button11Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON11COMMAND, "");
+		//Button12Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON12TEXT, "");
+		//Button12Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON12COMMAND, "");
+
+		
+			
 	    
 	    // set button text
 	    Button button1 = (Button) findViewById(R.id.button_1);
@@ -202,37 +215,36 @@ public class TC4 extends Activity {
 		button6.setText(Button6Text); 
 	    Button button7 = (Button) findViewById(R.id.button_7);
 		button7.setText(Button7Text); 
-	    //Button button8 = (Button) findViewById(R.id.button_8);
-		//button8.setText(Button8Text); 
-	    //Button button9 = (Button) findViewById(R.id.button_9);
-		//button9.setText(Button9Text); 
-	    //Button button10 = (Button) findViewById(R.id.button_10);
-		//button10.setText(Button10Text); 
-	    //Button button11 = (Button) findViewById(R.id.button_11);
-		//button11.setText(Button11Text); 
-	    //Button button12 = (Button) findViewById(R.id.button_12);
-		//button12.setText(Button12Text); 
+	    Button button8 = (Button) findViewById(R.id.button_8);
+		button8.setText(getString(R.string.button_8_text1)); 
+	    Button button9 = (Button) findViewById(R.id.button_9);
+		button9.setText(getString(R.string.button_9_text)); 
+	    Button button10 = (Button) findViewById(R.id.button_10);
+		button10.setText(getString(R.string.button_10_text)); 
+	    Button button11 = (Button) findViewById(R.id.button_11);
+		button11.setText(getString(R.string.button_11_text)); 
+	    Button button12 = (Button) findViewById(R.id.button_12);
+		button12.setText(getString(R.string.button_12_text)); 
 		  
 
-	    scheduleTaskExecutor= Executors.newScheduledThreadPool(5);
+	    // Your executor, you should instanciate it once for all
+		scheduledExecutorService = Executors.newScheduledThreadPool(5);
 
-	    // This schedule a task to run every 1 second:
-	    scheduleTaskExecutor.scheduleAtFixedRate(new Runnable() {
-	      public void run() {
-
-
-	        // If you need update UI, simply do this:
-	    	 runOnUiThread(new Runnable() {
-	        	public void run() {
-	            // update your UI component here.
+	    // Since your task won't change during runtime, you can instanciate it too once for all
+	    myTask = new Runnable()
+	    {
+	        @Override
+	        public void run()
+	        {
 	        	  if (connected == true) {
 		        	  sendMessage("READ");	    		  
 		        	  if (D) Log.i(TAG, "In Run!");	        		  
 	        	  }
-	        	}
-	        });
-	      }
-	    }, 0, 1, TimeUnit.SECONDS);		
+	        }
+	    };		
+				
+		changeReadInterval(ReadInterval);
+
 		
 		// Get local Bluetooth adapter
 		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -274,6 +286,8 @@ public class TC4 extends Activity {
 		LinearLayout layout = (LinearLayout) findViewById(R.id.chart);
 		// layout.addView(gView);
 		layout.addView(view);
+
+		
 		}catch(Exception e){ Log.e("START","exception"+e.getMessage()); e.printStackTrace(); }
 
 	}
@@ -295,7 +309,7 @@ public class TC4 extends Activity {
 				// Start the Bluetooth chat services
 				mChatService.start();
 			}
-		}
+		}		
 	}
 
 	
@@ -322,6 +336,7 @@ public class TC4 extends Activity {
 				TextView view = (TextView) findViewById(R.id.edit_text_out);
 				String message = view.getText().toString();
 				sendMessage(message);
+				view.setText("");
 			}
 		});
 
@@ -342,7 +357,7 @@ public class TC4 extends Activity {
 			@Override
 			public void onClick(View v) {
 				// Send a command
-				String message = getString(R.string.button_2_cmd);
+				String message = Button2Cmd;
 				sendMessage(message);
 			}
 		});
@@ -353,7 +368,7 @@ public class TC4 extends Activity {
 			@Override
 			public void onClick(View v) {
 				// Send a command
-				String message = getString(R.string.button_3_cmd);
+				String message = Button3Cmd;
 				sendMessage(message);
 			}
 		});
@@ -364,7 +379,7 @@ public class TC4 extends Activity {
 			@Override
 			public void onClick(View v) {
 				// Send a command
-				String message = getString(R.string.button_4_cmd);
+				String message = Button4Cmd;
 				sendMessage(message);
 			}
 		});
@@ -375,7 +390,7 @@ public class TC4 extends Activity {
 			@Override
 			public void onClick(View v) {
 				// Send a command
-				String message = getString(R.string.button_5_cmd);
+				String message = Button5Cmd;
 				sendMessage(message);
 			}
 		});
@@ -386,7 +401,7 @@ public class TC4 extends Activity {
 			@Override
 			public void onClick(View v) {
 				// Send a command
-				String message = getString(R.string.button_6_cmd);
+				String message = Button6Cmd;
 				sendMessage(message);
 			}
 		});
@@ -398,7 +413,7 @@ public class TC4 extends Activity {
 			@Override
 			public void onClick(View v) {
 				// Send a command
-				String message = getString(R.string.button_7_cmd);
+				String message = Button7Cmd;
 				sendMessage(message);
 			}
 		});
@@ -434,6 +449,9 @@ public class TC4 extends Activity {
 				//updateGraph = true;
 			    //RoastStarted = true;
 			    startLogging = true;
+
+				// reschedule read task to ensure initial read at start of logging
+				changeReadInterval(ReadInterval);
 			   
 				Toast.makeText(getApplicationContext(), "Logging Started", Toast.LENGTH_SHORT).show();
 
@@ -447,7 +465,7 @@ public class TC4 extends Activity {
 				button8.setText(getString(R.string.button_8_text1)); // reset button 8 text
 
 				// Send a command
-				String message = getString(R.string.button_9_cmd);
+				String message = Button9Cmd;
 				sendMessage(message);
 			}
 		});
@@ -467,7 +485,7 @@ public class TC4 extends Activity {
 			    crack_count = 0;
 
 			    // Send a command
-				String message = getString(R.string.button_10_cmd);
+				String message = Button10Cmd;
 				sendMessage(message);
 			}
 		});
@@ -479,6 +497,10 @@ public class TC4 extends Activity {
 			public void onClick(View v) {
 				
 				startLogging = true;
+				
+				// reschedule read task to ensure initial read at start of logging
+				changeReadInterval(ReadInterval);
+
 				
 				Toast.makeText(getApplicationContext(), "Logging Started", Toast.LENGTH_SHORT).show();
 				
@@ -524,44 +546,8 @@ public class TC4 extends Activity {
 			@Override
 			public boolean onLongClick(View v) {
 		        
-				// We need an Editor object to make preference changes.
-		        // All objects are from android.context.Context
-		        SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-		        SharedPreferences.Editor editor = button_settings.edit();
-
-		        // get string from send command TextView
-				TextView view = (TextView) findViewById(R.id.edit_text_out);
-				String NewButtonVals = view.getText().toString();
-		        
-				if (NewButtonVals.startsWith("Text:")) {
-			        
-					String NewButtonText = NewButtonVals.substring(5);
-					editor.putString("Button1Text", NewButtonText); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-			        // update button 1 text with new text
-					Button button1 = (Button) findViewById(R.id.button_1);
-					button1.setText(NewButtonText); // set button 1 text
-
-					Toast.makeText(getApplicationContext(), "New Button 1 text saved", Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-				} else if (NewButtonVals.startsWith("Cmd:")) {
-			        
-					String NewButtonCmd = NewButtonVals.substring(4);
-					editor.putString("Button1Cmd", NewButtonCmd); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-					Toast.makeText(getApplicationContext(), "New Button 1 command saved: " + NewButtonCmd, Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-										
-					Button1Cmd = NewButtonCmd; // update current Button 1 command					
-				}
-				
+				Toast.makeText(getApplicationContext(), "Button 1 command is: " + Button1Cmd, Toast.LENGTH_SHORT).show();
+			
 		        return true;
 			}
 		});
@@ -572,43 +558,7 @@ public class TC4 extends Activity {
 			@Override
 			public boolean onLongClick(View v) {
 		        
-				// We need an Editor object to make preference changes.
-		        // All objects are from android.context.Context
-		        SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-		        SharedPreferences.Editor editor = button_settings.edit();
-
-		        // get string from send command TextView
-				TextView view = (TextView) findViewById(R.id.edit_text_out);
-				String NewButtonVals = view.getText().toString();
-		        
-				if (NewButtonVals.startsWith("Text:")) {
-			        
-					String NewButtonText = NewButtonVals.substring(5);
-					editor.putString("Button2Text", NewButtonText); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-			        // update button 2 text with new text
-					Button button2 = (Button) findViewById(R.id.button_2);
-					button2.setText(NewButtonText); // set button 2 text
-
-					Toast.makeText(getApplicationContext(), "New Button 2 text saved", Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-				} else if (NewButtonVals.startsWith("Cmd:")) {
-			        
-					String NewButtonCmd = NewButtonVals.substring(4);
-					editor.putString("Button2Cmd", NewButtonCmd); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-					Toast.makeText(getApplicationContext(), "New Button 2 command saved: " + NewButtonCmd, Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-					Button2Cmd = NewButtonCmd; // update current Button 2 command
-				}
+				Toast.makeText(getApplicationContext(), "Button 2 command is: " + Button2Cmd, Toast.LENGTH_SHORT).show();
 				
 		        return true;
 			}
@@ -620,43 +570,7 @@ public class TC4 extends Activity {
 			@Override
 			public boolean onLongClick(View v) {
 		        
-				// We need an Editor object to make preference changes.
-		        // All objects are from android.context.Context
-		        SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-		        SharedPreferences.Editor editor = button_settings.edit();
-
-		        // get string from send command TextView
-				TextView view = (TextView) findViewById(R.id.edit_text_out);
-				String NewButtonVals = view.getText().toString();
-		        
-				if (NewButtonVals.startsWith("Text:")) {
-			        
-					String NewButtonText = NewButtonVals.substring(5);
-					editor.putString("Button3Text", NewButtonText); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-			        // update button 3 text with new text
-					Button button3 = (Button) findViewById(R.id.button_3);
-					button3.setText(NewButtonText); // set button 3 text
-
-					Toast.makeText(getApplicationContext(), "New Button 3 text saved", Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-				} else if (NewButtonVals.startsWith("Cmd:")) {
-			        
-					String NewButtonCmd = NewButtonVals.substring(4);
-					editor.putString("Button3Cmd", NewButtonCmd); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-					Toast.makeText(getApplicationContext(), "New Button 3 command saved: " + NewButtonCmd, Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-					Button3Cmd = NewButtonCmd; // update current Button 3 command
-				}
+				Toast.makeText(getApplicationContext(), "Button 3 command is: " + Button3Cmd, Toast.LENGTH_SHORT).show();
 				
 		        return true;
 			}
@@ -668,43 +582,7 @@ public class TC4 extends Activity {
 			@Override
 			public boolean onLongClick(View v) {
 		        
-				// We need an Editor object to make preference changes.
-		        // All objects are from android.context.Context
-		        SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-		        SharedPreferences.Editor editor = button_settings.edit();
-
-		        // get string from send command TextView
-				TextView view = (TextView) findViewById(R.id.edit_text_out);
-				String NewButtonVals = view.getText().toString();
-		        
-				if (NewButtonVals.startsWith("Text:")) {
-			        
-					String NewButtonText = NewButtonVals.substring(5);
-					editor.putString("Button4Text", NewButtonText); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-			        // update button 4 text with new text
-					Button button4 = (Button) findViewById(R.id.button_4);
-					button4.setText(NewButtonText); // set button 4 text
-
-					Toast.makeText(getApplicationContext(), "New Button 4 text saved", Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-				} else if (NewButtonVals.startsWith("Cmd:")) {
-			        
-					String NewButtonCmd = NewButtonVals.substring(4);
-					editor.putString("Button4Cmd", NewButtonCmd); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-					Toast.makeText(getApplicationContext(), "New Button 4 command saved: " + NewButtonCmd, Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-					Button4Cmd = NewButtonCmd; // update current Button 4 command
-				}
+				Toast.makeText(getApplicationContext(), "Button 4 command is: " + Button4Cmd, Toast.LENGTH_SHORT).show();
 				
 		        return true;
 			}
@@ -716,43 +594,7 @@ public class TC4 extends Activity {
 			@Override
 			public boolean onLongClick(View v) {
 		        
-				// We need an Editor object to make preference changes.
-		        // All objects are from android.context.Context
-		        SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-		        SharedPreferences.Editor editor = button_settings.edit();
-
-		        // get string from send command TextView
-				TextView view = (TextView) findViewById(R.id.edit_text_out);
-				String NewButtonVals = view.getText().toString();
-		        
-				if (NewButtonVals.startsWith("Text:")) {
-			        
-					String NewButtonText = NewButtonVals.substring(5);
-					editor.putString("Button5Text", NewButtonText); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-			        // update button 5 text with new text
-					Button button5 = (Button) findViewById(R.id.button_5);
-					button5.setText(NewButtonText); // set button 5 text
-
-					Toast.makeText(getApplicationContext(), "New Button 5 text saved", Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-				} else if (NewButtonVals.startsWith("Cmd:")) {
-			        
-					String NewButtonCmd = NewButtonVals.substring(4);
-					editor.putString("Button5Cmd", NewButtonCmd); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-					Toast.makeText(getApplicationContext(), "New Button 5 command saved: " + NewButtonCmd, Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-					Button5Cmd = NewButtonCmd; // update current Button 5 command
-				}
+				Toast.makeText(getApplicationContext(), "Button 5 command is: " + Button5Cmd, Toast.LENGTH_SHORT).show();
 				
 		        return true;
 			}
@@ -764,43 +606,7 @@ public class TC4 extends Activity {
 			@Override
 			public boolean onLongClick(View v) {
 		        
-				// We need an Editor object to make preference changes.
-		        // All objects are from android.context.Context
-		        SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-		        SharedPreferences.Editor editor = button_settings.edit();
-
-		        // get string from send command TextView
-				TextView view = (TextView) findViewById(R.id.edit_text_out);
-				String NewButtonVals = view.getText().toString();
-		        
-				if (NewButtonVals.startsWith("Text:")) {
-			        
-					String NewButtonText = NewButtonVals.substring(5);
-					editor.putString("Button6Text", NewButtonText); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-			        // update button 6 text with new text
-					Button button6 = (Button) findViewById(R.id.button_6);
-					button6.setText(NewButtonText); // set button 6 text
-
-					Toast.makeText(getApplicationContext(), "New Button 6 text saved", Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-				} else if (NewButtonVals.startsWith("Cmd:")) {
-			        
-					String NewButtonCmd = NewButtonVals.substring(4);
-					editor.putString("Button6Cmd", NewButtonCmd); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-					Toast.makeText(getApplicationContext(), "New Button 6 command saved: " + NewButtonCmd, Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-					Button6Cmd = NewButtonCmd; // update current Button 6 command
-				}
+				Toast.makeText(getApplicationContext(), "Button 6 command is: " + Button6Cmd, Toast.LENGTH_SHORT).show();
 				
 		        return true;
 			}
@@ -812,141 +618,32 @@ public class TC4 extends Activity {
 			@Override
 			public boolean onLongClick(View v) {
 		        
-				// We need an Editor object to make preference changes.
-		        // All objects are from android.context.Context
-		        SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-		        SharedPreferences.Editor editor = button_settings.edit();
-
-		        // get string from send command TextView
-				TextView view = (TextView) findViewById(R.id.edit_text_out);
-				String NewButtonVals = view.getText().toString();
-		        
-				if (NewButtonVals.startsWith("Text:")) {
-			        
-					String NewButtonText = NewButtonVals.substring(5);
-					editor.putString("Button7Text", NewButtonText); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-			        // update button 7 text with new text
-					Button button7 = (Button) findViewById(R.id.button_7);
-					button7.setText(NewButtonText); // set button 7 text
-
-					Toast.makeText(getApplicationContext(), "New Button 7 text saved", Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-				} else if (NewButtonVals.startsWith("Cmd:")) {
-			        
-					String NewButtonCmd = NewButtonVals.substring(4);
-					editor.putString("Button7Cmd", NewButtonCmd); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-					Toast.makeText(getApplicationContext(), "New Button 7 command saved: " + NewButtonCmd, Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-					Button7Cmd = NewButtonCmd; // update current Button 7 command
-				}
+				Toast.makeText(getApplicationContext(), "Button 7 command is: " + Button7Cmd, Toast.LENGTH_SHORT).show();
 				
 		        return true;
 			}
 		});
 
-/*
+
 		// Initialize button 8 with a listener that for long click events
 		mSendButton = (Button) findViewById(R.id.button_8);
 		mSendButton.setOnLongClickListener(new OnLongClickListener() {
 			@Override
 			public boolean onLongClick(View v) {
 		        
-				// We need an Editor object to make preference changes.
-		        // All objects are from android.context.Context
-		        SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-		        SharedPreferences.Editor editor = button_settings.edit();
-
-		        // get string from send command TextView
-				TextView view = (TextView) findViewById(R.id.edit_text_out);
-				String NewButtonVals = view.getText().toString();
-		        
-				if (NewButtonVals.startsWith("Text:")) {
-			        
-					String NewButtonText = NewButtonVals.substring(5);
-					editor.putString("Button8Text", NewButtonText); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-			        // update button 8 text with new text
-					Button button8 = (Button) findViewById(R.id.button_8);
-					button8.setText(NewButtonText); // set button 8 text
-
-					Toast.makeText(getApplicationContext(), "New Button 8 text saved", Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-				} else if (NewButtonVals.startsWith("Cmd:")) {
-			        
-					String NewButtonCmd = NewButtonVals.substring(4);
-					editor.putString("Button8Cmd", NewButtonCmd); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-					Toast.makeText(getApplicationContext(), "New Button 8 command saved: " + NewButtonCmd, Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-					Button8Cmd = NewButtonCmd; // update current Button 8 command
-				}
+				Toast.makeText(getApplicationContext(), "No Command", Toast.LENGTH_SHORT).show();
 				
 		        return true;
 			}
 		});
-*/
+
 		// Initialize button 9 with a listener that for long click events
 		mSendButton = (Button) findViewById(R.id.button_9);
 		mSendButton.setOnLongClickListener(new OnLongClickListener() {
 			@Override
 			public boolean onLongClick(View v) {
 		        
-				// We need an Editor object to make preference changes.
-		        // All objects are from android.context.Context
-		        SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-		        SharedPreferences.Editor editor = button_settings.edit();
-
-		        // get string from send command TextView
-				TextView view = (TextView) findViewById(R.id.edit_text_out);
-				String NewButtonVals = view.getText().toString();
-		        
-				if (NewButtonVals.startsWith("Text:")) {
-			    /*    
-					String NewButtonText = NewButtonVals.substring(5);
-					editor.putString("Button9Text", NewButtonText); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-			        // update button 9 text with new text
-					Button button9 = (Button) findViewById(R.id.button_9);
-					button9.setText(NewButtonText); // set button 9 text
-
-					Toast.makeText(getApplicationContext(), "New Button 9 text saved", Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-				*/
-				} else if (NewButtonVals.startsWith("Cmd:")) {
-			        
-					String NewButtonCmd = NewButtonVals.substring(4);
-					editor.putString("Button9Cmd", NewButtonCmd); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-					Toast.makeText(getApplicationContext(), "New Button 9 command saved: " + NewButtonCmd, Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-					Button9Cmd = NewButtonCmd; // update current Button 9 command
-				}
+				Toast.makeText(getApplicationContext(), "Button 9 command is: " + Button9Cmd, Toast.LENGTH_SHORT).show();
 				
 		        return true;
 			}
@@ -958,147 +655,38 @@ public class TC4 extends Activity {
 			@Override
 			public boolean onLongClick(View v) {
 		        
-				// We need an Editor object to make preference changes.
-		        // All objects are from android.context.Context
-		        SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-		        SharedPreferences.Editor editor = button_settings.edit();
-
-		        // get string from send command TextView
-				TextView view = (TextView) findViewById(R.id.edit_text_out);
-				String NewButtonVals = view.getText().toString();
-		        
-				if (NewButtonVals.startsWith("Text:")) {
-			    /*    
-					String NewButtonText = NewButtonVals.substring(5);
-					editor.putString("Button10Text", NewButtonText); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-			        // update button 10 text with new text
-					Button button10 = (Button) findViewById(R.id.button_10);
-					button10.setText(NewButtonText); // set button 10 text
-
-					Toast.makeText(getApplicationContext(), "New Button 10 text saved", Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-				*/
-				} else if (NewButtonVals.startsWith("Cmd:")) {
-			        
-					String NewButtonCmd = NewButtonVals.substring(4);
-					editor.putString("Button10Cmd", NewButtonCmd); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-					Toast.makeText(getApplicationContext(), "New Button 10 command saved: " + NewButtonCmd, Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-					Button10Cmd = NewButtonCmd; // update current Button 10 command
-				}
+				Toast.makeText(getApplicationContext(), "Button 10 command is: " + Button10Cmd, Toast.LENGTH_SHORT).show();
 				
 		        return true;
 			}
 		});		
 		
-		/*
+		
 		// Initialize button 11 with a listener that for long click events
 		mSendButton = (Button) findViewById(R.id.button_11);
 		mSendButton.setOnLongClickListener(new OnLongClickListener() {
 			@Override
 			public boolean onLongClick(View v) {
 		        
-				// We need an Editor object to make preference changes.
-		        // All objects are from android.context.Context
-		        SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-		        SharedPreferences.Editor editor = button_settings.edit();
-
-		        // get string from send command TextView
-				TextView view = (TextView) findViewById(R.id.edit_text_out);
-				String NewButtonVals = view.getText().toString();
-		        
-				if (NewButtonVals.startsWith("Text:")) {
-			        
-					String NewButtonText = NewButtonVals.substring(5);
-					editor.putString("Button11Text", NewButtonText); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-			        // update button 11 text with new text
-					Button button11 = (Button) findViewById(R.id.button_11);
-					button11.setText(NewButtonText); // set button 11 text
-
-					Toast.makeText(getApplicationContext(), "New Button 11 text saved", Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-				} else if (NewButtonVals.startsWith("Cmd:")) {
-			        
-					String NewButtonCmd = NewButtonVals.substring(4);
-					editor.putString("Button11Cmd", NewButtonCmd); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-					Toast.makeText(getApplicationContext(), "New Button 11 command saved: " + NewButtonCmd, Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-					Button11Cmd = NewButtonCmd; // update current Button 11 command
-				}
+				Toast.makeText(getApplicationContext(), "No Command", Toast.LENGTH_SHORT).show();
 				
 		        return true;
 			}
 		});
-*/
-		/*
+
+		
 		// Initialize button 12 with a listener that for long click events
 		mSendButton = (Button) findViewById(R.id.button_12);
 		mSendButton.setOnLongClickListener(new OnLongClickListener() {
 			@Override
 			public boolean onLongClick(View v) {
 		        
-				// We need an Editor object to make preference changes.
-		        // All objects are from android.context.Context
-		        SharedPreferences button_settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-		        SharedPreferences.Editor editor = button_settings.edit();
-
-		        // get string from send command TextView
-				TextView view = (TextView) findViewById(R.id.edit_text_out);
-				String NewButtonVals = view.getText().toString();
-		        
-				if (NewButtonVals.startsWith("Text:")) {
-			        
-					String NewButtonText = NewButtonVals.substring(5);
-					editor.putString("Button12Text", NewButtonText); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-			        // update button 12 text with new text
-					Button button12 = (Button) findViewById(R.id.button_12);
-					button12.setText(NewButtonText); // set button 12 text
-
-					Toast.makeText(getApplicationContext(), "New Button 12 text saved", Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-				} else if (NewButtonVals.startsWith("Cmd:")) {
-			        
-					String NewButtonCmd = NewButtonVals.substring(4);
-					editor.putString("Button12Cmd", NewButtonCmd); // save new button text to prefs
-
-			        editor.commit(); // Commit the edits!
-
-					Toast.makeText(getApplicationContext(), "New Button 12 command saved: " + NewButtonCmd, Toast.LENGTH_LONG).show();
-					
-					view.setText("");
-					
-					Button12Cmd = NewButtonCmd; // update current Button 12 command
-				}
+				Toast.makeText(getApplicationContext(), "No Command", Toast.LENGTH_SHORT).show();
 				
 		        return true;
 			}
 		});
-*/
+
 		
 		// Initialize the BluetoothChatService to perform bluetooth connections
 		mChatService = new BluetoothChatService(this, mHandler);
@@ -1166,7 +754,7 @@ public class TC4 extends Activity {
 
 			// Reset out string buffer to zero and clear the edit text field
 			mOutStringBuffer.setLength(0);
-			mOutEditText.setText(mOutStringBuffer);
+			//mOutEditText.setText(mOutStringBuffer);
 		}
 	}
 
@@ -1181,6 +769,8 @@ public class TC4 extends Activity {
 					&& event.getAction() == KeyEvent.ACTION_UP) {
 				String message = view.getText().toString();
 				sendMessage(message);
+				view.setText("");
+
 			}
 			if (D)
 				Log.i(TAG, "END onEditorAction");
@@ -1244,6 +834,47 @@ public class TC4 extends Activity {
 		val.add("\n");
 	}
 
+	
+	/**
+	 * This method will reschedule "myTask" with the new param time
+	 */
+	public void changeReadInterval(long time)
+	{
+	    if(time > 0)
+	    {       
+	        if (futureTask != null)
+	        {
+	            futureTask.cancel(true);
+	        }
+
+	        futureTask = scheduledExecutorService.scheduleAtFixedRate(myTask, 0, ReadInterval, TimeUnit.SECONDS);
+	    }
+	}
+	
+	
+	private void repaint() {
+		LinearLayout layout = (LinearLayout) findViewById(R.id.chart);
+
+	    if (view != null) {
+	        layout.removeView(view);
+	    }
+
+		try{
+		view = line.getView(this);
+		// setContentView(view);
+
+		// LineGraph line = new LineGraph();
+		// GraphicalView gView = line.getView(this);
+
+		layout = (LinearLayout) findViewById(R.id.chart);
+		// layout.addView(gView);
+		layout.addView(view);
+
+		
+		}catch(Exception e){ Log.e("START","exception"+e.getMessage()); e.printStackTrace(); }
+	}
+	
+	
 	// The Handler that gets information back from the BluetoothChatService
 	private final Handler mHandler = new Handler() {
 		@Override
@@ -1411,8 +1042,9 @@ public class TC4 extends Activity {
 					}
 						
 					LineGraph.setMaxX(x);
-						
-					view.repaint();
+					
+					//view.repaint();
+					repaint();
 					
 				}
 				break;
@@ -1462,6 +1094,74 @@ public class TC4 extends Activity {
 						Toast.LENGTH_SHORT).show();
 				finish();
 			}
+		case REQUEST_SETTINGS:
+			// When returning from settings activity
+			SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+			String Pref = sharedPref.getString(preferencefragment.KEY_PREF_READINTERVAL, "");
+			ReadInterval = Long.valueOf(Pref);
+			
+			changeReadInterval(ReadInterval); // Update scheduled task with new interval
+
+			Button1Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON1COMMAND, "");
+			Button1Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON1TEXT, "");
+		    Button button1 = (Button) findViewById(R.id.button_1);
+			button1.setText(Button1Text); 
+
+			Button2Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON2COMMAND, "");
+			Button2Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON2TEXT, "");
+		    Button button2 = (Button) findViewById(R.id.button_2);
+			button2.setText(Button2Text); 
+
+			Button3Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON3COMMAND, "");
+			Button3Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON3TEXT, "");
+		    Button button3 = (Button) findViewById(R.id.button_3);
+			button3.setText(Button3Text); 
+
+			Button4Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON4COMMAND, "");
+			Button4Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON4TEXT, "");
+		    Button button4 = (Button) findViewById(R.id.button_4);
+			button4.setText(Button4Text); 
+
+			Button5Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON5COMMAND, "");
+			Button5Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON5TEXT, "");
+		    Button button5 = (Button) findViewById(R.id.button_5);
+			button5.setText(Button5Text); 
+
+			Button6Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON6COMMAND, "");
+			Button6Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON6TEXT, "");
+		    Button button6 = (Button) findViewById(R.id.button_6);
+			button6.setText(Button6Text); 
+
+			Button7Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON7COMMAND, "");
+			Button7Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON7TEXT, "");
+		    Button button7 = (Button) findViewById(R.id.button_7);
+			button7.setText(Button7Text); 
+
+			Button9Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON9COMMAND, "");
+			//Button9Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON9TEXT, "");
+		    //Button button9 = (Button) findViewById(R.id.button_9);
+			//button9.setText(Button9Text); 
+
+			Button10Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON10COMMAND, "");
+			//Button10Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON10TEXT, "");
+		    //Button button10 = (Button) findViewById(R.id.button_10);
+			//button10.setText(Button10Text); 
+			
+			//Button11Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON11COMMAND, "");
+			//Button11Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON11TEXT, "");
+		    //Button button11 = (Button) findViewById(R.id.button_11);
+			//button11.setText(Button11Text); 
+
+			//Button12Cmd = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON12COMMAND, "");
+			//Button12Text = sharedPref.getString(preferencefragment.KEY_PREF_BUTTON12TEXT, "");
+		    //Button button12 = (Button) findViewById(R.id.button_12);
+			//button12.setText(Button12Text); 
+
+
+			Log.d(TAG, "Settings Activity Result");
+			//finish();
+
+
 		}
 	}
 
@@ -1494,6 +1194,11 @@ public class TC4 extends Activity {
 		case R.id.discoverable:
 			// Ensure this device is discoverable by others
 			ensureDiscoverable();
+			return true;
+		case R.id.settings:
+			// Launch the DeviceListActivity to see devices and do scan
+			serverIntent = new Intent(this, preferenceshow.class);
+			startActivityForResult(serverIntent, REQUEST_SETTINGS);
 			return true;
 		}
 		return false;

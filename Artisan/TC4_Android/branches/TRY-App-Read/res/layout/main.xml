@@ -189,26 +189,26 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_1_text" />
+            android:text="button_1_text" />
 
         <Button
             android:id="@+id/button_2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_2_text" />
+            android:text="button_2_text" />
         <Button
             android:id="@+id/button_3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_3_text" />
+            android:text="button_3_text" />
         <Button
             android:id="@+id/button_4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_4_text" />
+            android:text="button_4_text" />
         
  
         </LinearLayout>
@@ -223,14 +223,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_5_text" />
+            android:text="button_5_text" />
 
         <Button
             android:id="@+id/button_6"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_6_text" />
+            android:text="button_6_text" />
 
 
         <Button
@@ -238,14 +238,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_7_text" />
+            android:text="button_7_text" />
 
        <Button
             android:id="@+id/button_8"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_8_text1"
+            android:text="button_8_text"
             android:textColor="#663300"
             android:enabled="false" />
         </LinearLayout>
@@ -260,7 +260,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_9_text"
+            android:text="button_9_text"
             android:textColor="#005500" />
 
         <Button
@@ -268,7 +268,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_10_text"
+            android:text="button_10_text"
             android:enabled="false"
             android:textColor="#ff0000" />
 
@@ -277,7 +277,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_11_text"
+            android:text="button_11_text"
             android:textColor="#005500" />
         
         <Button
@@ -285,7 +285,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/button_12_text"
+            android:text="button_12_text"
             android:enabled="false"
             android:textColor="#ff0000" />
         

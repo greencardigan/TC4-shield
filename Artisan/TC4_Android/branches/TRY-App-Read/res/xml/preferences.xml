@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <ListPreference
+        android:key="pref_ReadInterval"
+        android:title="@string/pref_ReadInterval"
+        android:summary="@string/pref_readInterval_default"
+        android:dialogTitle="@string/pref_ReadInterval"
+        android:entries="@array/pref_ReadInterval_entries"
+        android:entryValues="@array/pref_ReadInterval_values"
+        android:defaultValue="@string/pref_readInterval_default" />
+    
+    <PreferenceScreen
+        android:key="button_commamd_settings_key"
+        android:title="Button Commands"
+        android:persistent="false">
+
+        <PreferenceCategory 
+        android:title="Button 1"
+        android:key="pref_key_Button1_settings">
+	        
+	        <EditTextPreference
+	            android:dialogTitle="Button 1 Text"
+	            android:key="pref_Button1Text"
+	            android:summary="Fan UP"
+	            android:title="Button 1 Text"
+	            android:defaultValue="Fan UP" />
+            
+	        <EditTextPreference
+	            android:dialogTitle="Button 1 Command"
+	            android:key="pref_Button1Command"
+	            android:summary="OT2,UP"
+	            android:title="Button 1 Command"
+	            android:defaultValue="OT2;UP" />
+	        
+		</PreferenceCategory>
+
+        <PreferenceCategory 
+        android:title="Button 2"
+        android:key="pref_key_Button2_settings">  
+             
+        <EditTextPreference
+            android:dialogTitle="Button 2 Text"
+            android:key="pref_Button2Text"
+            android:summary="Fan DOWN"
+            android:title="Button 2 Text"
+            android:defaultValue="Fan DOWN" />
+            		
+	       <EditTextPreference
+            android:dialogTitle="Button 2 Command"
+            android:key="pref_Button2Command"
+            android:summary="OT2,DOWN"
+            android:title="Button 2 Command"
+            android:defaultValue="OT2;DOWN" />
+	       
+ 		</PreferenceCategory>
+
+        <PreferenceCategory 
+        android:title="Button 3"
+        android:key="pref_key_Button3_settings">  
+             
+        <EditTextPreference
+            android:dialogTitle="Button 3 Text"
+            android:key="pref_Button3Text"
+            android:summary="Fan OFF"
+            android:title="Button 3 Text"
+            android:defaultValue="Fan OFF" />
+            		
+	       <EditTextPreference
+            android:dialogTitle="Button 3 Command"
+            android:key="pref_Button3Command"
+            android:summary="OT2,0"
+            android:title="Button 3 Command"
+            android:defaultValue="OT2;0" />
+	       
+ 		</PreferenceCategory>
+        
+        <PreferenceCategory 
+        android:title="Button 4"
+        android:key="pref_key_Button4_settings">  
+             
+        <EditTextPreference
+            android:dialogTitle="Button 4 Text"
+            android:key="pref_Button4Text"
+            android:summary="P2"
+            android:title="Button 4 Text"
+            android:defaultValue="P2" />
+            		
+	       <EditTextPreference
+            android:dialogTitle="Button 4 Command"
+            android:key="pref_Button4Command"
+            android:summary="PID;P2"
+            android:title="Button 4 Command"
+            android:defaultValue="PID;P2" />
+	       
+ 		</PreferenceCategory>
+
+        <PreferenceCategory 
+        android:title="Button 5"
+        android:key="pref_key_Button5_settings">  
+             
+        <EditTextPreference
+            android:dialogTitle="Button 5 Text"
+            android:key="pref_Button5Text"
+            android:summary="PID ON"
+            android:title="Button 5 Text"
+            android:defaultValue="PID ON" />
+            		
+	       <EditTextPreference
+            android:dialogTitle="Button 5 Command"
+            android:key="pref_Button5Command"
+            android:summary="PID;ON"
+            android:title="Button 5 Command"
+            android:defaultValue="PID;ON" />
+	       
+ 		</PreferenceCategory>
+
+       <PreferenceCategory 
+        android:title="Button 6"
+        android:key="pref_key_Button6_settings">  
+             
+        <EditTextPreference
+            android:dialogTitle="Button 6 Text"
+            android:key="pref_Button6Text"
+            android:summary="PID OFF"
+            android:title="Button 6 Text"
+            android:defaultValue="PID OFF" />
+            		
+	       <EditTextPreference
+            android:dialogTitle="Button 6 Command"
+            android:key="pref_Button6Command"
+            android:summary="PID;OFF"
+            android:title="Button 6 Command"
+            android:defaultValue="PID;OFF" />
+	       
+ 		</PreferenceCategory>
+        
+ 		<PreferenceCategory 
+        android:title="Button 7"
+        android:key="pref_key_Button7_settings">  
+             
+        <EditTextPreference
+            android:dialogTitle="Button 7 Text"
+            android:key="pref_Button7Text"
+            android:summary="Htr OFF"
+            android:title="Button 7 Text"
+            android:defaultValue="Htr OFF" />
+            		
+	       <EditTextPreference
+            android:dialogTitle="Button 7 Command"
+            android:key="pref_Button7Command"
+            android:summary="OT1;0"
+            android:title="Button 7 Command"
+            android:defaultValue="OT1;0" />
+	       
+ 		</PreferenceCategory>
+       
+ 		<PreferenceCategory 
+        android:title="Button 9"
+        android:key="pref_key_Button9_settings">  
+                        		
+	       <EditTextPreference
+            android:dialogTitle="Button 9 Command"
+            android:key="pref_Button9Command"
+            android:summary="PID;GO"
+            android:title="Button 9 Command"
+            android:defaultValue="PID;GO" />
+	       
+ 		</PreferenceCategory>
+       
+  		<PreferenceCategory 
+        android:title="Button 10"
+        android:key="pref_key_Button10_settings">  
+                        		
+	       <EditTextPreference
+            android:dialogTitle="Button 10 Command"
+            android:key="pref_Button10Command"
+            android:summary="PID;STOP"
+            android:title="Button 10 Command"
+            android:defaultValue="PID;STOP" />
+	       
+ 		</PreferenceCategory>
+       
+ 				
+    </PreferenceScreen>
+        
+</PreferenceScreen>

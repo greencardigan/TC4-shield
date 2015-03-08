@@ -43,44 +43,19 @@
     <string name="menu_settings">Settings</string>
     <string name="title_activity_graph">GraphActivity</string>
 
+    <string name="title_activity_settings">Settings</string>
     
-    <string name="graph_button_text">Graph</string>
-    
-    <string name="button_1_text">Fan UP</string>
-    <string name="button_1_cmd">OT2;UP</string>
-    
-    <string name="button_2_text">Fan DOWN</string>
-    <string name="button_2_cmd">OT2;DOWN</string>
-       
-    <string name="button_3_text">Fan OFF</string>
-    <string name="button_3_cmd">OT2;0</string>
-    
-    <string name="button_4_text">Profile 2</string>
-    <string name="button_4_cmd">PID;P2</string>
-    
-    <string name="button_5_text">PID ON</string>
-    <string name="button_5_cmd">PID;ON</string>
-    
-	<string name="button_6_text">PID OFF</string>
-    <string name="button_6_cmd">PID;OFF</string>
-    
-    <string name="button_7_text">Htr OFF</string>
-    <string name="button_7_cmd">OT1;0</string>
+    <string name="pref_ReadInterval">Read Interval</string>
+    <string name="pref_readInterval_default">1</string>
     
     <string name="button_8_text1">FC Start</string>
     <string name="button_8_text2">FC End</string>
     <string name="button_8_text3">SC Start</string>
-      
-    <string name="button_9_text">START Roast</string>
-    <string name="button_9_cmd">PID;GO</string>
     
-    <string name="button_10_text">STOP Roast</string>
-    <string name="button_10_cmd">PID;STOP</string>
-    
-    <string name="button_11_text">START Log</string>
-<!--    <string name="button_11_cmd">Start Log</string> -->  
-    
-    <string name="button_12_text">STOP Log</string>
- <!--  <string name="button_12_cmd">RESET</string>  --> 
-    
+    <string name="button_9_text">Start Roast</string>
+    <string name="button_10_text">End Roast</string>
+    <string name="button_11_text">Start Log</string>
+    <string name="button_12_text">End Log</string>
+        
+
 </resources>
