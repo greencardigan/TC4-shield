@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 4_3"
+#define BANNER_ARTISAN "aArtisanQ_PID 5_0"
 
 // Revision history:
 // 20110408 Created.
@@ -109,9 +109,14 @@
 //          Added support for Roastlogger roasting software (responds to LOAD, POWER and FAN commands. Sends rorT1=, T1=, rorT2=, T2= and power levels to roastlogger)
 // 20140128 Improved handling of heater and fan power limits
 // 20140213 aArtisanQ_PID release 4_2
-// 20140214 Added option in useh.h to define software mode (Artisan, Roastlogger or pBourbon)
+// 20140214 Added option in user.h to define software mode (Artisan, Roastlogger or pBourbon)
 //          Fixed? bug causing crashes when receiving READ commands
 // 20140214 aArtisanQ_PID release 4_3
+// 20150328 Replaced pBourbon option with Android option
+//          Bug fix in LCD menu code.  Menu code disabled when not roasting stand alone
+//          Changed default PID channel to 0
+//          Added SV to values sent to Android app
+// 20150328 aArtisanQ_PID release 5_0
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -204,7 +209,7 @@ uint32_t checktime;
 #endif
 
 boolean artisan_logger = false;
-//boolean pBourbon = false; // set initial state for pBourbon flag
+//boolean ANDROID = false; // set initial state for ANDROID flag
 //boolean roastlogger = false; // set initial state for roastlogger flag
 uint32_t counter; // second counter
 uint32_t next_loop_time; // 
@@ -284,7 +289,9 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
   while( millis() < tod + ms ) {
     checkSerial();
     #ifdef LCDAPTER
-      checkButtons();
+      #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID )
+        checkButtons();
+      #endif
     #endif
   }
 }
@@ -333,7 +340,7 @@ void logger() {
     uint8_t k = actv[jj];
     if( k > 0 ) {
       --k;
-      Serial.print("rorT");
+      Serial.print(F("rorT"));
       Serial.print(k+1);
       Serial.print("=");
       Serial.println( RoR[k], DP );
@@ -343,18 +350,19 @@ void logger() {
       Serial.println( convertUnits( T[k] ) );
     }
   }
-  Serial.print("Power%=");
+  Serial.print(F("Power%="));
   if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
     Serial.println( 0 );
   }
   else {  
     Serial.println( levelOT1 );
   }
-  Serial.print("Fan=");
+  Serial.print(F("Fan="));
   Serial.println( levelOT2 );
 #endif
 
-#ifdef PBOURBON
+
+#ifdef ANDROID
 
   // print counter
   Serial.print( counter );
@@ -385,7 +393,13 @@ void logger() {
   Serial.print(",");
   Serial.print( levelOT2 );
   #endif  
-    
+  
+  #ifdef PID_CONTROL
+  Serial.print(",");
+  Serial.print( Setpoint );
+
+  #endif
+  
   Serial.println();
 
 #endif
@@ -911,6 +925,17 @@ void setup()
   BACKLIGHT;
   lcd.setCursor( 0, 0 );
   lcd.print( BANNER_ARTISAN ); // display version banner
+  lcd.setCursor( 0, 1 );
+#ifdef ANDROID
+  lcd.print( F("ANDROID") ); // display version banner
+#endif // ANDROID
+#ifdef ARTISAN
+  lcd.print( F("ARTISAN") ); // display version banner
+#endif // ANDROID
+#ifdef ROASTLOGGER
+  lcd.print( F("ROASTLOGGER") ); // display version banner
+#endif // ANDROID
+  
 #endif // LCD
 
 #ifdef LCDAPTER
@@ -1057,10 +1082,10 @@ void loop()
   #ifdef LCD
     updateLCD();
   #endif
-  #if defined ROASTLOGGER || defined PBOURBON
-    logger(); // send data every second to pBourbon
+  #if defined ROASTLOGGER
+    logger(); // send data every second to ANDROID
   #endif
-  #if defined ARTISAN
+  #if defined ARTISAN || defined ANDROID
     if( artisan_logger == true ) {
       artisan_logger = false;
       logger();
@@ -1069,7 +1094,9 @@ void loop()
 //  Serial.println( next_loop_time - millis() ); // how much time spare in loop. approx 350ms
   while( millis() < next_loop_time ) {
   #ifdef LCDAPTER
-    checkButtons();
+    #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID )
+      checkButtons();
+    #endif
   #endif
   }
   next_loop_time = next_loop_time + 1000; // add 1 second until next loop
