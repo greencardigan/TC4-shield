@@ -387,7 +387,13 @@ void logger() {
   Serial.print(",");
   Serial.print( levelOT2 );
   #endif  
-    
+  
+  #ifdef PID_CONTROL
+  Serial.print(",");
+  Serial.print( Setpoint );
+
+  #endif
+  
   Serial.println();
 
 #endif
