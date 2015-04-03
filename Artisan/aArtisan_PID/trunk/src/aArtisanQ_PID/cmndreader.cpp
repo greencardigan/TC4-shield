@@ -90,9 +90,9 @@ boolean dwriteCmnd::doCommand( CmndParser* pars ) {
           pinMode( pinID, OUTPUT );
           digitalWrite( pinID, HIGH );
           #ifdef ACKS_ON
-          Serial.print("# Pin A");
+          Serial.print(F("# Pin A"));
           Serial.print( (int) dpin );
-          Serial.println(" set to HIGH");
+          Serial.println(F(" set to HIGH"));
           #endif
          }
         else if( strcmp( pars->paramStr(2), "LOW" ) == 0 ) {
@@ -101,9 +101,9 @@ boolean dwriteCmnd::doCommand( CmndParser* pars ) {
           pinMode( pinID, OUTPUT );
           digitalWrite( dpin, LOW );
           #ifdef ACKS_ON
-          Serial.print("# Pin A");
+          Serial.print(F("# Pin A"));
           Serial.print( (int) dpin );
-          Serial.println(" set to LOW");
+          Serial.println(F(" set to LOW"));
           #endif
         }
         return true;
@@ -120,15 +120,15 @@ boolean dwriteCmnd::doCommand( CmndParser* pars ) {
           #ifdef ACKS_ON
           Serial.print("# Pin D");
           Serial.print( (int) dpin );
-          Serial.println(" set to HIGH");
+          Serial.println(F(" set to HIGH"));
           #endif
          }
         else if( strcmp( pars->paramStr(2), "LOW" ) == 0 ) {
           digitalWrite( dpin, LOW );
           #ifdef ACKS_ON
-          Serial.print("# Pin D");
+          Serial.print(F("# Pin D"));
           Serial.print( (int) dpin );
-          Serial.println(" set to LOW");
+          Serial.println(F(" set to LOW"));
           #endif
         }
       }
@@ -166,9 +166,9 @@ boolean awriteCmnd::doCommand( CmndParser* pars ) {
       level = atoi( pars->paramStr(2) );
       analogWrite( apin, level );
       #ifdef ACKS_ON
-      Serial.print("# Analog (PWM) ");
+      Serial.print(F("# Analog (PWM) "));
       Serial.print( pars->paramStr(1) );
-      Serial.print(" output level set to "); Serial.println( level );
+      Serial.print(F(" output level set to ")); Serial.println( level );
       #endif
       }
     return true;
@@ -222,7 +222,7 @@ boolean chanCmnd::doCommand( CmndParser* pars ) {
           actv[i] = 0;
       }
       // #ifdef ACKS_ON
-      Serial.print("# Active channels set to ");
+      Serial.print(F("# Active channels set to "));
       Serial.println( pars->paramStr(1) );
       // #endif
 #ifdef PLOT_POWER
@@ -254,7 +254,7 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
       if( levelOT1 < MIN_OT1 ) levelOT1 = MIN_OT1; // don't allow OT1 to turn on less than minimum
       output_level_icc( levelOT1 );
       #ifdef ACKS_ON
-      Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
+      Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
       #endif
       return true;
     }
@@ -263,7 +263,7 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
       if( levelOT1 < MIN_OT1 & levelOT1 != 0 ) levelOT1 = 0; // turn ot1 off if trying to go below minimum. or use levelOT1 = MIN_OT1 ?
       output_level_icc( levelOT1 );
       #ifdef ACKS_ON
-      Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
+      Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
       #endif
       return true;
     }
@@ -276,7 +276,7 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
   //      ssr.Out( levelOT1, levelOT2 );
         output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
         #ifdef ACKS_ON
-        Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
+        Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
         #endif
       }
       return true;
@@ -304,7 +304,7 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
       if( levelOT2 < MIN_OT2 ) levelOT2 = MIN_OT2; // don't allow OT2 to turn on less than minimum
       output_level_pac( levelOT2 );
       #ifdef ACKS_ON
-      Serial.print("# OT2 level set to "); Serial.println( levelOT2 );
+      Serial.print(F("# OT2 level set to ")); Serial.println( levelOT2 );
       #endif
       return true;
     }
@@ -313,7 +313,7 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
       if( levelOT2 < MIN_OT2 & levelOT2 != 0 ) levelOT2 = 0;  // turn off if selecting less than minimum. or use levelOT2 = MIN_OT2 ?
       output_level_pac( levelOT2 );
       #ifdef ACKS_ON
-      Serial.print("# OT2 level set to "); Serial.println( levelOT2 );
+      Serial.print(F("# OT2 level set to ")); Serial.println( levelOT2 );
       #endif
       return true;
     }
@@ -326,7 +326,7 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
   //      ssr.Out( levelOT1, levelOT2 );
         output_level_pac( levelOT2 );
         #ifdef ACKS_ON
-        Serial.print("# OT2 level set to "); Serial.println( levelOT2 );
+        Serial.print(F("# OT2 level set to ")); Serial.println( levelOT2 );
         #endif
       }
       return true;
@@ -355,7 +355,7 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
       float pow = 2.55 * levelIO3;
       analogWrite( IO3, round( pow ) );
       #ifdef ACKS_ON
-      Serial.print("# IO3 level set to "); Serial.println( levelIO3 );
+      Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );
       #endif
     }
     return true;
@@ -379,14 +379,14 @@ boolean unitsCmnd::doCommand( CmndParser* pars ) {
     if( strcmp( pars->paramStr(1), "F" ) == 0 ) {
       Cscale = false;
       #ifdef ACKS_ON
-      Serial.println("# Changed units to F");
+      Serial.println(F("# Changed units to F"));
       #endif
       return true;
     }
     else if( strcmp( pars->paramStr(1), "C" ) == 0 ) {
       Cscale = true;
       #ifdef ACKS_ON
-      Serial.println("# Changed units to C");
+      Serial.println(F("# Changed units to C"));
       #endif
       return true;
     }
@@ -453,7 +453,7 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       #ifdef PID_CONTROL
         myPID.SetMode(1);
         #ifdef ACKS_ON
-        Serial.println("# PID turned ON");
+        Serial.println(F("# PID turned ON"));
         #endif
       #endif
       return true;
@@ -462,7 +462,7 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       #ifdef PID_CONTROL
         myPID.SetMode(0);
         #ifdef ACKS_ON
-        Serial.println("# PID turned OFF");
+        Serial.println(F("# PID turned OFF"));
         #endif
       #endif
       return true;
@@ -470,7 +470,7 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
     else if( strcmp( pars->paramStr(1), "TIME" ) == 0 ) {
       counter = 0; // reset TC4 timer
       #ifdef ACKS_ON
-      Serial.println("# PID time reset");
+      Serial.println(F("# PID time reset"));
       #endif
       return true;
     }
@@ -479,7 +479,7 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
         counter = 0; // reset TC4 timer
         myPID.SetMode(1); // turn PID on
         #ifdef ACKS_ON
-        Serial.println("# PID Roast Start");
+        Serial.println(F("# PID Roast Start"));
         #endif
       #endif
       return true;
@@ -492,7 +492,7 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
         levelOT2 = OT2_AUTO_COOL;
         output_level_pac( levelOT2 ); // Set fan to auto cool level
         #ifdef ACKS_ON
-        Serial.println("# PID Roast Stop");
+        Serial.println(F("# PID Roast Stop"));
         #endif
       #endif
       return true;
@@ -502,9 +502,9 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       profile_number = atoi( pars->paramStr(1) + 1 );
       setProfile();
       #ifdef ACKS_ON
-      Serial.print("# Profile number ");
+      Serial.print(F("# Profile number "));
       Serial.print( profile_number );
-      Serial.println(" selected");
+      Serial.println(F(" selected"));
       #endif
       #endif
       return true;
@@ -517,11 +517,19 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       kd = atof( pars->paramStr(4) );
       myPID.SetTunings( kp, ki, kd );
       #ifdef ACKS_ON
-      Serial.print("# PID Tunings set.  "); Serial.print("Kp = "); Serial.print(kp); Serial.print(",  Ki = "); Serial.print(ki); Serial.print(",  Kd = "); Serial.println(kd);
+      Serial.print(F("# PID Tunings set.  ")); Serial.print(F("Kp = ")); Serial.print(kp); Serial.print(F(",  Ki = ")); Serial.print(ki); Serial.print(F(",  Kd = ")); Serial.println(kd);
       #endif
       #endif
       return true;
     }
+    else if( strcmp( pars->paramStr(1), "SV" ) == 0 ) {
+      SV = atof( pars->paramStr(2) );
+      #ifdef ACKS_ON
+      Serial.print(F("# PID setpoint = ")); Serial.println(Setpoint);
+      #endif
+      return true;
+    }
+
   }
   else {
     return false;
@@ -541,7 +549,7 @@ boolean resetCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     //pBourbon = true;
     counter = 0;
-    Serial.println( "# Reset" ); // respond to pBourbon reset command
+    Serial.println( F("# Reset" )); // respond to pBourbon reset command
     return true;
   }
   else {
@@ -588,7 +596,7 @@ boolean powerCmnd::doCommand( CmndParser* pars ) {
       //ssr.Out( levelOT1, levelOT2 );
       output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
       #ifdef ACKS_ON
-      Serial.print("# OT1 level set to "); Serial.println( levelOT1 );
+      Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
       #endif
     }
     return true;
@@ -618,7 +626,7 @@ boolean fanCmnd::doCommand( CmndParser* pars ) {
       //ssr.Out( levelOT1, levelOT2 );
       output_level_pac( levelOT2 );
       #ifdef ACKS_ON
-      Serial.print("# OT2 level set to "); Serial.println( levelOT2 );
+      Serial.print(F("# OT2 level set to ")); Serial.println( levelOT2 );
       #endif
     }
     return true;

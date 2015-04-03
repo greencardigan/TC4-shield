@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 5_0"
+#define BANNER_ARTISAN "aArtisanQ_PID 5_1"
 
 // Revision history:
 // 20110408 Created.
@@ -117,6 +117,9 @@
 //          Changed default PID channel to 0
 //          Added SV to values sent to Android app
 // 20150328 aArtisanQ_PID release 5_0
+// 20150403 Added PID;SV command from aArtisan
+//          Changed default PID roast profile to 0 when using logging software
+//          Reduced SRAM usage
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -191,7 +194,7 @@ uint32_t checktime;
   #include <PID_v1.h>
 
   //Define PID Variables we'll be connecting to
-  double Setpoint, Input, Output;
+  double Setpoint, Input, Output, SV; // SV is for roasting software override of Setpoint
 
   //Specify the links and initial tuning parameters
   PID myPID(&Input, &Output, &Setpoint,2,5,1, DIRECT);
@@ -275,9 +278,9 @@ void checkSerial() {
     lcd.print( result );
     #endif
     #ifdef MEMORY_CHK
-    Serial.print("# freeMemory()=");
+    Serial.print(F("# freeMemory()="));
     Serial.print(freeMemory());
-    Serial.print("  ,  ");
+    Serial.print(F("  ,  "));
     Serial.println( result );
     #endif
   }
@@ -313,21 +316,21 @@ void logger() {
     uint8_t k = actv[jj];
     if( k > 0 ) {
       --k;
-      Serial.print(",");
+      Serial.print(F(","));
       Serial.print( convertUnits( T[k] ) );
 
     }
   }
     
   #ifdef PLOT_POWER
-  Serial.print(",");
+  Serial.print(F(","));
   if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
     Serial.print( 0 );
   }
   else {  
     Serial.print( levelOT1 );
   }
-  Serial.print(",");
+  Serial.print(F(","));
   Serial.print( levelOT2 );
   #endif  
     
@@ -342,11 +345,11 @@ void logger() {
       --k;
       Serial.print(F("rorT"));
       Serial.print(k+1);
-      Serial.print("=");
+      Serial.print(F("="));
       Serial.println( RoR[k], DP );
-      Serial.print("T");
+      Serial.print(F("T"));
       Serial.print(k+1);
-      Serial.print("=");
+      Serial.print(F("="));
       Serial.println( convertUnits( T[k] ) );
     }
   }
@@ -366,7 +369,7 @@ void logger() {
 
   // print counter
   Serial.print( counter );
-  Serial.print( "," );
+  Serial.print( F(",") );
 
   // print ambient
   Serial.print( convertUnits( AT ), DP );
@@ -375,27 +378,27 @@ void logger() {
     uint8_t k = actv[jj];
     if( k > 0 ) {
       --k;
-      Serial.print(",");
+      Serial.print(F(","));
       Serial.print( convertUnits( T[k] ) );
-      Serial.print(",");
+      Serial.print(F(","));
       Serial.print( RoR[k], DP );
     }
   }
     
   #ifdef PLOT_POWER
-  Serial.print(",");
+  Serial.print(F(","));
   if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
     Serial.print( 0 );
   }
   else {  
     Serial.print( levelOT1 );
   }
-  Serial.print(",");
+  Serial.print(F(","));
   Serial.print( levelOT2 );
   #endif  
   
   #ifdef PID_CONTROL
-  Serial.print(",");
+  Serial.print(F(","));
   Serial.print( Setpoint );
 
   #endif
@@ -463,14 +466,14 @@ void updateLCD() {
   if( LCD_mode == 0 ) { // Display normal LCD screen
   
     lcd.setCursor(0,0);  
-    if(counter/60 < 10) lcd.print("0"); lcd.print(counter/60); // Prob can do this better. Check aBourbon.
-    lcd.print(":"); // make this blink?? :)
-    if(counter - (counter/60)*60 < 10) lcd.print("0"); lcd.print(counter - (counter/60)*60);
+    if(counter/60 < 10) lcd.print(F("0")); lcd.print(counter/60); // Prob can do this better. Check aBourbon.
+    lcd.print(F(":")); // make this blink?? :)
+    if(counter - (counter/60)*60 < 10) lcd.print(F("0")); lcd.print(counter - (counter/60)*60);
     
   #ifdef LCD_4x20
   
   #ifdef COMMAND_ECHO
-    lcd.print(" "); // overwrite artisan commands
+    lcd.print(F(" ")); // overwrite artisan commands
   #endif
   
     // display the first 2 active channels encountered, normally BT and ET
@@ -489,11 +492,11 @@ void updateLCD() {
         sprintf( st1, "%4d", it01 );
         if( j == 1 ) {
           lcd.setCursor( 13, 0 );
-          lcd.print("ET:");
+          lcd.print(F("ET:"));
         }
         else {
           lcd.setCursor( 13, 1 );
-          lcd.print( "BT:" );
+          lcd.print( F("BT:") );
         }
         lcd.print(st1);  
       }
@@ -507,40 +510,40 @@ void updateLCD() {
       if( it01 < -999 ) it01 = -999;
     sprintf( st1, "%3d", it01 );
     lcd.setCursor( 6, 0 );
-    lcd.print("AT:");
+    lcd.print(F("AT:"));
     lcd.print(st1);
     
   #ifdef PID_CONTROL
     if( myPID.GetMode() != MANUAL ) { // if PID is on then display PID: nnn% instead of OT1:
       lcd.setCursor( 0, 2 );
-      lcd.print( "PID:" );
+      lcd.print( F("PID:") );
       if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
       sprintf( st1, "%4d", (int)0 );     
       }
       else {
         sprintf( st1, "%4d", (int)levelOT1 );
       }
-      lcd.print( st1 ); lcd.print("%");
+      lcd.print( st1 ); lcd.print(F("%"));
       
       lcd.setCursor( 13, 2 ); // display setpoint if PID is on
-      lcd.print( "SP:" );
+      lcd.print( F("SP:") );
       sprintf( st1, "%4d", (int)Setpoint );
       lcd.print( st1 );
     }
     else {
   #ifdef ANALOGUE1
       lcd.setCursor( 13, 2 );
-      lcd.print("       "); // blank out SP: nnn if PID is off
+      lcd.print(F("       ")); // blank out SP: nnn if PID is off
   #else
       lcd.setCursor( 0, 2 );
-      lcd.print("                    "); // blank out PID: nnn% and SP: nnn if PID is off and ANALOGUE1 isn't defined
+      lcd.print(F("                    ")); // blank out PID: nnn% and SP: nnn if PID is off and ANALOGUE1 isn't defined
   #endif // end ifdef ANALOGUE1
     }
   #endif // end ifdef PID_CONTROL
   
     // RoR
     lcd.setCursor( 0, 1 );
-    lcd.print( "RoR:");
+    lcd.print( F("RoR:"));
     sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
     lcd.print( st1 );
   
@@ -549,40 +552,40 @@ void updateLCD() {
   #ifdef PID_CONTROL
     if( myPID.GetMode() == MANUAL ) { // only display OT2: nnn% if PID is off so PID display isn't overwriten
       lcd.setCursor( 0, 2 );
-      lcd.print("OT1:");
+      lcd.print(F("OT1:"));
       if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
       sprintf( st1, "%4d", (int)0 );     
       }
       else {
         sprintf( st1, "%4d", (int)levelOT1 );
       }
-      lcd.print( st1 ); lcd.print("%");
+      lcd.print( st1 ); lcd.print(F("%"));
     }
       
   #else // if PID_CONTROL isn't defined then always display OT1: nnn%
       lcd.setCursor( 0, 2 );
-      lcd.print("OT1:");
+      lcd.print(F("OT1:"));
       if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
       sprintf( st1, "%4d", (int)0 );     
       }
       else {
         sprintf( st1, "%4d", (int)levelOT1 );
       }
-      lcd.print( st1 ); lcd.print("%");
+      lcd.print( st1 ); lcd.print(F("%"));
   #endif // end ifdef PID_CONTROL
   #endif // end ifdef ANALOGUE1
   
   #ifdef ANALOGUE2
     lcd.setCursor( 0, 3 );
-    lcd.print("OT2:");
+    lcd.print(F("OT2:"));
     sprintf( st1, "%4d", (int)levelOT2 );
-    lcd.print( st1 ); lcd.print("%");
+    lcd.print( st1 ); lcd.print(F("%"));
   #endif
   
   #else // if not def LCD_4x20 ie if using a standard 2x16 LCD
   
   #ifdef COMMAND_ECHO
-    lcd.print("    "); // overwrite artisan commands
+    lcd.print(F("    ")); // overwrite artisan commands
   #endif
   
     // display the first 2 active channels encountered, normally BT and ET
@@ -601,11 +604,11 @@ void updateLCD() {
         sprintf( st1, "%4d", it01 );
         if( j == 1 ) {
           lcd.setCursor( 9, 0 );
-          lcd.print("ET:");
+          lcd.print(F("ET:"));
         }
         else {
           lcd.setCursor( 9, 1 );
-          lcd.print( "BT:" );
+          lcd.print( F("BT:") );
         }
         lcd.print(st1);  
       }
@@ -615,25 +618,25 @@ void updateLCD() {
     if( myPID.GetMode() != MANUAL ) {
       lcd.setCursor( 0, 1 );
       if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
-        lcd.print( "  0" );
+        lcd.print( F("  0") );
       }
       else {
         sprintf( st1, "%3d", (int)levelOT1 );
         lcd.print( st1 );
       }
-      lcd.print("%");
+      lcd.print(F("%"));
       sprintf( st1, "%4d", (int)Setpoint );
       lcd.print(st1);  
     }
     else {
       lcd.setCursor( 0, 1 );
-      lcd.print( "RoR:");
+      lcd.print( F("RoR:"));
       sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
       lcd.print( st1 );
     }
   #else
       lcd.setCursor( 0, 1 );
-      lcd.print( "RoR:");
+      lcd.print( F("RoR:"));
       sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
       lcd.print( st1 );
   #endif // end ifdef PID_CONTROL
@@ -641,7 +644,7 @@ void updateLCD() {
   #ifdef ANALOGUE1
     if( analogue1_changed == true ) { // overwrite RoR or PID values
       lcd.setCursor( 0, 1 );
-      lcd.print("OT1:     ");
+      lcd.print(F("OT1:     "));
       lcd.setCursor( 4, 1 );
       if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
         sprintf( st1, "%3d", (int)0 );     
@@ -649,16 +652,16 @@ void updateLCD() {
       else {
         sprintf( st1, "%3d", (int)levelOT1 );
       }
-      lcd.print( st1 ); lcd.print("%");
+      lcd.print( st1 ); lcd.print(F("%"));
     }
   #endif //ifdef ANALOGUE1
   #ifdef ANALOGUE2
     if( analogue2_changed == true ) { // overwrite RoR or PID values
       lcd.setCursor( 0, 1 );
-      lcd.print("OT2:     ");
+      lcd.print(F("OT2:     "));
       lcd.setCursor( 4, 1 );
       sprintf( st1, "%3d", (int)levelOT2 );
-      lcd.print( st1 ); lcd.print("%");
+      lcd.print( st1 ); lcd.print(F("%"));
     }
   #endif // end ifdef ANALOGUE2
   
@@ -683,7 +686,7 @@ void updateLCD() {
       if( profile_description[i] != 0 ) lcd.print( profile_description[i] );
     }
     lcd.setCursor( 0, 3 );
-    lcd.print("PID: "); lcd.print( myPID.GetKp() ); lcd.print(","); lcd.print( myPID.GetKi() ); lcd.print(","); lcd.print( myPID.GetKd() ); 
+    lcd.print(F("PID: ")); lcd.print( myPID.GetKp() ); lcd.print(F(",")); lcd.print( myPID.GetKi() ); lcd.print(F(",")); lcd.print( myPID.GetKd() ); 
 
   #else // if not def LCD_4x20 ie if using a standard 2x16 LCD
     lcd.setCursor( 0, 0 );
@@ -691,7 +694,7 @@ void updateLCD() {
       if( profile_name[i] != 0 ) lcd.print( profile_name[i] );
     }
     lcd.setCursor( 0, 1 );
-    lcd.print("P:"); lcd.print( myPID.GetKp() ); lcd.print(","); lcd.print( myPID.GetKi() ); lcd.print(","); lcd.print( myPID.GetKd() ); 
+    lcd.print(F("P:")); lcd.print( myPID.GetKp() ); lcd.print(F(",")); lcd.print( myPID.GetKi() ); lcd.print(F(",")); lcd.print( myPID.GetKd() ); 
   #endif // end ifdef LCD_4x20
   #endif // end ifdef PID_CONTROL
   }
@@ -772,60 +775,69 @@ void readAnlg2() { // read analog port 2 and adjust OT2 output
 #ifdef PID_CONTROL
 // ---------------------------------
 void updateSetpoint() { //read profile data from EEPROM and calculate new setpoint
-
-  while( counter < times[0] || counter >= times[1] ) { // if current time outside currently loaded interval then adjust profile pointer before reading new interval data from EEPROM
-    if( counter < times[0] ) {
-      profile_ptr = profile_ptr - 2; // two bytes per int
-    }
-    else {
-      profile_ptr = profile_ptr + 2; // two bytes per int
-    }
-
-    eeprom.read( profile_ptr, (uint8_t*)&times, sizeof(times) ); // read two profile times
-    eeprom.read( profile_ptr + 100, (uint8_t*)&temps, sizeof(temps) ); // read two profile temps.  100 = size of time data
-    
-    if( times[1] == 0 ) {
-      Setpoint = 0;
-      myPID.SetMode(MANUAL); // deactivate PID control
-      Output = 0; // set PID output to 0
-      break;
-    }
-  }
   
-  float x = (float)( counter - times[0] ) / (float)( times[1] - times[0] ); // can probably be tidied up?? Calcs proportion of time through current profile interval
-  Setpoint = temps[0] + x * ( temps[1] - temps[0] );  // then applies the proportion to the temps
-  if( profile_CorF == 'F' && Cscale ) { // make setpoint units match current units
-    Setpoint = convertUnits( Setpoint ); // convert F to C
+  if(profile_number > 0 ){
+    while( counter < times[0] || counter >= times[1] ) { // if current time outside currently loaded interval then adjust profile pointer before reading new interval data from EEPROM
+      if( counter < times[0] ) {
+        profile_ptr = profile_ptr - 2; // two bytes per int
+      }
+      else {
+        profile_ptr = profile_ptr + 2; // two bytes per int
+      }
+  
+      eeprom.read( profile_ptr, (uint8_t*)&times, sizeof(times) ); // read two profile times
+      eeprom.read( profile_ptr + 100, (uint8_t*)&temps, sizeof(temps) ); // read two profile temps.  100 = size of time data
+      
+      if( times[1] == 0 ) {
+        Setpoint = 0;
+        myPID.SetMode(MANUAL); // deactivate PID control
+        Output = 0; // set PID output to 0
+        break;
+      }
+    }
+    
+    float x = (float)( counter - times[0] ) / (float)( times[1] - times[0] ); // can probably be tidied up?? Calcs proportion of time through current profile interval
+    Setpoint = temps[0] + x * ( temps[1] - temps[0] );  // then applies the proportion to the temps
+    if( profile_CorF == 'F' && Cscale ) { // make setpoint units match current units
+      Setpoint = convertUnits( Setpoint ); // convert F to C
+    }
+    else if( profile_CorF == 'C' & !Cscale) { // make setpoint units match current units
+      Setpoint = Setpoint * 9 / 5 + 32; // convert C to F
+    }
   }
-  else if( profile_CorF == 'C' & !Cscale) { // make setpoint units match current units
-    Setpoint = Setpoint * 9 / 5 + 32; // convert C to F
+  else {
+    Setpoint = SV;
   }
 }
 
 
 void setProfile() { // set profile pointer and read initial profile data
 
-  profile_ptr = 1024 + ( 400 * ( profile_number - 1 ) ) + 4; // 1024 = start of profile storage in EEPROM. 400 = size of each profile. 4 = location of profile C or F data
-  eeprom.read( profile_ptr, (uint8_t*)&profile_CorF, sizeof(profile_CorF) ); // read profile temp type
-  
-  getProfileDescription(profile_number); // read profile name and description data from eeprom for active profile number
-  
-  profile_ptr = 1024 + ( 400 * ( profile_number - 1 ) ) + 125; // 1024 = start of profile storage in EEPROM. 400 = size of each profile. 125 = size of profile header data
-  eeprom.read( profile_ptr, (uint8_t*)&times, sizeof(times) ); // read 1st two profile times
-  eeprom.read( profile_ptr + 100, (uint8_t*)&temps, sizeof(temps) ); // read 1st two profile temps.  100 = size of time data
-  
-  // profile_ptr is left set for profile temp/time reads
-  
+  if( profile_number > 0 ) {
+    profile_ptr = 1024 + ( 400 * ( profile_number - 1 ) ) + 4; // 1024 = start of profile storage in EEPROM. 400 = size of each profile. 4 = location of profile C or F data
+    eeprom.read( profile_ptr, (uint8_t*)&profile_CorF, sizeof(profile_CorF) ); // read profile temp type
+    
+    getProfileDescription(profile_number); // read profile name and description data from eeprom for active profile number
+    
+    profile_ptr = 1024 + ( 400 * ( profile_number - 1 ) ) + 125; // 1024 = start of profile storage in EEPROM. 400 = size of each profile. 125 = size of profile header data
+    eeprom.read( profile_ptr, (uint8_t*)&times, sizeof(times) ); // read 1st two profile times
+    eeprom.read( profile_ptr + 100, (uint8_t*)&temps, sizeof(temps) ); // read 1st two profile temps.  100 = size of time data
+    
+    // profile_ptr is left set for profile temp/time reads
+  }
+  //else //do something?
 }
 
 void getProfileDescription(int pn) { // read profile name and description data from eeprom
-  
-  int pp = 1024 + ( 400 * ( pn - 1 ) ) + 5; // 1024 = start of profile storage in EEPROM. 400 = size of each profile. 5 = location of profile name
-  eeprom.read( pp, (uint8_t*)&profile_name, sizeof(profile_name) ); // read profile name  
 
-  pp = 1024 + ( 400 * ( pn - 1 ) ) + 45; // 1024 = start of profile storage in EEPROM. 400 = size of each profile. 45 = location of profile description
-  eeprom.read( pp, (uint8_t*)&profile_description, sizeof(profile_description) ); // read profile name  
+  if( profile_number > 0 ) {
+    int pp = 1024 + ( 400 * ( pn - 1 ) ) + 5; // 1024 = start of profile storage in EEPROM. 400 = size of each profile. 5 = location of profile name
+    eeprom.read( pp, (uint8_t*)&profile_name, sizeof(profile_name) ); // read profile name  
   
+    pp = 1024 + ( 400 * ( pn - 1 ) ) + 45; // 1024 = start of profile storage in EEPROM. 400 = size of each profile. 45 = location of profile description
+    eeprom.read( pp, (uint8_t*)&profile_description, sizeof(profile_description) ); // read profile name  
+  }
+   //else //do something? 
 }
 #endif // end ifdef PID_CONTROL
 
@@ -945,7 +957,7 @@ void setup()
 #endif
 
 #ifdef MEMORY_CHK
-  Serial.print("# freeMemory()=");
+  Serial.print(F("# freeMemory()="));
   Serial.println(freeMemory());
 #endif
 
@@ -1029,7 +1041,11 @@ void setup()
   myPID.SetControllerDirection(DIRECT); // set PID to be direct acting mode. Increase in output leads to increase in input
   myPID.SetTunings(PRO, INT, DER); // set initial PID tuning values
   myPID.SetMode(MANUAL); // start with PID control off
-  profile_number = 1; // set default profile
+#if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID )
+  profile_number = 1; // set default profile, 0 is for override by roasting software
+#else
+  profile_number = 0; // set default profile, 0 is for override by roasting software
+#endif
   profile_number_new = profile_number; 
   setProfile(); // read profile description initial time/temp data from eeprom and set profile_pointer
 #endif
@@ -1053,7 +1069,7 @@ void loop()
   #ifdef MEMORY_CHK  
     uint32_t now = millis();
     if( now - checktime > 1000 ) {
-      Serial.print("# freeMemory()=");
+      Serial.print(F("# freeMemory()="));
       Serial.println(freeMemory());
       checktime = now;
     }

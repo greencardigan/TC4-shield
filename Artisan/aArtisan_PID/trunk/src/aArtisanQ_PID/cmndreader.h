@@ -114,6 +114,7 @@ extern void setProfile();
 //extern boolean pBourbon;
 //extern boolean roastlogger;
 extern boolean artisan_logger;
+extern double SV;
 
 // class declarations for commands
 
