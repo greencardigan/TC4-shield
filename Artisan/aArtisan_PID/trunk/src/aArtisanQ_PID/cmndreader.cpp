@@ -444,6 +444,27 @@ pidCmnd::pidCmnd() :
   CmndBase( PID_CMD ) {
 }
 
+// turn PID on, reset Output to avoid reset windup
+void pidCmnd::pidON() {
+     Output = 0; // turn PID output off, otherwise Iterm accumulates (this looks like a bug in Brett's code)
+     myPID.SetMode( AUTOMATIC );
+      #ifdef ACKS_ON
+      Serial.println(F("# PID turned ON"));
+      #endif
+}
+
+// turn PID off, reset the output levels (we don't care about bumpless)
+void pidCmnd::pidOFF() {
+      Output = 0; // to make sure Iterm is not accumulated
+      myPID.SetMode( MANUAL );
+      //levelOT1 = 0; // turn off output at hardware level
+      //ssr.Out( levelOT1, levelOT2 );
+      output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
+      #ifdef ACKS_ON
+      Serial.println(F("# PID turned OFF"));
+      #endif
+}
+
 // execute the PID command
 // PID;ON\n ;OFF\n ;TIME\n ;Pddd\n ;T;ddd;ddd;ddd\n
 
@@ -451,19 +472,13 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     if( strcmp( pars->paramStr(1), "ON" ) == 0 ) {
       #ifdef PID_CONTROL
-        myPID.SetMode(1);
-        #ifdef ACKS_ON
-        Serial.println(F("# PID turned ON"));
-        #endif
+        pidON();
       #endif
       return true;
     }
     else if( strcmp( pars->paramStr(1), "OFF" ) == 0 ) {
       #ifdef PID_CONTROL
-        myPID.SetMode(0);
-        #ifdef ACKS_ON
-        Serial.println(F("# PID turned OFF"));
-        #endif
+        pidOFF();
       #endif
       return true;
     }
@@ -529,7 +544,21 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       #endif
       return true;
     }
-
+    else if( strcmp( pars->paramStr(1), "CT" ) == 0 ) {
+      uint16_t ct = atof( pars->paramStr(2) );
+      myPID.SetSampleTime( ct );
+      #ifdef ACKS_ON
+      Serial.print(F("# PID cycle (ms) = ")); Serial.println(ct);
+      #endif
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "CHAN" ) == 0 ) {
+      pid_chan = atoi( pars->paramStr(2) );
+      #ifdef ACKS_ON
+      Serial.print(F("# PID channel = ")); Serial.println(pid_chan);
+      #endif
+      return true;
+    }
   }
   else {
     return false;

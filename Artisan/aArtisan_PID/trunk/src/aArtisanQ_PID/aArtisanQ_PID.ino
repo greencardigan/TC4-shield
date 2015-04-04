@@ -198,6 +198,7 @@ uint32_t checktime;
 
   //Specify the links and initial tuning parameters
   PID myPID(&Input, &Output, &Setpoint,2,5,1, DIRECT);
+  uint8_t pid_chan = PID_CHAN; // identify PV and set default value from user.h
 
   int profile_number; // number of the profile for PID control
   int profile_ptr; // EEPROM pointer for profile data
@@ -1036,7 +1037,7 @@ void setup()
 #endif
 
 #ifdef PID_CONTROL
-  myPID.SetSampleTime(1000); // set sample time to 1 second
+  myPID.SetSampleTime(CT); // set sample time to 1 second
   myPID.SetOutputLimits(MIN_OT1, MAX_OT1); // set output limits to user defined limits
   myPID.SetControllerDirection(DIRECT); // set PID to be direct acting mode. Increase in output leads to increase in input
   myPID.SetTunings(PRO, INT, DER); // set initial PID tuning values
@@ -1088,10 +1089,18 @@ void loop()
   #endif
   #ifdef PID_CONTROL
     if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode calc new output and assign to OT1
-      Input = convertUnits( T[PID_CHAN] ); // using temp from this TC4 channel as PID input. use actv[?] instead of 0??
+      //Input = convertUnits( T[PID_CHAN] ); // using temp from this TC4 channel as PID input. use actv[?] instead of 0??
       updateSetpoint(); // read profile data from EEPROM and calculate new setpoint
+      uint8_t k = actv[pid_chan - 1];  // k = physical channel corresponding with logical channel
+      if( k != 0 ) --k; // adjust for 0-based array index
+      // Input is the SV for the PID algorithm
+      Input = convertUnits( T[k] );
       myPID.Compute();  // do PID calcs
       levelOT1 = Output; // update OT1 based on PID optput
+      #ifdef ACKS_ON
+      Serial.print(F("# PID input = " )); Serial.print( Input ); Serial.print(F("  "));
+      Serial.print(F("# PID output = " )); Serial.println( levelOT1 );
+      #endif
       output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
     }
   #endif

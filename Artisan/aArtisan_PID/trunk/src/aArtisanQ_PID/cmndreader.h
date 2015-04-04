@@ -115,6 +115,9 @@ extern void setProfile();
 //extern boolean roastlogger;
 extern boolean artisan_logger;
 extern double SV;
+extern double Output;
+extern uint8_t pid_chan;
+
 
 // class declarations for commands
 
@@ -182,6 +185,9 @@ class pidCmnd : public CmndBase {
   public:
     pidCmnd();
     virtual boolean doCommand( CmndParser* pars );
+    void pidOFF(); // puts PID in MANUAL mode, resets outputs
+    void pidON(); // puts PID in AUTOMATIC mode
+
 };
 
 class resetCmnd : public CmndBase {

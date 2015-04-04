@@ -42,6 +42,7 @@
 
 #define PID_CONTROL // if PID control is allowed to be activated
 #define PID_CHAN 0 // physical channel for PID input
+#define CT 1000 // default cycle time for the PID, in ms
 #define PRO 5.00 // initial proportional parameter
 #define INT 0.15 // initial integral parameter
 #define DER 0.00 // initial derivative parameter
