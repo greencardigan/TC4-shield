@@ -43,6 +43,9 @@
 #include <cmndproc.h>
 //#include <PWM16.h>
 
+#include <cADC.h>
+#include <PID_v1.h>
+
 #include "user.h"
 #include "phase_ctrl.h"
 #include "PID_v1.h"
@@ -64,6 +67,7 @@
 #define LOAD_CMD "LOAD" // Roastlogger LOAD command
 #define POWER_CMD "POWER" // Roastlogger POWER command
 #define FAN_CMD "FAN" // Roastlogger FAN command
+#define FILT_CMD "FILT" // runtime changes to digital filtering on input channels
 
 
 // forward declarations
@@ -82,6 +86,7 @@ class resetCmnd;
 class loadCmnd;
 class powerCmnd;
 class fanCmnd;
+class filtCmnd;
 
 // external declarations of class objects
 extern readCmnd reader;
@@ -99,6 +104,8 @@ extern resetCmnd reset;
 extern loadCmnd load;
 extern powerCmnd power;
 extern fanCmnd fan;
+extern filtCmnd filt;
+
 
 // extern declarations for functions, variables in the main program
 //extern PWM16 ssr;
@@ -117,7 +124,7 @@ extern boolean artisan_logger;
 extern double SV;
 extern double Output;
 extern uint8_t pid_chan;
-
+extern filterRC fT[NC]; // filters for logged ET, BT
 
 // class declarations for commands
 
@@ -187,7 +194,12 @@ class pidCmnd : public CmndBase {
     virtual boolean doCommand( CmndParser* pars );
     void pidOFF(); // puts PID in MANUAL mode, resets outputs
     void pidON(); // puts PID in AUTOMATIC mode
+};
 
+class filtCmnd : public CmndBase {
+  public:
+    filtCmnd();
+    virtual boolean doCommand( CmndParser* pars );
 };
 
 class resetCmnd : public CmndBase {

@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 5_1"
+#define BANNER_ARTISAN "aArtisanQ_PID 5_2"
 
 // Revision history:
 // 20110408 Created.
@@ -120,6 +120,11 @@
 // 20150403 Added PID;SV command from aArtisan
 //          Changed default PID roast profile to 0 when using logging software
 //          Reduced SRAM usage
+// 20150404 Added PID;CHAN PID;CT and FILT commands
+//          Added Heater, Fan and SV values to Artisan Logger if PID active
+//          Removed PLOT_POWER option. Send power levels and SV if PID is active for Artisan. Send all by default for Android
+// 20150409 Made loop time variable. Default = 1000ms (1s) but changes to 2000ms (2s) if needed for reading 4 temperature channels
+//          Adjusted Read command to match aArtisan. Runs logger() from command to provide immediate response to Artisan
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -212,12 +217,13 @@ uint32_t checktime;
 
 #endif
 
-boolean artisan_logger = false;
+//boolean artisan_logger = false;
 //boolean ANDROID = false; // set initial state for ANDROID flag
 //boolean roastlogger = false; // set initial state for roastlogger flag
 uint32_t counter; // second counter
 uint32_t next_loop_time; // 
 boolean first;
+uint32_t looptime = 1000;
 
 // class objects
 cADC adc( A_ADC ); // MCP3424
@@ -318,11 +324,29 @@ void logger() {
     if( k > 0 ) {
       --k;
       Serial.print(F(","));
-      Serial.print( convertUnits( T[k] ) );
+      Serial.print( convertUnits( T[k] ),DP );
 
     }
   }
-    
+
+// check to see if PID is running, and output additional values if true
+  if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode
+  Serial.print(F(","));
+  if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+      Serial.print( 0 );
+    }
+    else {  
+      Serial.print( levelOT1 );
+    }
+    Serial.print(F(","));
+    Serial.print( levelOT2 );
+    Serial.print(F(","));
+    Serial.print( Setpoint );
+  }  
+  Serial.println();
+
+
+/*    
   #ifdef PLOT_POWER
   Serial.print(F(","));
   if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
@@ -336,6 +360,7 @@ void logger() {
   #endif  
     
   Serial.println();
+*/
 
 #endif
 
@@ -386,7 +411,7 @@ void logger() {
     }
   }
     
-  #ifdef PLOT_POWER
+  //#ifdef PLOT_POWER
   Serial.print(F(","));
   if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
     Serial.print( 0 );
@@ -396,7 +421,7 @@ void logger() {
   }
   Serial.print(F(","));
   Serial.print( levelOT2 );
-  #endif  
+  //#endif  
   
   #ifdef PID_CONTROL
   Serial.print(F(","));
@@ -1025,6 +1050,7 @@ void setup()
   ci.addCommand( &load );
   ci.addCommand( &power );
   ci.addCommand( &fan );
+  ci.addCommand( &filt );
   
   pinMode( LED_PIN, OUTPUT );
 
@@ -1053,7 +1079,7 @@ void setup()
 
 first = true;
 counter = 3; // start counter at 3 to match with Artisan. Probably a better way to sync with Artisan???
-next_loop_time = millis() + 1000; // needed?? 
+next_loop_time = millis() + looptime; // needed?? 
 
 }
 
@@ -1075,8 +1101,14 @@ void loop()
       checktime = now;
     }
   #endif
-  checkSerial();  // Has a command been received?
+  
+  // Has a command been received?
+  checkSerial();
+  
+  // Read temperatures
   get_samples();
+
+  // Read analogue POT values if defined
   #ifdef ANALOGUE1
     #ifdef PID_CONTROL
       if( myPID.GetMode() == MANUAL ) readAnlg1(); // if PID is off allow ANLG1 read
@@ -1087,6 +1119,8 @@ void loop()
   #ifdef ANALOGUE2
     readAnlg2();
   #endif
+  
+  // Run PID if defined and active
   #ifdef PID_CONTROL
     if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode calc new output and assign to OT1
       //Input = convertUnits( T[PID_CHAN] ); // using temp from this TC4 channel as PID input. use actv[?] instead of 0??
@@ -1104,27 +1138,44 @@ void loop()
       output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
     }
   #endif
+
+  // Update LCD if defined
   #ifdef LCD
     updateLCD();
   #endif
+  
+  // Send data to Roastlogger if defined
   #if defined ROASTLOGGER
-    logger(); // send data every second to ANDROID
+    logger(); // send data every second to Roastlogger every loop (looptime)
   #endif
-  #if defined ARTISAN || defined ANDROID
-    if( artisan_logger == true ) {
-      artisan_logger = false;
-      logger();
-    }
-  #endif
+
+//  #if defined ARTISAN || defined ANDROID
+//    if( artisan_logger == true ) {
+//      artisan_logger = false;
+//      logger();
+//    }
+//  #endif
 //  Serial.println( next_loop_time - millis() ); // how much time spare in loop. approx 350ms
+  
+  // check if temp reads has taken longer than looptime. If so add 1 to counter + increase next looptime
+  // Serial.println( next_loop_time - millis() ); // how much time spare in loop. approx 350ms
+  if ( millis() > next_loop_time ) {
+    counter = counter + ( looptime / 1000 ); if( counter > 3599 ) counter = 3599;
+    next_loop_time = next_loop_time + looptime; // add time until next loop
+  }
+  
+  // wait until looptiom is expired. Check serial and buttons while waiting
   while( millis() < next_loop_time ) {
+    checkSerial();  // Has a command been received?
   #ifdef LCDAPTER
     #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID )
       checkButtons();
     #endif
   #endif
   }
-  next_loop_time = next_loop_time + 1000; // add 1 second until next loop
-  counter++; if( counter > 3599 ) counter = 3599;
+  
+  // Set next loop time and increment counter
+  next_loop_time = next_loop_time + looptime; // add time until next loop
+  counter = counter + ( looptime / 1000 ); if( counter > 3599 ) counter = 3599;
 }
 

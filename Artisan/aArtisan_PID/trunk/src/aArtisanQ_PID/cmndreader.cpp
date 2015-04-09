@@ -55,6 +55,7 @@ resetCmnd reset;
 loadCmnd load;
 powerCmnd power;
 fanCmnd fan;
+filtCmnd filt;
 
 
 // --------------------- dwriteCmnd
@@ -189,7 +190,7 @@ readCmnd::readCmnd() :
 
 boolean readCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-    artisan_logger = true;
+    logger();
     return true;
   }
   else {
@@ -216,19 +217,20 @@ boolean chanCmnd::doCommand( CmndParser* pars ) {
         str[0] = pars->paramStr(1)[i]; // next character
         str[1] = '\0'; // force it to be char[2]
         n = atoi( str );
-        if( n <= NC ) 
+        if( n <= NC ) {
           actv[i] = n;
-        else 
+        } else {
           actv[i] = 0;
+        }
       }
       // #ifdef ACKS_ON
       Serial.print(F("# Active channels set to "));
       Serial.println( pars->paramStr(1) );
       // #endif
-#ifdef PLOT_POWER
-      actv[2] = 0;
-      actv[3] = 0;
-#endif
+//#ifdef PLOT_POWER
+//      actv[2] = 0;
+//      actv[3] = 0;
+//#endif
     }
     return true;
   }
@@ -547,6 +549,7 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
     else if( strcmp( pars->paramStr(1), "CT" ) == 0 ) {
       uint16_t ct = atof( pars->paramStr(2) );
       myPID.SetSampleTime( ct );
+      //looptime = ct;
       #ifdef ACKS_ON
       Serial.print(F("# PID cycle (ms) = ")); Serial.println(ct);
       #endif
@@ -560,6 +563,38 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       return true;
     }
   }
+  else {
+    return false;
+  }
+}
+
+// ----------------------------- filtCmnd
+// constructor
+filtCmnd::filtCmnd() :
+  CmndBase( FILT_CMD ) {
+}
+
+// execute the FILT command
+// FILT,ppp,ppp,ppp,ppp where ppp = percent filtering on logical channels 1 to 4
+boolean filtCmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 ) { // has the FILT keyword been read?
+    for( uint8_t jj = 0; jj < NC; ++jj ) { // read up to NC values following command keyword
+      uint8_t len = strlen( pars->paramStr(jj+1) );
+      if( len > 0 ) {  // is there a parameter?
+        int filter = atoi( pars->paramStr(jj+1) );  // read filter value
+        uint8_t k = actv[jj];  // convert from logical to physical channel
+        if( k > 0 ) { // is the physical channel active?
+          --k;
+          fT[k].init( filter ); // reset the digital filtering level for physical channel k
+          #ifdef ACKS_ON
+          Serial.print(F("# Physical channel ")); Serial.print( k );
+          Serial.print(F(" filter set to ")); Serial.println( filter );
+          #endif
+        } // end if k > 0
+      } // end if len
+    } // end for
+    return true;
+  } // end if FILT
   else {
     return false;
   }

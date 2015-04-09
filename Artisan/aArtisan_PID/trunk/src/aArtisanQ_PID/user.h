@@ -41,7 +41,7 @@
 #define ROR_CHAN 0 // physical input channel for RoR display on LCD
 
 #define PID_CONTROL // if PID control is allowed to be activated
-#define PID_CHAN 0 // physical channel for PID input
+#define PID_CHAN 2 // physical channel for PID input
 #define CT 1000 // default cycle time for the PID, in ms
 #define PRO 5.00 // initial proportional parameter
 #define INT 0.15 // initial integral parameter
@@ -82,7 +82,7 @@
 
 #define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR's on OT1, OT2
 #define NC 4 // maximum number of physical channels on the TC4
-#define PLOT_POWER // send heater and fan power levels to Artisan instead of 3rd and 4th channels
+////////#define PLOT_POWER // REMOVED - send heater and fan power levels to Artisan instead of 3rd and 4th channels
 
 // Useful for debugging only -- leave inactive otherwise
 //#define MEMORY_CHK
