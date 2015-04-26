@@ -46,10 +46,10 @@ dwriteCmnd dwriter;
 chanCmnd chan;
 ot1Cmnd ot1;
 ot2Cmnd ot2;
-io3Cmnd io3;
+//io3Cmnd io3;
 unitsCmnd units;
-rf2000Cmnd rf2000;
-rc2000Cmnd rc2000;
+//rf2000Cmnd rf2000;
+//rc2000Cmnd rc2000;
 pidCmnd pid;
 resetCmnd reset;
 loadCmnd load;
@@ -338,7 +338,7 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
     return false;
   }
 }
-
+/*
 // ----------------------------- io3Cmnd
 // constructor
 io3Cmnd::io3Cmnd() :
@@ -366,7 +366,7 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
     return false;
   }
 }
-
+*/
 // ----------------------------- unitsCmnd
 // constructor
 unitsCmnd::unitsCmnd() :
@@ -397,7 +397,7 @@ boolean unitsCmnd::doCommand( CmndParser* pars ) {
     return false;
   }
 }
-
+/*
 // ----------------------------- rf2000Cmnd (legacy)
 // constructor
 rf2000Cmnd::rf2000Cmnd() :
@@ -439,7 +439,7 @@ boolean rc2000Cmnd::doCommand( CmndParser* pars ) {
     return false;
   }
 }
-
+*/
 // ----------------------------- pidCmnd
 // constructor
 pidCmnd::pidCmnd() :
@@ -631,6 +631,7 @@ loadCmnd::loadCmnd() :
 // LOAD\n
 
 boolean loadCmnd::doCommand( CmndParser* pars ) {
+
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     //roastlogger = true;
     counter = 1;
@@ -639,6 +640,7 @@ boolean loadCmnd::doCommand( CmndParser* pars ) {
   else {
     return false;
   }
+
 }
 
 // ----------------------------- powerCmnd
@@ -651,9 +653,11 @@ powerCmnd::powerCmnd() :
 // POWER=ddd\n
 
 boolean powerCmnd::doCommand( CmndParser* pars ) {
+
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     uint8_t len = strlen( pars->paramStr(1) );
     if( len > 0 ) {
+#ifdef ROASTLOGGER
       levelOT1 = atoi( pars->paramStr(1) );
       if( levelOT1 > MAX_OT1 ) levelOT1 = MAX_OT1;  // don't allow OT1 to exceed maximum
       if( levelOT1 < MIN_OT1 & levelOT1 != 0 ) levelOT1 = MIN_OT1;  // don't allow to set less than minimum unless setting to zero
@@ -662,6 +666,7 @@ boolean powerCmnd::doCommand( CmndParser* pars ) {
       #ifdef ACKS_ON
       Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
       #endif
+#endif //ROASTLOGGER
     }
     return true;
   
@@ -669,6 +674,7 @@ boolean powerCmnd::doCommand( CmndParser* pars ) {
   else {
     return false;
   }
+
 }
 
 // ----------------------------- fanCmnd
@@ -684,6 +690,7 @@ boolean fanCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     uint8_t len = strlen( pars->paramStr(1) );
     if( len > 0 ) {
+#ifdef ROASTLOGGER
       levelOT2 = atoi( pars->paramStr(1) );
       if( levelOT2 > MAX_OT2 ) levelOT2 = MAX_OT2;  // don't allow OT2 to exceed maximum
       if( levelOT2 < MIN_OT2 & levelOT2 != 0 ) levelOT2 = MIN_OT2;  // don't allow to set less than minimum unless setting to zero
@@ -692,6 +699,7 @@ boolean fanCmnd::doCommand( CmndParser* pars ) {
       #ifdef ACKS_ON
       Serial.print(F("# OT2 level set to ")); Serial.println( levelOT2 );
       #endif
+#endif //ROASTLOGGER
     }
     return true;
   

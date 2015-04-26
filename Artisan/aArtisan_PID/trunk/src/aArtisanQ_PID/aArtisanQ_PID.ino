@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 5_2"
+#define BANNER_ARTISAN "aArtisanQ_PID 5_3"
 
 // Revision history:
 // 20110408 Created.
@@ -125,6 +125,9 @@
 //          Removed PLOT_POWER option. Send power levels and SV if PID is active for Artisan. Send all by default for Android
 // 20150409 Made loop time variable. Default = 1000ms (1s) but changes to 2000ms (2s) if needed for reading 4 temperature channels
 //          Adjusted Read command to match aArtisan. Runs logger() from command to provide immediate response to Artisan
+// 20150426 Removed io3, rf2000 and rc2000 commands to save memory
+//          Other small compile changes to save memory
+//          Compile directive change to ensure output levels are displayed when analogue pots are not active
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -223,7 +226,7 @@ uint32_t checktime;
 uint32_t counter; // second counter
 uint32_t next_loop_time; // 
 boolean first;
-uint32_t looptime = 1000;
+uint16_t looptime = 1000;
 
 // class objects
 cADC adc( A_ADC ); // MCP3424
@@ -557,13 +560,13 @@ void updateLCD() {
       lcd.print( st1 );
     }
     else {
-  #ifdef ANALOGUE1
+  //#ifdef ANALOGUE1
       lcd.setCursor( 13, 2 );
       lcd.print(F("       ")); // blank out SP: nnn if PID is off
-  #else
-      lcd.setCursor( 0, 2 );
-      lcd.print(F("                    ")); // blank out PID: nnn% and SP: nnn if PID is off and ANALOGUE1 isn't defined
-  #endif // end ifdef ANALOGUE1
+  //#else
+  //    lcd.setCursor( 0, 2 );
+  //    lcd.print(F("                    ")); // blank out PID: nnn% and SP: nnn if PID is off and ANALOGUE1 isn't defined
+  //#endif // end ifdef ANALOGUE1
     }
   #endif // end ifdef PID_CONTROL
   
@@ -574,7 +577,7 @@ void updateLCD() {
     lcd.print( st1 );
   
   
-  #ifdef ANALOGUE1
+  //#ifdef ANALOGUE1
   #ifdef PID_CONTROL
     if( myPID.GetMode() == MANUAL ) { // only display OT2: nnn% if PID is off so PID display isn't overwriten
       lcd.setCursor( 0, 2 );
@@ -599,14 +602,14 @@ void updateLCD() {
       }
       lcd.print( st1 ); lcd.print(F("%"));
   #endif // end ifdef PID_CONTROL
-  #endif // end ifdef ANALOGUE1
+  //#endif // end ifdef ANALOGUE1
   
-  #ifdef ANALOGUE2
+  //#ifdef ANALOGUE2
     lcd.setCursor( 0, 3 );
     lcd.print(F("OT2:"));
     sprintf( st1, "%4d", (int)levelOT2 );
     lcd.print( st1 ); lcd.print(F("%"));
-  #endif
+  //#endif
   
   #else // if not def LCD_4x20 ie if using a standard 2x16 LCD
   
@@ -1039,11 +1042,11 @@ void setup()
   ci.addCommand( &awriter );
   ci.addCommand( &units );
   ci.addCommand( &chan );
-  ci.addCommand( &io3 );
+  //ci.addCommand( &io3 );
   ci.addCommand( &ot2 );
   ci.addCommand( &ot1 );
-  ci.addCommand( &rf2000 );
-  ci.addCommand( &rc2000 );
+  //ci.addCommand( &rf2000 );
+  //ci.addCommand( &rc2000 );
   ci.addCommand( &reader );
   ci.addCommand( &pid );
   ci.addCommand( &reset );
