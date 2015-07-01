@@ -47,6 +47,8 @@
 //          Add pidON and pidOFF methods (Iterm was not being zeroed out when tuning was changed)
 // -----28-October-2104
 //          Add FILT command for runtime digital filtering levels
+// -----01-July-2015  release 3.10
+//          No revisions -- this is just an official release of version 3.10
 
 
 #ifndef CMNDREADER_H

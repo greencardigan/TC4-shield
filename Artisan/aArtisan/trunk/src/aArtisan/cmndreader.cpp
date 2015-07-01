@@ -51,6 +51,8 @@
 //          Fixed typos in comments for pidON and pidOFF
 // -----28-October-2104
 //          Add FILT command for runtime digital filtering levels
+// -----01-July-2015  release 3.10
+//          No revisions -- this is just an official release of version 3.10
 
 #include "cmndreader.h"
 

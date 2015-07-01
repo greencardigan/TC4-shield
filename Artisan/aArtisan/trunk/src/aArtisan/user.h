@@ -19,6 +19,7 @@
 //          Added outputs for heater level, fan level, and SV
 // -----28-October-2104
 //          Add FILT command for runtime digital filtering levels
+// ------01-July-2015 release version 3.10 (no changes)
 
 #ifndef USER_H
 #define USER_H

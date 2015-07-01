@@ -35,7 +35,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aARTISAN V3PRC3"
+#define BANNER_ARTISAN "aARTISAN V3.10"
 
 // Revision history:
 // 20110408 Created.
@@ -83,6 +83,8 @@
 //          Added outputs for heater level, fan level, and SV
 // -----28-October-2104
 //          Add FILT command for runtime digital filtering levels
+// -----01-July-2015  release 3.10
+//          No revisions -- this is just an official release of version 3.10
 
 // this library included with the arduino distribution
 #include <Wire.h>
