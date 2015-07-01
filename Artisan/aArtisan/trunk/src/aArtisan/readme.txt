@@ -1,6 +1,9 @@
 aArtisan.ino
 -------------
 
+version 3.10 01-July-2015
+-------------------------
+- release version (no changes)
 
 version 3PRC3 25-November-2014
 -----------------------------
