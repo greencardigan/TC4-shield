@@ -1,0 +1,129 @@
+Serial Commands for aArtisan
+============================
+
+Notes:
+ 1. Terminate all command strings with newline, i.e. /n
+ 2. Delimiters between parameters may be comma, space, semicolon, or equals sign
+ 3. First five characters (max) of command name are significant
+ 4. A command may have up to 5 parameters, including the keyword
+
+FILT,lev1,lev2,lev3,lev4
+--------------------
+Sets new digital filtering level (0-100 percent) on logical channels
+1, 2, 3, and 4.
+lev1 = new filtering level for logical channel 1 (etc)
+
+PID,T,ppp,iii,ddd
+-----------------
+Sets new PID parameters ("T" is for "tuning"):
+ppp = proportional coefficient Kp
+iii = integral coefficient Ki
+ddd = derivative coefficient Kd
+
+PID,SV,vvv
+----------
+Establishes new PID setpoint (vvv = set value, or SV)
+
+PID,ON and PID,OFF
+------------------
+Turns the PID on or off.  PID always operates on OT1.
+Turning the PID off will result in output on OT1 being turned off.
+When PID is ON, additional values are streamed to serial:  heater duty, fan duty, SV
+
+PID,CHAN,i
+----------
+Sets the input for the PID controller.
+i = logical input channel, i.e. the PID controller will
+use the i'th temperature from the temperature output stream.
+Example:
+ CHAN,2100
+ PID,CHAN,2
+  this results in the sensor connected to physical port TC1 being
+  used by the PID, as TC1 is the second reading in the output stream
+
+PID,CT,mmmm
+-----------------
+Sets new PID cycle time, in ms, to mmmm.
+Default value is 1000 (1 second).
+
+DCFAN,duty   (added 13-April 2014)
+----------
+where duty = 0 to 100 (percent output)
+Changes the PWM duty cycle on FAN_PORT to duty.
+By default, FAN_PORT is DI03 on Arduino (same as IO3 port).
+Limits the increase in duty to 25 points per second to
+address fan inrush current on Hottop (and possibly other) roasters
+No response from TC4 device.
+
+CHAN,ijkl
+-----------
+where i,j,k,l = a decimal value 0 to 4 representing a physical port
+Establishes the active logical channels (chan1, chan2, chan3, chan4)
+and maps them to physical ports (TC1, TC2, TC3, TC4).  
+A value of zero for the physical port inactivates the channel.
+Response from TC4 device is "# Active channels set to ijkl"
+Examples:
+  chan,1200/n  TC1 -> chan1, TC2 -> chan2, chan3 and chan4 inactive
+  chan,3210/n  TC3 -> chan1, TC2 -> chan2, TC1 -> chan3, chan4 inactive
+
+UNITS,u
+---------
+where u = C or F.
+Sets active temperature scale.  
+No response from TC4 device.
+
+READ
+------
+Requests current temperature readings on all active channels. 
+Response from TC4 device is ambient temperature followed by a 
+comma separated list of temperatures in current active units
+in logical channel order: ambient,chan1,chan2,chan3,chan4
+
+OT1,duty
+-------
+where duty = 0 to 100 (percent output)
+Changes the PWM duty cycle on OT1 to duty.
+No response from TC4 device.
+
+OT2,duty
+-------
+where duty = 0 to 100 (percent output)
+Changes the PWM duty cycle on OT2 to duty.
+No response from TC4 device.
+
+IO3,duty
+-------
+where duty = 0 to 100 (percent output)
+Changes the PWM duty cycle on IO3 to duty.
+Unlike the DCFAN command, the duty cycle is increased immmediately.
+SUDDEN INCREASES IN FAN SPEED IS KNOWN TO CAUSE PROBLEMS ON 
+SOME HOTTOP ROASTERS, SO USERS ARE ADVISED TO USE THE DCFAN COMMAND
+INSTEAD.
+No response from TC4 device.
+
+DWRITE,pin,val
+----------------
+where pin = Arduino pin number (D0 to D13 or A0 to A5)
+      val = HIGH or LOW
+Puts port associated with pin number in output mode and sets it HIGH or LOW.
+No response from the TC4 device.
+
+AWRITE,pin,level
+------------------
+where pin = Arduino pin number (D0 to D13)
+      val = 0 to 255
+Puts port associated with pin number in output mode and sets output level
+0 to 255 (i.e. duty cycle 0 to 100%).
+No response from the TC4 device.
+
+
+Jim Gallt
+12-DEC-2011
+rev 13-April-2014
+rev 17-April-2014
+rev 23-Oct-2014
+rev 28-Oct-2014
+
+
+
+

@@ -1,0 +1,43 @@
+/profile.txt
+/contains profiles to send to arduino, read from SendProfile.pde Processing program
+/lines which start with a "/" are ignored as comment lines
+/the start of a profile must start with "@".  
+/the program assumes that the 16 char name of the profile follows the @ char
+/the format of the profiles must be
+/@  (start of profile identifier)
+/profile index number  (unique 2 digit number)
+/name of profile
+/ror
+/temp
+/time
+/offset
+/fanspeed
+/delta temp
+/tbd row 7
+/tbd2 row 8
+/tbd3 row 9
+/max temperature
+/profile method  1=time,temp;  2=auto ror, 3=manual ror, 4=deltaT, 5=tbd
+/* = end of profile, ^ is end of file to transmit
+/
+/warnings:  My code is pretty simplistic, so format must be followed.
+/Do have have blank lines, and line that is not part of the profile definition should start with a "/"
+/do not add comments in a profile definition, the program uses line numbers from the "@" char to format the data to send
+/
+//***********Profile 12 Definition
+@
+12
+R AR norm 05      
+ 70,  50,  20,  10,   5,   4,   3,   0,   0,   0,   0,   0,   0,   7
+260, 325, 350, 400, 420, 430, 450, 450, 450, 450, 450, 450, 450, 450
+  0,   0,   0,   0,   0,   0,   0, 180, 180, 180, 240,   1,   2,   3
+  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1
+ 90,  90,  85,  80,  80,  75,  70,  65,  65,  65,  65,  65,  65,  65
+  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0 
+  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0
+  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0 
+  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0 	
+590
+2
+^    
+/ end of file

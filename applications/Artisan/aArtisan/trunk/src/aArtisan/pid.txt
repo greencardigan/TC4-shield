@@ -1,0 +1,42 @@
+Watlow definitions
+------------------
+myKi = cT * rE / Pb / 60.0 where cT is seconds
+rE = myKi * Pb * 60 / cT;  units of rE is resets per minute
+out_re = myKi * (float)sumError;
+
+myKd = rA * 60.0 / Pb / cT;
+out_ra = - dPV * myKd; units of rA is minutes
+
+Brett's definitions
+-------------------
+ki = Ki * SampleTimeInSec;  // units = percent per (degree*second)
+kd = Kd / SampleTimeInSec; // units = percent per (degree per second)
+ITerm+= (ki * error);
+double dInput = (input - lastInput);
+
+double output = kp * error + ITerm- kd * dInput;
+
+Translations
+------------
+kp = 100 / Pb (percent per degree)
+
+ki = 100 * rE / Pb / 60
+   = 100 * rE / (100/kp) / 60
+   = rE * kp / 60
+   = 0.01667 * rE * kp (percent per degree*second)
+
+
+kd = 100 * ra * 60 / Pb
+   = 100 * ra * 60 / (100 / kp)
+   = ra * 60 * kp (percent per (degree per second))
+
+-----------------------------------------------
+kp = 100 / Pb
+ki = 0.0167 * rE * kp (rE is resets per minute)
+kd = 60 * ra * kp (rA is in minutes)
+------------------------------------------------
+
+Pb = 9F ---> kp = 11.1
+rE = 0.60 --> ki = 0.111
+rA = 0.15 --> kd = 100
+
