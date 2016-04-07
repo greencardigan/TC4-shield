@@ -41,7 +41,9 @@
 #define CMNDREADER_H
 
 #include <cmndproc.h>
-//#include <PWM16.h>
+#ifndef PHASE_ANGLE_CONTROL
+#include <PWM16.h>
+#endif
 
 #include <cADC.h>
 #include <PID_v1.h>
@@ -52,13 +54,13 @@
 
 // ----------------------- commands
 #define READ_CMD "READ" // triggers the TC4 to output current temps on serial line
-//#define RF2000_CMD "RF2000" // legacy code
-//#define RC2000_CMD "RC2000" // legacy code
 #define UNITS_CMD "UNITS" // changes units, F or C
 #define CHAN_CMD "CHAN" // maps logical channels to physical channels
 #define OT1_CMD "OT1" // 0 to 100 percent output on SSR drive OT1
 #define OT2_CMD "OT2" // 0 to 100 percent output on SSR drive OT2
-//#define IO3_CMD "IO3" // 0 to 100 percent PWM 5V output on IO3
+#ifndef PHASE_ANGLE_CONTROL
+#define IO3_CMD "IO3" // 0 to 100 percent PWM 5V output on IO3
+#endif
 #define DIGITAL_WRITE_CMD "DWRITE" // turn digital pin LOW or HIGH
 #define ANALOG_WRITE_CMD "AWRITE" // write a value 0 to 255 to PWM pin
 #define IO3 3 // use DIO3 for PWM output
@@ -77,10 +79,10 @@ class readCmnd;
 class chanCmnd;
 class ot1Cmnd;
 class ot2Cmnd;
-//class io3Cmnd;
+#ifndef PHASE_ANGLE_CONTROL
+class io3Cmnd;
+#endif
 class unitsCmnd;
-//class rf2000Cmnd;
-//class rc2000Cmnd;
 class pidCmnd;
 class resetCmnd;
 class loadCmnd;
@@ -95,9 +97,9 @@ extern dwriteCmnd dwriter;
 extern chanCmnd chan;
 extern ot1Cmnd ot1;
 extern ot2Cmnd ot2;
-//extern io3Cmnd io3;
-//extern rf2000Cmnd rf2000;
-//extern rc2000Cmnd rc2000;
+#ifndef PHASE_ANGLE_CONTROL
+extern io3Cmnd io3;
+#endif
 extern unitsCmnd units;
 extern pidCmnd pid;
 extern resetCmnd reset;
@@ -108,9 +110,14 @@ extern filtCmnd filt;
 
 
 // extern declarations for functions, variables in the main program
-//extern PWM16 ssr;
+#ifndef PHASE_ANGLE_CONTROL
+extern PWM16 ssr;
+#endif
 extern int levelOT1;
 extern int levelOT2;
+#ifndef PHASE_ANGLE_CONTROL
+extern int levelIO3;
+#endif
 extern void logger();
 extern boolean Cscale;
 extern uint8_t actv[NC];
@@ -164,29 +171,19 @@ class ot2Cmnd : public CmndBase {
     virtual boolean doCommand( CmndParser* pars );
 };
 
-/*class io3Cmnd : public CmndBase {
+#ifndef PHASE_ANGLE_CONTROL
+class io3Cmnd : public CmndBase {
   public:
     io3Cmnd();
     virtual boolean doCommand( CmndParser* pars );
-};*/
+};
+#endif
 
 class unitsCmnd : public CmndBase {
   public:
     unitsCmnd();
     virtual boolean doCommand( CmndParser* pars );
 };
-
-/*class rf2000Cmnd : public CmndBase {
-  public:
-    rf2000Cmnd();
-    virtual boolean doCommand( CmndParser* pars );
-};
-
-class rc2000Cmnd : public CmndBase {
-  public:
-    rc2000Cmnd();
-    virtual boolean doCommand( CmndParser* pars );
-};*/
 
 class pidCmnd : public CmndBase {
   public:

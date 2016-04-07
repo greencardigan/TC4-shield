@@ -26,6 +26,12 @@
 #define ARTISAN
 //#define ANDROID
 
+//#define PHASE_ANGLE_CONTROL
+
+// If needed adjust these to control what gets streamed back to via serial
+// These have no effect on operation.  They only affect what gets displayed/logged by Artisan
+#define HEATER_DUTY levelOT1 // by default, heater output is assumed levelOT1
+#define FAN_DUTY levelIO3 // by default, fan output is assumed levelOT2
 
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
@@ -33,8 +39,8 @@
 
 #define CELSIUS // controls only the initial conditions
 
-#define ANALOGUE1 // if POT connected on ANLG1
-#define ANALOGUE2 // if POT connected on ANLG2
+//#define ANALOGUE1 // if POT connected on ANLG1
+//#define ANALOGUE2 // if POT connected on ANLG2
 
 #define ANALOGUE_STEP 1 // rounding for analogue input percentage. Use 1, 2, 4, 5, or 10.
 
@@ -57,7 +63,7 @@
 
 #define OT1_CUTOFF 10 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
 
-#define OT2_AUTO_COOL 15 // Set OT2 output % for auto cool when using PID;STOP command
+#define FAN_AUTO_COOL 15 // Set fan output % for auto cool when using PID;STOP command
 
 //#define COMMAND_ECHO // Echo all serial commands to LCD
 
@@ -80,9 +86,19 @@
 #define UV_OFFSET 0 // you may subsitute a known value for uV offset in ADC
 #define AMB_OFFSET 0.0 // you may substitute a known value for amb temp offset (Celsius)
 
-#define TIME_BASE pwmN1Hz // cycle time for PWM output to SSR's on OT1, OT2
+// choose one of the following for the PWM time base for heater output on OT1 or OT2
+//#define TIME_BASE pwmN4sec  // recommended for Hottop D which has mechanical relay
+//#define TIME_BASE pwmN2sec
+#define TIME_BASE pwmN1Hz  // recommended for most electric heaters controlled by standard SSR
+//#define TIME_BASE pwmN2Hz
+//#define TIME_BASE pwmN4Hz
+//#define TIME_BASE pwmN8Hz 
+//#define TIME_BASE 15 // should result in around 977 Hz (TODO these need testing)
+//#define TIME_BASE 7 // approx. 1.95kHz
+//#define TIME_BASE 6 // approx. 2.2kHz
+//#define TIME_BASE 3 // approx. 3.9kHz
+
 #define NC 4 // maximum number of physical channels on the TC4
-////////#define PLOT_POWER // REMOVED - send heater and fan power levels to Artisan instead of 3rd and 4th channels
 
 // Useful for debugging only -- leave inactive otherwise
 //#define MEMORY_CHK

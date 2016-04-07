@@ -45,6 +45,9 @@
 
 extern int levelOT1;
 extern int levelOT2;
+#ifndef PHASE_ANGLE_CONTROL
+extern int levelIO3;
+#endif
 
 // for phase angle control
 enum output_state {delaying, pulse_on, disabled};
@@ -180,7 +183,7 @@ void output_level_pac( uint8_t pac_level ) {
 
 // call this to set integral cycle control output levels, 0 to 100 
 void output_level_icc( uint8_t icc_level ) {
-  if( levelOT2 < OT1_CUTOFF ) icc_level = 0;
+  if( FAN_DUTY < OT1_CUTOFF ) icc_level = 0;
   if( icc_level > 100 )
     ratioN = 0;
   else
