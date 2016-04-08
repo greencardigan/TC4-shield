@@ -17,13 +17,13 @@
 // Roasting software
 // Comment out all if using TC4 stand alone
 //#define ROASTLOGGER
-//#define ARTISAN
-#define ANDROID
+#define ARTISAN
+//#define ANDROID
 
 ////////////////////
 // Default control mode is Phase Angle Control for OT2 (AC fan) and ICC control for OT1 (heater)
 // Comment out PHASE_ANGLE_CONTROL to get PWM control. Fast PWM for IO3 (DC fan) and slow PWM for OT1 (heater) 
-//#define PHASE_ANGLE_CONTROL
+#define PHASE_ANGLE_CONTROL
 
 ////////////////////
 // If needed adjust these to control what gets streamed back to via serial
@@ -82,7 +82,7 @@
 
 #define HTR_CUTOFF_FAN_VAL 10 // cut power to OT1 if OT2(%) is less than HTR_CUTOFF_FAN_VAL (to protect heater in air roaster). Set to 0 for no cutoff
 
-#define FAN_AUTO_COOL 15 // Set fan output % for auto cool when using PID;STOP command
+#define FAN_AUTO_COOL 13 // Set fan output % for auto cool when using PID;STOP command
 
 ////////////////////
 // Command Echo
