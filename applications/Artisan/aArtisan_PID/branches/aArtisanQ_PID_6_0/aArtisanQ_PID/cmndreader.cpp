@@ -400,9 +400,27 @@ io3Cmnd::io3Cmnd() :
 
 boolean io3Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
-    uint8_t len = strlen( pars->paramStr(1) );
-    if( len > 0 ) {
-      levelIO3 = atoi( pars->paramStr(1) );
+    if( strcmp( pars->paramStr(1), "UP" ) == 0 ) {
+      levelIO3 = levelIO3 + DUTY_STEP;
+      if( levelIO3 > MAX_FAN ) levelIO3 = MAX_FAN; // don't allow IO3 to exceed maximum
+      if( levelIO3 < MIN_FAN ) levelIO3 = MIN_FAN; // don't allow IO3 to turn on less than minimum
+      if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
+        ssr.Out( 0, 0 );
+      }
+      else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
+        ssr.Out( levelOT1, levelOT2 );
+      }  
+      float pow = 2.55 * levelIO3;
+      analogWrite( IO3, round( pow ) );
+      #ifdef ACKS_ON
+      Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );
+      #endif
+      
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
+      levelIO3 = levelIO3 - DUTY_STEP;
+      if( levelIO3 < MIN_FAN & levelIO3 != 0 ) levelIO3 = 0; // turn IO3 off if trying to go below minimum.
       if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
         ssr.Out( 0, 0 );
       }
@@ -414,8 +432,27 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
       #ifdef ACKS_ON
       Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );
       #endif
+      
+      return true;
     }
-    return true;
+    else {
+      uint8_t len = strlen( pars->paramStr(1) );
+      if( len > 0 ) {
+        levelIO3 = atoi( pars->paramStr(1) );
+        if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
+          ssr.Out( 0, 0 );
+        }
+        else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
+          ssr.Out( levelOT1, levelOT2 );
+        }
+        float pow = 2.55 * levelIO3;
+        analogWrite( IO3, round( pow ) );
+        #ifdef ACKS_ON
+        Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );
+        #endif
+      }
+      return true;
+    }
   }
   else {
     return false;
