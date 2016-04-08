@@ -1,6 +1,6 @@
 // user.h
 //---------
-// This file contains user definable compiler directives for aArtisan
+// This file contains user definable compiler directives for aArtisanQ_PID
 
 // *************************************************************************************
 // NOTE TO USERS: the following parameters should be
@@ -13,45 +13,57 @@
 #ifndef USER_H
 #define USER_H
 
-// TC type is selectable by input channel
-// permissable options:  typeT, typeK, typeJ
-#define TC_TYPE1 typeK  // thermocouple on TC1
-#define TC_TYPE2 typeK  // thermocouple on TC2
-#define TC_TYPE3 typeK  // thermocouple on TC3
-#define TC_TYPE4 typeK  // thermocouple on TC4
-
-// Roasting software being used
+////////////////////
+// Roasting software
 // Comment out all if using TC4 stand alone
 //#define ROASTLOGGER
-#define ARTISAN
-//#define ANDROID
+//#define ARTISAN
+#define ANDROID
 
-#define PHASE_ANGLE_CONTROL
+////////////////////
+// Default control mode is Phase Angle Control for OT2 (AC fan) and ICC control for OT1 (heater)
+// Comment out PHASE_ANGLE_CONTROL to get PWM control. Fast PWM for IO3 (DC fan) and slow PWM for OT1 (heater) 
+//#define PHASE_ANGLE_CONTROL
 
+////////////////////
 // If needed adjust these to control what gets streamed back to via serial
 // These have no effect on operation.  They only affect what gets displayed/logged by Artisan
-
 #define HEATER_DUTY levelOT1 // by default, heater output is assumed levelOT1
 #ifdef PHASE_ANGLE_CONTROL
 #define FAN_DUTY levelOT2 // by default, fan output is assumed levelOT2 for phase angle control mode
 #else
-#define FAN_DUTY levelIO3 // by default, fan output is assumed levelIO3
+#define FAN_DUTY levelIO3 // by default, fan output is assumed levelIO3 for PWM control
 #endif
 
+////////////////////
+// LCD Options
+// Comment out non required features
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
 #define LCD_4x20 // if using a 4x20 LCD instead of a 2x16
 
-#define CELSIUS // controls only the initial conditions
+////////////////////
+// Temperature Unit
+#define CELSIUS // controls only the initial conditions.  Comment out for F.
 
-#define ANALOGUE1 // if POT connected on ANLG1
-#define ANALOGUE2 // if POT connected on ANLG2
+////////////////////
+// Analogue inputs
+// Comment out if not required
+// #define ANALOGUE1 // if POT connected on ANLG1
+// #define ANALOGUE2 // if POT connected on ANLG2
 
-#define ANALOGUE_STEP 1 // rounding for analogue input percentage. Use 1, 2, 4, 5, or 10.
+////////////////////
+// Duty Cycle Adjustment Increment
+// Used for rounding/increment for analogue inputs and power UP/DOWN commands
+#define DUTY_STEP 1 // Use 1, 2, 4, 5, or 10.
 
-#define ROR_CHAN 0 // physical input channel for RoR display on LCD
+////////////////////
+// physical input channel for RoR display on LCD
+#define ROR_CHAN 0
 
-#define PID_CONTROL // if PID control is allowed to be activated
+////////////////////
+// PID Control Options
+#define PID_CONTROL // comment out to disable PID activation
 #define PID_CHAN 2 // physical channel for PID input
 #define CT 1000 // default cycle time for the PID, in ms
 #define PRO 5.00 // initial proportional parameter
@@ -60,19 +72,28 @@
 
 #define NUM_PROFILES 2 // number of profiles stored in EEPROM
 
-#define MIN_OT1 0 // Set OT1 output % for lower limit for OT1.  0% power will always be available
-#define MAX_OT1 100 // Set OT1 output % for upper limit for OT1
+////////////////////
+// Heater and Fan Limits/Options
+#define MIN_HTR 0 // Set output % for lower limit for OT1.  0% power will always be available
+#define MAX_HTR 100 // Set output % for upper limit for OT1
 
-#define MIN_OT2 10 // Set OT2 output % for lower limit for OT2.  0% power will always be available
-#define MAX_OT2 100 // Set OT2 output % for upper limit for OT2
+#define MIN_FAN 10 // Set output % for lower limit for OT2 and IO3.  0% power will always be available
+#define MAX_FAN 100 // Set output % for upper limit for OT2 and IO3
 
-#define OT1_CUTOFF 10 // cut power to OT1 if OT2(%) is less than OT1_CUTOFF (to protect heater in air roaster). Set to 0 for no cutoff
+#define HTR_CUTOFF_FAN_VAL 10 // cut power to OT1 if OT2(%) is less than HTR_CUTOFF_FAN_VAL (to protect heater in air roaster). Set to 0 for no cutoff
 
 #define FAN_AUTO_COOL 15 // Set fan output % for auto cool when using PID;STOP command
 
+////////////////////
+// Command Echo
 //#define COMMAND_ECHO // Echo all serial commands to LCD
 
-#define BAUD 19200  // serial baud rate
+////////////////////
+// BAUD Rate for serial communication
+#define BAUD 19200
+
+////////////////////
+// Temperature Reading Filters
 #define BT_FILTER 10 // filtering level (percent) for BT
 #define ET_FILTER 10 // filtering level (percent) for ET
 #define AMB_FILTER 70 // 70% filtering on ambient sensor readings
@@ -86,11 +107,26 @@
 #define RISE_FILTER 85 // heavy filtering on non-displayed BT for RoR calculations
 #define ROR_FILTER 80 // post-filtering for the computed RoR values
 
+////////////////////
+// Thermocouple Input Options
+// TC type is selectable by input channel
+// permissable options:  typeT, typeK, typeJ
+#define TC_TYPE1 typeK  // thermocouple on TC1
+#define TC_TYPE2 typeK  // thermocouple on TC2
+#define TC_TYPE3 typeK  // thermocouple on TC3
+#define TC_TYPE4 typeK  // thermocouple on TC4
+#define NC 4 // maximum number of physical channels on the TC4
+
+////////////////////
+// Calibration Values
 // default values for systems without calibration values stored in EEPROM
 #define CAL_GAIN 1.00 // you may substitute a known gain adjustment from calibration
 #define UV_OFFSET 0 // you may subsitute a known value for uV offset in ADC
 #define AMB_OFFSET 0.0 // you may substitute a known value for amb temp offset (Celsius)
 
+////////////////////
+// Time Base for slow PWM
+// When NOT using PHASE_ANGLE_CONTROL option
 // choose one of the following for the PWM time base for heater output on OT1 or OT2
 //#define TIME_BASE pwmN4sec  // recommended for Hottop D which has mechanical relay
 //#define TIME_BASE pwmN2sec
@@ -103,14 +139,16 @@
 //#define TIME_BASE 6 // approx. 2.2kHz
 //#define TIME_BASE 3 // approx. 3.9kHz
 
-#define NC 4 // maximum number of physical channels on the TC4
-
+////////////////////
+// Debuging Options
 // Useful for debugging only -- leave inactive otherwise
 //#define MEMORY_CHK
 
 // This turns on the "# xxxxxxx\n" acknowledgements after commands
 //#define ACKS_ON
 
+////////////////////
+// Output Pin Setup
 // phase angle control and integral cycle control outputs
 #define OT1 9 // OT1 is on pin D9
 #define OT2 10 // OT2 is on pin D10
@@ -118,17 +156,25 @@
 #define OT_ICC OT1 // integral cycle control on OT1 (AC heater, usually)
 #define LED_PIN 13
 
+////////////////////
+// Phase Angle Control Options
+// When using PHASE_ANGLE_CONTROL option
+// Selct load type being switched by phase angle control
+#define TRIAC_MOTOR // inductive loads need a longer pulse width to fire at 100%
+//#define TRIAC_HEATER // enable this for resistive loads, like heaters
+
+// AC Power Options
+// When using PHASE_ANGLE_CONTROL option
+//#define FREQ60 // 60Hz
+#define FREQ50 // 50Hz
+
+// Interrupt Options for Zero Cross Detector
+// When using PHASE_ANGLE_CONTROL option
 // use these if zero cross detector connected to I/O2
 //#define EXT_INT 0 // interrupt 0
 //#define INT_PIN 2 // pin 2
-
 // use these for I/O3
 #define EXT_INT 1 // interrupt 1
 #define INT_PIN 3
-
-//#define FREQ60 // 60Hz
-#define FREQ50 // 50Hz
-#define TRIAC_MOTOR // inductive loads need a longer pulse width to fire at 100%
-//#define TRIAC_HEATER // enable this for resistive loads, like heaters
 
 #endif

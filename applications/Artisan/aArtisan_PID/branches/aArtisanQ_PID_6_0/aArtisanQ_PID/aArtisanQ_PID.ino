@@ -87,7 +87,7 @@
 //          Added code to convert PID Setpoint temps to correct units.  Added temperature units data to profile format
 //          Serial command echo to LCD now optional
 // 20120922 Added support for LCDapter buttons and LEDs (button 1 currently activates or deactivates PID control if enabled)
-//          Added code to allow power to OT1 to be cut if OT2 is below OT1_CUTOFF percentage as defined in user.h.  For heater protection if required. Required modification to phase_ctrl.cpp
+//          Added code to allow power to OT1 to be cut if OT2 is below HTR_CUTOFF_FAN_VAL percentage as defined in user.h.  For heater protection if required. Required modification to phase_ctrl.cpp
 //          Added code to allow OT2 to range between custom min and max percentages (defined in user.h)
 // 20121007 Fixed PID tuning command so it handles doubles
 //          Added inital PID tuning parameters in user.h
@@ -97,7 +97,7 @@
 // 20121021 Added optional limits for Analogue1
 // 20121120 Added support for pBourbon logging
 // 20121213 Added UP and DOWN parameters for OT1 and OT2 commands.  Increments or decrements power levels by 5%
-// 20130116 Added user adjustable analogue input rounding (ANALOGUE_STEP) in user.h
+// 20130116 Added user adjustable analogue input rounding (DUTY_STEP) in user.h
 // 20130119 aArtisanQ_PID release 3_5
 //          Added code to allow for additional LCD display modes
 // 20130120 Added ability to change roast profile using LCD and buttons
@@ -348,7 +348,7 @@ void logger() {
 // check to see if PID is running, and output additional values if true
   if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode
   Serial.print(F(","));
-  if( FAN_DUTY < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+  if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // send 0 if OT1 has been cut off
       Serial.print( 0 );
     }
     else {  
@@ -379,7 +379,7 @@ void logger() {
     }
   }
   Serial.print(F("Power%="));
-  if( FAN_DUTY < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+  if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // send 0 if OT1 has been cut off
     Serial.println( 0 );
   }
   else {  
@@ -412,7 +412,7 @@ void logger() {
     
   //#ifdef PLOT_POWER
   Serial.print(F(","));
-  if( FAN_DUTY < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+  if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // send 0 if OT1 has been cut off
     Serial.print( 0 );
   }
   else {  
@@ -542,7 +542,7 @@ void updateLCD() {
     if( myPID.GetMode() != MANUAL ) { // if PID is on then display PID: nnn% instead of OT1:
       lcd.setCursor( 0, 2 );
       lcd.print( F("PID:") );
-      if( FAN_DUTY < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+      if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // display 0% if OT1 has been cut off
       sprintf( st1, "%4d", (int)0 );     
       }
       else {
@@ -577,8 +577,8 @@ void updateLCD() {
   #ifdef PID_CONTROL
     if( myPID.GetMode() == MANUAL ) { // only display OT2: nnn% if PID is off so PID display isn't overwriten
       lcd.setCursor( 0, 2 );
-      lcd.print(F("OT1:"));
-      if( FAN_DUTY < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+      lcd.print(F("HTR:"));
+      if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // display 0% if OT1 has been cut off
       sprintf( st1, "%4d", (int)0 );     
       }
       else {
@@ -589,8 +589,8 @@ void updateLCD() {
       
   #else // if PID_CONTROL isn't defined then always display OT1: nnn%
       lcd.setCursor( 0, 2 );
-      lcd.print(F("OT1:"));
-      if( FAN_DUTY < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+      lcd.print(F("HTR:"));
+      if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // display 0% if OT1 has been cut off
       sprintf( st1, "%4d", (int)0 );     
       }
       else {
@@ -602,11 +602,7 @@ void updateLCD() {
   
   //#ifdef ANALOGUE2
     lcd.setCursor( 0, 3 );
-#ifdef PHASE_ANGLE_CONTROL
-    lcd.print(F("OT2:"));
-#else
-    lcd.print(F("IO3:"));
-#endif
+    lcd.print(F("FAN:"));
     sprintf( st1, "%4d", (int)FAN_DUTY );
     lcd.print( st1 ); lcd.print(F("%"));
   //#endif
@@ -646,7 +642,7 @@ void updateLCD() {
   #ifdef PID_CONTROL
     if( myPID.GetMode() != MANUAL ) {
       lcd.setCursor( 0, 1 );
-      if( FAN_DUTY < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+      if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // display 0% if OT1 has been cut off
         lcd.print( F("  0") );
       }
       else {
@@ -675,7 +671,7 @@ void updateLCD() {
       lcd.setCursor( 0, 1 );
       lcd.print(F("OT1:     "));
       lcd.setCursor( 4, 1 );
-      if( FAN_DUTY < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+      if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // display 0% if OT1 has been cut off
         sprintf( st1, "%3d", (int)0 );     
       }
       else {
@@ -733,33 +729,33 @@ void updateLCD() {
 
 #if defined ANALOGUE1 || defined ANALOGUE2
 // -------------------------------- reads analog value and maps it to 0 to 100
-// -------------------------------- rounded to the nearest ANALOGUE_STEP value
+// -------------------------------- rounded to the nearest DUTY_STEP value
 int32_t getAnalogValue( uint8_t port ) {
   int32_t mod, trial;
   float aval;
   aval = analogRead( port );
   #ifdef ANALOGUE1
     if( port == anlg1 ) {
-      aval = MIN_OT1 * 10.24 + ( aval / 1024 ) * 10.24 * ( MAX_OT1 - MIN_OT1 ) ; // scale analogue value to new range
-      if ( aval == ( MIN_OT1 * 10.24 ) ) aval = 0; // still allow OT1 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
-      mod = MIN_OT1;
+      aval = MIN_HTR * 10.24 + ( aval / 1024 ) * 10.24 * ( MAX_HTR - MIN_HTR ) ; // scale analogue value to new range
+      if ( aval == ( MIN_HTR * 10.24 ) ) aval = 0; // still allow OT1 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
+      mod = MIN_HTR;
     }
   #endif
   #ifdef ANALOGUE2
     if( port == anlg2 ) {
-      aval = MIN_OT2 * 10.24 + ( aval / 1024 ) * 10.24 * ( MAX_OT2 - MIN_OT2 ) ; // scale analogue value to new range
-      if ( aval == ( MIN_OT2 * 10.24 ) ) aval = 0; // still allow OT2 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
-      mod = MIN_OT2;
+      aval = MIN_FAN * 10.24 + ( aval / 1024 ) * 10.24 * ( MAX_FAN - MIN_FAN ) ; // scale analogue value to new range
+      if ( aval == ( MIN_FAN * 10.24 ) ) aval = 0; // still allow OT2 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
+      mod = MIN_FAN;
     }
   #endif
   trial = ( aval + 0.001 ) * 100; // to fix weird rounding error from previous calcs?????
   trial /= 1023;
-  trial = ( trial / ANALOGUE_STEP ) * ANALOGUE_STEP; // truncate to multiple of ANALOGUE_STEP
+  trial = ( trial / DUTY_STEP ) * DUTY_STEP; // truncate to multiple of DUTY_STEP
   if( trial < mod ) trial = 0;
-//  mod = trial % ANALOGUE_STEP;
-//  trial = ( trial / ANALOGUE_STEP ) * ANALOGUE_STEP; // truncate to multiple of ANALOGUE_STEP
-//  if( mod >= ANALOGUE_STEP / 2 )
-//    trial += ANALOGUE_STEP;
+//  mod = trial % DUTY_STEP;
+//  trial = ( trial / DUTY_STEP ) * DUTY_STEP; // truncate to multiple of DUTY_STEP
+//  if( mod >= DUTY_STEP / 2 )
+//    trial += DUTY_STEP;
   return trial;
 }
 #endif // end if defined ANALOGUE1 || defined ANALOGUE2
@@ -777,7 +773,12 @@ void readAnlg1() { // read analog port 1 and adjust OT1 output
 #ifdef PHASE_ANGLE_CONTROL
     output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
 #else
-    ssr.Out( levelOT1, levelOT2 ); // slow PWM of OT1 and OT2
+    if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
+      ssr.Out( 0, 0 );
+    }
+    else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
+      ssr.Out( levelOT1, levelOT2 );
+    }
 #endif
   }
   else {
@@ -800,6 +801,12 @@ void readAnlg2() { // read analog port 2 and adjust OT2 output
     output_level_pac( levelOT2 ); // Phase angle control and random fire SSR on OT2 
 #else
     levelIO3 = reading;
+    if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
+      ssr.Out( 0, 0 );
+    }
+    else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
+      ssr.Out( levelOT1, levelOT2 );
+    }
     float pow = 2.55 * levelIO3;
     analogWrite( IO3, round( pow ) ); // analogue out to IO3
 #endif
@@ -1087,7 +1094,7 @@ void setup()
 
 #ifdef PID_CONTROL
   myPID.SetSampleTime(CT); // set sample time to 1 second
-  myPID.SetOutputLimits(MIN_OT1, MAX_OT1); // set output limits to user defined limits
+  myPID.SetOutputLimits(MIN_HTR, MAX_HTR); // set output limits to user defined limits
   myPID.SetControllerDirection(DIRECT); // set PID to be direct acting mode. Increase in output leads to increase in input
   myPID.SetTunings(PRO, INT, DER); // set initial PID tuning values
   myPID.SetMode(MANUAL); // start with PID control off
@@ -1164,7 +1171,12 @@ void loop()
       #ifdef PHASE_ANGLE_CONTROL
       output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
       #else
-      ssr.Out( levelOT1, levelOT2 ); // slow PWM of OT1 and OT2
+      if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
+        ssr.Out( 0, 0 );
+      }
+      else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
+        ssr.Out( levelOT1, levelOT2 );
+      }
       #endif
     }
   #endif
