@@ -48,6 +48,7 @@ ot1Cmnd ot1;
 ot2Cmnd ot2;
 #ifndef PHASE_ANGLE_CONTROL
 io3Cmnd io3;
+dcfanCmnd dcfan;
 #endif
 unitsCmnd units;
 pidCmnd pid;
@@ -377,6 +378,63 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
       #ifdef ACKS_ON
       Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );
       #endif
+    }
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+// ----------------------------- dcfanCmnd
+// constructor
+dcfanCmnd::dcfanCmnd() :
+  CmndBase( DCFAN_CMD ) {
+}
+
+void dcfanCmnd::init() {  // initialize fan to zero output
+  target = 0;
+  current = 0;
+  last_fan_change = millis();
+}
+
+void dcfanCmnd::slew_fan() { // limit fan speed increases
+  if( target < current ) { // no limit if slowing down
+    set_fan( target );
+  }
+  else if( target > current ) {  // ramping up, so check rate
+    uint8_t delta = target - current;
+    if( delta > SLEW_STEP ) // limit the step size
+      delta = SLEW_STEP;
+    uint32_t delta_ms = millis() - last_fan_change; // how long since last step?
+    if( delta_ms > SLEW_STEP_TIME ) { // do only if enough time has gone by
+      set_fan( current + delta ); // increase the output level
+    }  
+  }
+}
+
+void dcfanCmnd::set_fan( uint8_t duty ) { // sets the fan speed
+  if( duty >= 0 && duty < 101 ) { // screen out bogus values
+    levelIO3 = duty;
+    float pow = 2.55 * duty;
+    analogWrite( FAN_PORT, round( pow ) );
+    current = duty;
+    last_fan_change = millis();
+    #ifdef ACKS_ON
+    Serial.print("# DCFAN level set to "); Serial.println( duty );
+    #endif
+  }
+}
+
+// execute the DCFAN command
+// DCFAN;ddd\n
+
+boolean dcfanCmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
+    uint8_t len = strlen( pars->paramStr(1) );
+    if( len > 0 ) {
+      target = atoi( pars->paramStr(1) );
+      //set_fan( target );
     }
     return true;
   }

@@ -311,6 +311,9 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
     checkSerial();
+    #ifndef PHASE_ANGLE_CONTROL
+    dcfan.slew_fan(); // keep the fan smoothly increasing in speed
+    #endif
     #ifdef LCDAPTER
       #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID )
         checkButtons();
@@ -1056,6 +1059,7 @@ void setup()
   ci.addCommand( &chan );
 #ifndef PHASE_ANGLE_CONTROL
   ci.addCommand( &io3 );
+  ci.addCommand( &dcfan );
 #endif
   ci.addCommand( &ot2 );
   ci.addCommand( &ot1 );
@@ -1066,6 +1070,10 @@ void setup()
   ci.addCommand( &power );
   ci.addCommand( &fan );
   ci.addCommand( &filt );
+
+#ifndef PHASE_ANGLE_CONTROL
+  dcfan.init(); // initialize conditions for dcfan
+#endif
   
   pinMode( LED_PIN, OUTPUT );
 

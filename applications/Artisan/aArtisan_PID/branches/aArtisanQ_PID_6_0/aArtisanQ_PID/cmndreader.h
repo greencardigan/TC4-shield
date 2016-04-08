@@ -60,6 +60,7 @@
 #define OT2_CMD "OT2" // 0 to 100 percent output on SSR drive OT2
 #ifndef PHASE_ANGLE_CONTROL
 #define IO3_CMD "IO3" // 0 to 100 percent PWM 5V output on IO3
+#define DCFAN_CMD "DCFAN" // 0 to 100 percent PWM 5V output on IO3, with slew rate checks
 #endif
 #define DIGITAL_WRITE_CMD "DWRITE" // turn digital pin LOW or HIGH
 #define ANALOG_WRITE_CMD "AWRITE" // write a value 0 to 255 to PWM pin
@@ -70,6 +71,12 @@
 #define POWER_CMD "POWER" // Roastlogger POWER command
 #define FAN_CMD "FAN" // Roastlogger FAN command
 #define FILT_CMD "FILT" // runtime changes to digital filtering on input channels
+#define FAN_PORT 3 // use DI03 for PWM fan output
+
+// -------------------------- slew rate limitations for fan control
+#define MAX_SLEW 25 // percent per second
+#define SLEW_STEP 5 // increase in steps of 5% for smooth transition
+#define SLEW_STEP_TIME (uint32_t)(SLEW_STEP * 1000 / MAX_SLEW) // min ms delay between steps
 
 
 // forward declarations
@@ -81,6 +88,7 @@ class ot1Cmnd;
 class ot2Cmnd;
 #ifndef PHASE_ANGLE_CONTROL
 class io3Cmnd;
+class dcfanCmnd;
 #endif
 class unitsCmnd;
 class pidCmnd;
@@ -99,6 +107,7 @@ extern ot1Cmnd ot1;
 extern ot2Cmnd ot2;
 #ifndef PHASE_ANGLE_CONTROL
 extern io3Cmnd io3;
+extern dcfanCmnd dcfan;
 #endif
 extern unitsCmnd units;
 extern pidCmnd pid;
@@ -172,10 +181,24 @@ class ot2Cmnd : public CmndBase {
 };
 
 #ifndef PHASE_ANGLE_CONTROL
+
 class io3Cmnd : public CmndBase {
   public:
     io3Cmnd();
     virtual boolean doCommand( CmndParser* pars );
+};
+
+class dcfanCmnd : public CmndBase {
+  protected:
+    uint8_t target; // duty cycle value requested by user
+    uint8_t current; // instantaneous value
+    uint32_t last_fan_change; // ms value when duty cycle last updated
+  public:
+    dcfanCmnd();
+    void init();  // initialize conditions
+    virtual boolean doCommand( CmndParser* pars ); // records the target rate only
+    void set_fan( uint8_t duty ); // sets the fan output duty cycle
+    void slew_fan(); // smoothly ramp up the fan speed
 };
 #endif
 

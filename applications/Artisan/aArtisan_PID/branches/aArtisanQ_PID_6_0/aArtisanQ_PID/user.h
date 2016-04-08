@@ -26,12 +26,17 @@
 #define ARTISAN
 //#define ANDROID
 
-//#define PHASE_ANGLE_CONTROL
+#define PHASE_ANGLE_CONTROL
 
 // If needed adjust these to control what gets streamed back to via serial
 // These have no effect on operation.  They only affect what gets displayed/logged by Artisan
+
 #define HEATER_DUTY levelOT1 // by default, heater output is assumed levelOT1
-#define FAN_DUTY levelIO3 // by default, fan output is assumed levelOT2
+#ifdef PHASE_ANGLE_CONTROL
+#define FAN_DUTY levelOT2 // by default, fan output is assumed levelOT2 for phase angle control mode
+#else
+#define FAN_DUTY levelIO3 // by default, fan output is assumed levelIO3
+#endif
 
 #define LCD // if output on an LCD screen is desired
 #define LCDAPTER // if the I2C LCDapter board is to be used
@@ -39,8 +44,8 @@
 
 #define CELSIUS // controls only the initial conditions
 
-//#define ANALOGUE1 // if POT connected on ANLG1
-//#define ANALOGUE2 // if POT connected on ANLG2
+#define ANALOGUE1 // if POT connected on ANLG1
+#define ANALOGUE2 // if POT connected on ANLG2
 
 #define ANALOGUE_STEP 1 // rounding for analogue input percentage. Use 1, 2, 4, 5, or 10.
 
