@@ -59,11 +59,11 @@ Sets fan to auto cool setting
 Can be used at end of roast.
 Response from TC4 device is "# PID Roast Stop"
 
-PID,P,val
+PID,Px
 ---------
 Sets the roast profile being used by the PID to val.
-val = 0 used when receiving set variable values with the PID,SV command. Default condition.
-val > 0 to access corresponding roast profile stored on TC4 EEPROM
+x = 0 used when receiving set variable values with the PID,SV command. Default condition.
+x > 0 to access corresponding roast profile stored on TC4 EEPROM
 Response from TC4 device is "# Profile 'val' selected"
 
 DCFAN,duty   (added 13-April 2014)
