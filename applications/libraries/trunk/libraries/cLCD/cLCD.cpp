@@ -206,7 +206,7 @@ inline void LCDbase::command(uint8_t value) {
 #if defined(ARDUINO) && ARDUINO >= 100
 inline size_t LCDbase::write(uint8_t value) {
   send(value, HIGH);
-  return 0;
+  return 1;
 }
 #else
 inline void LCDbase::write(uint8_t value) {
