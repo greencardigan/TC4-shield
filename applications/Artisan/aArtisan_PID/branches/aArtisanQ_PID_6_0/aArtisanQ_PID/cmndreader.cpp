@@ -53,9 +53,11 @@ dcfanCmnd dcfan;
 unitsCmnd units;
 pidCmnd pid;
 resetCmnd reset;
+#ifdef ROASTLOGGER
 loadCmnd load;
 powerCmnd power;
 fanCmnd fan;
+#endif
 filtCmnd filt;
 
 
@@ -251,16 +253,7 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
       levelOT1 = levelOT1 + DUTY_STEP;
       if( levelOT1 > MAX_HTR ) levelOT1 = MAX_HTR; // don't allow OT1 to exceed maximum
       if( levelOT1 < MIN_HTR ) levelOT1 = MIN_HTR; // don't allow OT1 to turn on less than minimum
-      #ifdef PHASE_ANGLE_CONTROL
-      output_level_icc( levelOT1 );
-      #else
-      if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-        ssr.Out( 0, 0 );
-      }
-      else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-        ssr.Out( levelOT1, levelOT2 );
-      }
-      #endif
+        outOT1();
       #ifdef ACKS_ON
       Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
       #endif
@@ -269,16 +262,7 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
     else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
       levelOT1 = levelOT1 - DUTY_STEP;
       if( levelOT1 < MIN_HTR & levelOT1 != 0 ) levelOT1 = 0; // turn ot1 off if trying to go below minimum. or use levelOT1 = MIN_HTR ?
-      #ifdef PHASE_ANGLE_CONTROL
-      output_level_icc( levelOT1 );
-      #else
-      if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-        ssr.Out( 0, 0 );
-      }
-      else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-        ssr.Out( levelOT1, levelOT2 );
-      }
-      #endif
+        outOT1();
       #ifdef ACKS_ON
       Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
       #endif
@@ -290,16 +274,7 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
         levelOT1 = atoi( pars->paramStr(1) );
         if( levelOT1 > MAX_HTR ) levelOT1 = MAX_HTR;  // don't allow OT1 to exceed maximum
         if( levelOT1 < MIN_HTR & levelOT1 != 0 ) levelOT1 = MIN_HTR;  // don't allow to set less than minimum unless setting to zero
-        #ifdef PHASE_ANGLE_CONTROL
-        output_level_icc( levelOT1 );
-        #else
-        if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-          ssr.Out( 0, 0 );
-        }
-        else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-          ssr.Out( levelOT1, levelOT2 );
-        }
-        #endif
+          outOT1();
         #ifdef ACKS_ON
         Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
         #endif
@@ -327,16 +302,7 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
       levelOT2 = levelOT2 + DUTY_STEP;
       if( levelOT2 > MAX_FAN ) levelOT2 = MAX_FAN; // don't allow OT2 to exceed maximum
       if( levelOT2 < MIN_FAN ) levelOT2 = MIN_FAN; // don't allow OT2 to turn on less than minimum
-      #ifdef PHASE_ANGLE_CONTROL
-      output_level_pac( levelOT2 );
-      #else
-      if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-        ssr.Out( 0, 0 );
-      }
-      else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-        ssr.Out( levelOT1, levelOT2 );
-      }
-      #endif
+        outOT2();
       #ifdef ACKS_ON
       Serial.print(F("# OT2 level set to ")); Serial.println( levelOT2 );
       #endif
@@ -345,16 +311,7 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
     else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
       levelOT2 = levelOT2 - DUTY_STEP;
       if( levelOT2 < MIN_FAN & levelOT2 != 0 ) levelOT2 = 0;  // turn off if selecting less than minimum. or use levelOT2 = MIN_FAN ?
-      #ifdef PHASE_ANGLE_CONTROL
-      output_level_pac( levelOT2 );
-      #else
-      if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-        ssr.Out( 0, 0 );
-      }
-      else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-        ssr.Out( levelOT1, levelOT2 );
-      }
-      #endif
+        outOT2();
       #ifdef ACKS_ON
       Serial.print(F("# OT2 level set to ")); Serial.println( levelOT2 );
       #endif
@@ -366,16 +323,7 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
         levelOT2 = atoi( pars->paramStr(1) );
         if( levelOT2 > MAX_FAN ) levelOT2 = levelOT2;  // don't allow OT2 to exceed maximum
         if( levelOT2 < MIN_FAN & levelOT2 != 0 ) levelOT2 = MIN_FAN;  // don't allow to set less than minimum unless setting to zero
-        #ifdef PHASE_ANGLE_CONTROL
-        output_level_pac( levelOT2 );
-        #else
-        if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-          ssr.Out( 0, 0 );
-        }
-        else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-          ssr.Out( levelOT1, levelOT2 );
-        }
-        #endif
+          outOT2();
         #ifdef ACKS_ON
         Serial.print(F("# OT2 level set to ")); Serial.println( levelOT2 );
         #endif
@@ -404,14 +352,7 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
       levelIO3 = levelIO3 + DUTY_STEP;
       if( levelIO3 > MAX_FAN ) levelIO3 = MAX_FAN; // don't allow IO3 to exceed maximum
       if( levelIO3 < MIN_FAN ) levelIO3 = MIN_FAN; // don't allow IO3 to turn on less than minimum
-      if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-        ssr.Out( 0, 0 );
-      }
-      else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-        ssr.Out( levelOT1, levelOT2 );
-      }  
-      float pow = 2.55 * levelIO3;
-      analogWrite( IO3, round( pow ) );
+        outIO3();
       #ifdef ACKS_ON
       Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );
       #endif
@@ -421,14 +362,7 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
     else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
       levelIO3 = levelIO3 - DUTY_STEP;
       if( levelIO3 < MIN_FAN & levelIO3 != 0 ) levelIO3 = 0; // turn IO3 off if trying to go below minimum.
-      if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-        ssr.Out( 0, 0 );
-      }
-      else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-        ssr.Out( levelOT1, levelOT2 );
-      }
-      float pow = 2.55 * levelIO3;
-      analogWrite( IO3, round( pow ) );
+        outIO3();
       #ifdef ACKS_ON
       Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );
       #endif
@@ -439,14 +373,7 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
       uint8_t len = strlen( pars->paramStr(1) );
       if( len > 0 ) {
         levelIO3 = atoi( pars->paramStr(1) );
-        if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-          ssr.Out( 0, 0 );
-        }
-        else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-          ssr.Out( levelOT1, levelOT2 );
-        }
-        float pow = 2.55 * levelIO3;
-        analogWrite( IO3, round( pow ) );
+          outIO3();
         #ifdef ACKS_ON
         Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );
         #endif
@@ -489,14 +416,7 @@ void dcfanCmnd::slew_fan() { // limit fan speed increases
 void dcfanCmnd::set_fan( uint8_t duty ) { // sets the fan speed
   if( duty >= 0 && duty < 101 ) { // screen out bogus values
     levelIO3 = duty;
-    if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-      ssr.Out( 0, 0 );
-    }
-    else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-      ssr.Out( levelOT1, levelOT2 );
-    }
-    float pow = 2.55 * duty;
-    analogWrite( FAN_PORT, round( pow ) );
+    outIO3();
     current = duty;
     last_fan_change = millis();
     #ifdef ACKS_ON
@@ -574,16 +494,7 @@ void pidCmnd::pidON() {
 void pidCmnd::pidOFF() {
       Output = 0; // to make sure Iterm is not accumulated
       myPID.SetMode( MANUAL );
-      #ifdef PHASE_ANGLE_CONTROL
-      output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
-      #else
-      if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-        ssr.Out( 0, 0 );
-      }
-      else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-        ssr.Out( levelOT1, levelOT2 );
-      }
-      #endif
+      outOT1();
       #ifdef ACKS_ON
       Serial.println(F("# PID turned OFF"));
       #endif
@@ -627,21 +538,13 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       #ifdef PID_CONTROL
         myPID.SetMode(0); // turn PID off
         levelOT1 = 0;
-        int FAN_VAL = FAN_AUTO_COOL;
+        outOT1(); // Turn heater off
         #ifdef PHASE_ANGLE_CONTROL
-        levelOT2 = FAN_VAL;
-        output_level_icc( levelOT1 );  // Turn OT1 (heater) off
-        output_level_pac( levelOT2 ); // Set fan to auto cool level
-        #else
-        levelIO3 = FAN_VAL;
-        if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-          ssr.Out( 0, 0 );
-        }
-        else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-          ssr.Out( levelOT1, levelOT2 );
-        }
-        float pow = 2.55 * FAN_VAL;
-        analogWrite( IO3, round( pow ) );
+        levelOT2 = FAN_AUTO_COOL;
+        outOT2(); // Set fan to auto cool level
+        #else // PWM Mode
+        levelIO3 = FAN_AUTO_COOL;
+        outIO3(); // Set fan to auto cool level
         #endif
         #ifdef ACKS_ON
         Serial.println(F("# PID Roast Stop"));
@@ -756,6 +659,7 @@ boolean resetCmnd::doCommand( CmndParser* pars ) {
   }
 }
 
+#ifdef ROASTLOGGER
 // ----------------------------- loadCmnd
 // constructor
 loadCmnd::loadCmnd() :
@@ -792,24 +696,13 @@ boolean powerCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     uint8_t len = strlen( pars->paramStr(1) );
     if( len > 0 ) {
-#ifdef ROASTLOGGER
       levelOT1 = atoi( pars->paramStr(1) );
       if( levelOT1 > MAX_HTR ) levelOT1 = MAX_HTR;  // don't allow OT1 to exceed maximum
       if( levelOT1 < MIN_HTR & levelOT1 != 0 ) levelOT1 = MIN_HTR;  // don't allow to set less than minimum unless setting to zero
-      #ifdef PHASE_ANGLE_CONTROL
-      output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
-      #else
-      if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-        ssr.Out( 0, 0 );
-      }
-      else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-        ssr.Out( levelOT1, levelOT2 );
-      }
-      #endif
+      outOT1();
       #ifdef ACKS_ON
       Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
       #endif
-#endif //ROASTLOGGER
     }
     return true;
   
@@ -826,6 +719,7 @@ fanCmnd::fanCmnd() :
   CmndBase( FAN_CMD ) {
 }
 
+
 // execute the FAN command
 // FAN=ddd\n
 
@@ -833,28 +727,21 @@ boolean fanCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     uint8_t len = strlen( pars->paramStr(1) );
     if( len > 0 ) {
-#ifdef ROASTLOGGER
-      FAN_VAL = atoi( pars->paramStr(1) );
+
+      uint8_t FAN_VAL = atoi( pars->paramStr(1) );
       if( FAN_VAL > MAX_FAN ) FAN_VAL = MAX_FAN;  // don't allow FAN_VAL to exceed maximum
       if( FAN_VAL < MIN_FAN & FAN_VAL != 0 ) FAN_VAL = MIN_FAN;  // don't allow to set less than minimum unless setting to zero
       #ifdef PHASE_ANGLE_CONTROL
       levelOT2 = FAN_VAL;
-      output_level_pac( levelOT2 );
+      outOT2();
       #else
       levelIO3 = FAN_VAL;
-      if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-        ssr.Out( 0, 0 );
-      }
-      else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-        ssr.Out( levelOT1, levelOT2 );
-      }
-      float pow = 2.55 * levelIO3;
-      analogWrite( IO3, round( pow ) );
+      outIO3();
       #endif
       #ifdef ACKS_ON
       Serial.print(F("# OT2 level set to ")); Serial.println( FAN_VAL );
       #endif
-#endif //ROASTLOGGER
+
     }
     return true;
   
@@ -863,4 +750,5 @@ boolean fanCmnd::doCommand( CmndParser* pars ) {
     return false;
   }
 }
+#endif //ROASTLOGGER
 

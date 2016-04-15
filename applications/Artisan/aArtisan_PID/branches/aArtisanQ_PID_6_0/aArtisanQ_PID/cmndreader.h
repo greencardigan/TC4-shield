@@ -67,9 +67,11 @@
 #define IO3 3 // use DIO3 for PWM output
 #define PID_CMD "PID" // turn PID ON or OFF
 #define RESET_CMD "RESET" // pBourbon reset command
+#ifdef ROASTLOGGER
 #define LOAD_CMD "LOAD" // Roastlogger LOAD command
 #define POWER_CMD "POWER" // Roastlogger POWER command
 #define FAN_CMD "FAN" // Roastlogger FAN command
+#endif
 #define FILT_CMD "FILT" // runtime changes to digital filtering on input channels
 #define FAN_PORT 3 // use DI03 for PWM fan output
 
@@ -93,9 +95,11 @@ class dcfanCmnd;
 class unitsCmnd;
 class pidCmnd;
 class resetCmnd;
+#ifdef ROASTLOGGER
 class loadCmnd;
 class powerCmnd;
 class fanCmnd;
+#endif
 class filtCmnd;
 
 // external declarations of class objects
@@ -112,9 +116,11 @@ extern dcfanCmnd dcfan;
 extern unitsCmnd units;
 extern pidCmnd pid;
 extern resetCmnd reset;
+#ifdef ROASTLOGGER
 extern loadCmnd load;
 extern powerCmnd power;
 extern fanCmnd fan;
+#endif
 extern filtCmnd filt;
 
 
@@ -141,6 +147,11 @@ extern double SV;
 extern double Output;
 extern uint8_t pid_chan;
 extern filterRC fT[NC]; // filters for logged ET, BT
+extern void outOT1();
+extern void outOT2();
+#ifndef PHASE_ANGLE_CONTROL
+extern void outIO3();
+#endif
 
 // class declarations for commands
 

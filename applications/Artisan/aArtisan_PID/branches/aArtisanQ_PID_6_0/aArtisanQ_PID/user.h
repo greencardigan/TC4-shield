@@ -155,6 +155,7 @@
 #define OT_PAC OT2 // phase angle control on OT2 (AC fan, usually)
 #define OT_ICC OT1 // integral cycle control on OT1 (AC heater, usually)
 #define LED_PIN 13
+#define IO5_PWM_OT1 5 // output pwm signal on IO5 with same duty as OT1
 
 ////////////////////
 // Phase Angle Control Options

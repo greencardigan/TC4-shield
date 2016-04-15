@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 6_0"
+#define BANNER_ARTISAN "aArtisanQ_PID 6_1"
 
 // Revision history:
 // 20110408 Created.
@@ -228,9 +228,6 @@ uint32_t checktime;
 
 #endif
 
-//boolean artisan_logger = false;
-//boolean ANDROID = false; // set initial state for ANDROID flag
-//boolean roastlogger = false; // set initial state for roastlogger flag
 uint32_t counter; // second counter
 uint32_t next_loop_time; // 
 boolean first;
@@ -393,8 +390,8 @@ void logger() {
 #ifdef ANDROID
 
   // print counter
-  Serial.print( counter );
-  Serial.print( F(",") );
+  //Serial.print( counter );
+  //Serial.print( F(",") );
 
   // print ambient
   Serial.print( convertUnits( AT ), DP );
@@ -770,16 +767,7 @@ void readAnlg1() { // read analog port 1 and adjust OT1 output
     analogue1_changed = true;
     levelOT1 = reading;
     old_reading_anlg1 = reading; // save reading for next time
-#ifdef PHASE_ANGLE_CONTROL
-    output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
-#else
-    if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-      ssr.Out( 0, 0 );
-    }
-    else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-      ssr.Out( levelOT1, levelOT2 );
-    }
-#endif
+    outOT1();
   }
   else {
     analogue1_changed = false;
@@ -798,17 +786,10 @@ void readAnlg2() { // read analog port 2 and adjust OT2 output
     old_reading_anlg2 = reading; // save reading for next time
 #ifdef PHASE_ANGLE_CONTROL
     levelOT2 = reading;
-    output_level_pac( levelOT2 ); // Phase angle control and random fire SSR on OT2 
-#else
+    outOT2(); // update fan output on OT2
+#else // PWM Mode
     levelIO3 = reading;
-    if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-      ssr.Out( 0, 0 );
-    }
-    else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-      ssr.Out( levelOT1, levelOT2 );
-    }
-    float pow = 2.55 * levelIO3;
-    analogWrite( IO3, round( pow ) ); // analogue out to IO3
+    outIO3(); // update fan output on IO3
 #endif
   }
   else {
@@ -964,6 +945,69 @@ void checkButtons() { // take action if a button is pressed
 #endif // end ifdef LCDAPTER
 
 
+// ----------------------------------
+void outOT1() { // update output for OT1
+  uint8_t htr;
+#ifdef PHASE_ANGLE_CONTROL
+  if ( levelOT2 < HTR_CUTOFF_FAN_VAL ) {
+    htr = 0;
+  }
+  else {
+    htr = levelOT1;
+  }
+  output_level_icc( htr );
+#ifdef IO5_PWM_OT1
+  float pow = 2.55 * htr;
+  analogWrite( IO5_PWM_OT1, round( pow ) );
+#endif
+
+#else // PWM Mode
+  if ( levelIO3 < HTR_CUTOFF_FAN_VAL ) {
+    htr = 0;
+  }
+  else {
+    htr = levelOT1;
+  }
+  ssr.Out( htr, levelOT2 );
+#endif
+
+}
+
+// ----------------------------------
+void outOT2() { // update output for OT2
+
+#ifdef PHASE_ANGLE_CONTROL
+  if ( levelOT2 < HTR_CUTOFF_FAN_VAL ) {
+    outOT1(); // update OT1 output to cut power to heater if required
+  }
+  output_level_pac( levelOT2 );
+#else // PWM Mode
+  if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
+    ssr.Out( 0, levelOT2 );
+  }
+  else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
+    ssr.Out( levelOT1, levelOT2 );
+  }
+#endif
+
+}
+
+#ifndef PHASE_ANGLE_CONTROL
+// ----------------------------------
+void outIO3() { // update output for IO3
+
+  if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
+    ssr.Out( 0, levelOT2 );
+  }
+  else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
+    ssr.Out( levelOT1, levelOT2 );
+  }
+  float pow = 2.55 * levelIO3;
+  analogWrite( IO3, round( pow ) );
+
+}
+#endif
+
 // ------------------------------------------------------------------------
 // MAIN
 //
@@ -1073,9 +1117,11 @@ void setup()
   ci.addCommand( &reader );
   ci.addCommand( &pid );
   ci.addCommand( &reset );
+#ifdef ROASTLOGGER
   ci.addCommand( &load );
   ci.addCommand( &power );
   ci.addCommand( &fan );
+#endif
   ci.addCommand( &filt );
 
 #ifndef PHASE_ANGLE_CONTROL
@@ -1168,16 +1214,7 @@ void loop()
       Serial.print(F("# PID input = " )); Serial.print( Input ); Serial.print(F("  "));
       Serial.print(F("# PID output = " )); Serial.println( levelOT1 );
       #endif
-      #ifdef PHASE_ANGLE_CONTROL
-      output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
-      #else
-      if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
-        ssr.Out( 0, 0 );
-      }
-      else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
-        ssr.Out( levelOT1, levelOT2 );
-      }
-      #endif
+      outOT1();
     }
   #endif
 
