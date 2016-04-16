@@ -22,18 +22,9 @@
 
 ////////////////////
 // Default control mode is Phase Angle Control for OT2 (AC fan) and ICC control for OT1 (heater)
-// Comment out PHASE_ANGLE_CONTROL to get PWM control. Fast PWM for IO3 (DC fan) and slow PWM for OT1 (heater) 
+// Comment out PHASE_ANGLE_CONTROL to get PWM control. Fast PWM (3.922kHz) for IO3 (DC fan) and slow PWM for OT1 (heater) 
 #define PHASE_ANGLE_CONTROL
-
-////////////////////
-// If needed adjust these to control what gets streamed back to via serial
-// These have no effect on operation.  They only affect what gets displayed/logged by Artisan
-#define HEATER_DUTY levelOT1 // by default, heater output is assumed levelOT1
-#ifdef PHASE_ANGLE_CONTROL
-#define FAN_DUTY levelOT2 // by default, fan output is assumed levelOT2 for phase angle control mode
-#else
-#define FAN_DUTY levelIO3 // by default, fan output is assumed levelIO3 for PWM control
-#endif
+//#define IO3_HTR // use PWM (3.922kHz) out on IO3 for heater in PHASE ANGLE CONTROL mode
 
 ////////////////////
 // LCD Options
@@ -49,8 +40,8 @@
 ////////////////////
 // Analogue inputs
 // Comment out if not required
-// #define ANALOGUE1 // if POT connected on ANLG1
-// #define ANALOGUE2 // if POT connected on ANLG2
+//#define ANALOGUE1 // if POT connected on ANLG1
+//#define ANALOGUE2 // if POT connected on ANLG2
 
 ////////////////////
 // Duty Cycle Adjustment Increment
@@ -74,15 +65,18 @@
 
 ////////////////////
 // Heater and Fan Limits/Options
-#define MIN_HTR 0 // Set output % for lower limit for OT1.  0% power will always be available
-#define MAX_HTR 100 // Set output % for upper limit for OT1
+#define MIN_OT1 0 // Set output % for lower limit for OT1.  0% power will always be available
+#define MAX_OT1 100 // Set output % for upper limit for OT1
 
-#define MIN_FAN 10 // Set output % for lower limit for OT2 and IO3.  0% power will always be available
-#define MAX_FAN 100 // Set output % for upper limit for OT2 and IO3
+#define MIN_OT2 0 // Set output % for lower limit for OT2.  0% power will always be available
+#define MAX_OT2 100 // Set output % for upper limit for OT2
 
-#define HTR_CUTOFF_FAN_VAL 10 // cut power to OT1 if OT2(%) is less than HTR_CUTOFF_FAN_VAL (to protect heater in air roaster). Set to 0 for no cutoff
+#define MIN_IO3 0 // Set output % for lower limit for IO3.  0% power will always be available
+#define MAX_IO3 100  // Set output % for upper limit for IO3
 
-#define FAN_AUTO_COOL 13 // Set fan output % for auto cool when using PID;STOP command
+#define HTR_CUTOFF_FAN_VAL 10 // cut power to Heater if fan duty is less than HTR_CUTOFF_FAN_VAL (to protect heater in air roaster). Set to 0 for no cutoff
+
+#define FAN_AUTO_COOL 13 // Set fan output duty for auto cool when using PID;STOP command
 
 ////////////////////
 // Command Echo
@@ -155,7 +149,25 @@
 #define OT_PAC OT2 // phase angle control on OT2 (AC fan, usually)
 #define OT_ICC OT1 // integral cycle control on OT1 (AC heater, usually)
 #define LED_PIN 13
-#define IO5_PWM_OT1 5 // output pwm signal on IO5 with same duty as OT1
+#ifdef PHASE_ANGLE_CONTROL
+#endif
+
+////////////////////
+// Heater and Fan Duty Dispay Options
+// These should NOT need adjusting.  They control what gets streamed back to via serial
+// These have no effect on operation and only affect what gets displayed/logged by Artisan
+#ifdef PHASE_ANGLE_CONTROL
+  #ifdef IO3_HTR // If using PWM on IO3 for a heater
+    #define HEATER_DUTY levelIO3 // Heater output is assumed levelIO3 with heater connected to IO3
+  #else // If using ICC control of a heater connected to OT1
+    #define HEATER_DUTY levelOT1 // Heater output is assumed levelOT1 with heater connected to OT1
+  #endif
+  #define FAN_DUTY levelOT2 // Fan output is assumed levelOT2 for phase angle control mode on OT2
+#else // PWM Mode
+  #define HEATER_DUTY levelOT1 // Heater output is assumed levelOT1 with heatre connected to OT1
+  #define FAN_DUTY levelIO3 // Fan output is assumed levelIO3 for PWM control of fan connected to IO3
+#endif
+
 
 ////////////////////
 // Phase Angle Control Options
@@ -172,10 +184,10 @@
 // Interrupt Options for Zero Cross Detector
 // When using PHASE_ANGLE_CONTROL option
 // use these if zero cross detector connected to I/O2
-//#define EXT_INT 0 // interrupt 0
-//#define INT_PIN 2 // pin 2
+#define EXT_INT 0 // interrupt 0
+#define INT_PIN 2 // pin 2
 // use these for I/O3
-#define EXT_INT 1 // interrupt 1
-#define INT_PIN 3
+//#define EXT_INT 1 // interrupt 1
+//#define INT_PIN 3
 
 #endif

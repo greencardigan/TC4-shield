@@ -46,8 +46,8 @@ dwriteCmnd dwriter;
 chanCmnd chan;
 ot1Cmnd ot1;
 ot2Cmnd ot2;
-#ifndef PHASE_ANGLE_CONTROL
 io3Cmnd io3;
+#ifndef PHASE_ANGLE_CONTROL
 dcfanCmnd dcfan;
 #endif
 unitsCmnd units;
@@ -251,8 +251,8 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     if( strcmp( pars->paramStr(1), "UP" ) == 0 ) {
       levelOT1 = levelOT1 + DUTY_STEP;
-      if( levelOT1 > MAX_HTR ) levelOT1 = MAX_HTR; // don't allow OT1 to exceed maximum
-      if( levelOT1 < MIN_HTR ) levelOT1 = MIN_HTR; // don't allow OT1 to turn on less than minimum
+      if( levelOT1 > MAX_OT1 ) levelOT1 = MAX_OT1; // don't allow OT1 to exceed maximum
+      if( levelOT1 < MIN_OT1 ) levelOT1 = MIN_OT1; // don't allow OT1 to turn on less than minimum
         outOT1();
       #ifdef ACKS_ON
       Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
@@ -261,7 +261,7 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
     }
     else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
       levelOT1 = levelOT1 - DUTY_STEP;
-      if( levelOT1 < MIN_HTR & levelOT1 != 0 ) levelOT1 = 0; // turn ot1 off if trying to go below minimum. or use levelOT1 = MIN_HTR ?
+      if( levelOT1 < MIN_OT1 & levelOT1 != 0 ) levelOT1 = 0; // turn ot1 off if trying to go below minimum. or use levelOT1 = MIN_HTR ?
         outOT1();
       #ifdef ACKS_ON
       Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
@@ -272,8 +272,8 @@ boolean ot1Cmnd::doCommand( CmndParser* pars ) {
       uint8_t len = strlen( pars->paramStr(1) );
       if( len > 0 ) {
         levelOT1 = atoi( pars->paramStr(1) );
-        if( levelOT1 > MAX_HTR ) levelOT1 = MAX_HTR;  // don't allow OT1 to exceed maximum
-        if( levelOT1 < MIN_HTR & levelOT1 != 0 ) levelOT1 = MIN_HTR;  // don't allow to set less than minimum unless setting to zero
+        if( levelOT1 > MAX_OT1 ) levelOT1 = MAX_OT1;  // don't allow OT1 to exceed maximum
+        if( levelOT1 < MIN_OT1 & levelOT1 != 0 ) levelOT1 = MIN_OT1;  // don't allow to set less than minimum unless setting to zero
           outOT1();
         #ifdef ACKS_ON
         Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
@@ -300,8 +300,8 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     if( strcmp( pars->paramStr(1), "UP" ) == 0 ) {
       levelOT2 = levelOT2 + DUTY_STEP;
-      if( levelOT2 > MAX_FAN ) levelOT2 = MAX_FAN; // don't allow OT2 to exceed maximum
-      if( levelOT2 < MIN_FAN ) levelOT2 = MIN_FAN; // don't allow OT2 to turn on less than minimum
+      if( levelOT2 > MAX_OT2 ) levelOT2 = MAX_OT2; // don't allow OT2 to exceed maximum
+      if( levelOT2 < MIN_OT2 ) levelOT2 = MIN_OT2; // don't allow OT2 to turn on less than minimum
         outOT2();
       #ifdef ACKS_ON
       Serial.print(F("# OT2 level set to ")); Serial.println( levelOT2 );
@@ -310,7 +310,7 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
     }
     else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
       levelOT2 = levelOT2 - DUTY_STEP;
-      if( levelOT2 < MIN_FAN & levelOT2 != 0 ) levelOT2 = 0;  // turn off if selecting less than minimum. or use levelOT2 = MIN_FAN ?
+      if( levelOT2 < MIN_OT2 & levelOT2 != 0 ) levelOT2 = 0;  // turn off if selecting less than minimum. or use levelOT2 = MIN_FAN ?
         outOT2();
       #ifdef ACKS_ON
       Serial.print(F("# OT2 level set to ")); Serial.println( levelOT2 );
@@ -321,8 +321,8 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
       uint8_t len = strlen( pars->paramStr(1) );
       if( len > 0 ) {
         levelOT2 = atoi( pars->paramStr(1) );
-        if( levelOT2 > MAX_FAN ) levelOT2 = levelOT2;  // don't allow OT2 to exceed maximum
-        if( levelOT2 < MIN_FAN & levelOT2 != 0 ) levelOT2 = MIN_FAN;  // don't allow to set less than minimum unless setting to zero
+        if( levelOT2 > MAX_OT2 ) levelOT2 = levelOT2;  // don't allow OT2 to exceed maximum
+        if( levelOT2 < MIN_OT2 & levelOT2 != 0 ) levelOT2 = MIN_OT2;  // don't allow to set less than minimum unless setting to zero
           outOT2();
         #ifdef ACKS_ON
         Serial.print(F("# OT2 level set to ")); Serial.println( levelOT2 );
@@ -336,7 +336,6 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
   }
 }
 
-#ifndef PHASE_ANGLE_CONTROL
 // ----------------------------- io3Cmnd
 // constructor
 io3Cmnd::io3Cmnd() :
@@ -350,8 +349,8 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     if( strcmp( pars->paramStr(1), "UP" ) == 0 ) {
       levelIO3 = levelIO3 + DUTY_STEP;
-      if( levelIO3 > MAX_FAN ) levelIO3 = MAX_FAN; // don't allow IO3 to exceed maximum
-      if( levelIO3 < MIN_FAN ) levelIO3 = MIN_FAN; // don't allow IO3 to turn on less than minimum
+      if( levelIO3 > MAX_IO3 ) levelIO3 = MAX_IO3; // don't allow IO3 to exceed maximum
+      if( levelIO3 < MIN_IO3 ) levelIO3 = MIN_IO3; // don't allow IO3 to turn on less than minimum
         outIO3();
       #ifdef ACKS_ON
       Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );
@@ -361,7 +360,7 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
     }
     else if( strcmp( pars->paramStr(1), "DOWN" ) == 0 ) {
       levelIO3 = levelIO3 - DUTY_STEP;
-      if( levelIO3 < MIN_FAN & levelIO3 != 0 ) levelIO3 = 0; // turn IO3 off if trying to go below minimum.
+      if( levelIO3 < MIN_IO3 & levelIO3 != 0 ) levelIO3 = 0; // turn IO3 off if trying to go below minimum.
         outIO3();
       #ifdef ACKS_ON
       Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );
@@ -385,6 +384,8 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
     return false;
   }
 }
+
+#ifndef PHASE_ANGLE_CONTROL
 
 // ----------------------------- dcfanCmnd
 // constructor
@@ -537,14 +538,23 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
     else if( strcmp( pars->paramStr(1), "STOP" ) == 0 ) {
       #ifdef PID_CONTROL
         myPID.SetMode(0); // turn PID off
-        levelOT1 = 0;
-        outOT1(); // Turn heater off
         #ifdef PHASE_ANGLE_CONTROL
+        #ifdef IO3_HTR
+        levelIO3 = 0;
+        outIO3(); // Turn heater off in IO3
         levelOT2 = FAN_AUTO_COOL;
-        outOT2(); // Set fan to auto cool level
+        outOT2(); // Set fan to auto cool level on OT2
+        #else
+        levelOT1 = 0;
+        outOT1(); // Turn heater off on OT1
+        levelOT2 = FAN_AUTO_COOL;
+        outOT2(); // Set fan to auto cool level on OT2
+        #endif
         #else // PWM Mode
+        levelOT1 = 0;
+        outOT1(); // Turn heater off on OT1
         levelIO3 = FAN_AUTO_COOL;
-        outIO3(); // Set fan to auto cool level
+        outIO3(); // Set fan to auto cool level on IO3
         #endif
         #ifdef ACKS_ON
         Serial.println(F("# PID Roast Stop"));
@@ -696,13 +706,33 @@ boolean powerCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     uint8_t len = strlen( pars->paramStr(1) );
     if( len > 0 ) {
+#ifdef PHASE_ANGLE_CONTROL
+#ifdef IO3_HTR
+      levelIO3 = atoi( pars->paramStr(1) );
+      if( levelIO3 > MAX_IO3 ) levelIO3 = MAX_IO3;  // don't allow OT1 to exceed maximum
+      if( levelIO3 < MIN_IO3 & levelIO3 != 0 ) levelIO3 = MIN_IO3;  // don't allow to set less than minimum unless setting to zero
+      outIO3();
+      #ifdef ACKS_ON
+      Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );
+      #endif
+#else
       levelOT1 = atoi( pars->paramStr(1) );
-      if( levelOT1 > MAX_HTR ) levelOT1 = MAX_HTR;  // don't allow OT1 to exceed maximum
-      if( levelOT1 < MIN_HTR & levelOT1 != 0 ) levelOT1 = MIN_HTR;  // don't allow to set less than minimum unless setting to zero
+      if( levelOT1 > MAX_OT1 ) levelOT1 = MAX_OT1;  // don't allow OT1 to exceed maximum
+      if( levelOT1 < MIN_OT1 & levelOT1 != 0 ) levelOT1 = MIN_OT1;  // don't allow to set less than minimum unless setting to zero
       outOT1();
       #ifdef ACKS_ON
       Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
       #endif
+#endif
+#else // PWM Mode
+      levelOT1 = atoi( pars->paramStr(1) );
+      if( levelOT1 > MAX_OT1 ) levelOT1 = MAX_OT1;  // don't allow OT1 to exceed maximum
+      if( levelOT1 < MIN_OT1 & levelOT1 != 0 ) levelOT1 = MIN_OT1;  // don't allow to set less than minimum unless setting to zero
+      outOT1();
+      #ifdef ACKS_ON
+      Serial.print(F("# OT1 level set to ")); Serial.println( levelOT1 );
+      #endif
+#endif
     }
     return true;
   
@@ -727,21 +757,23 @@ boolean fanCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     uint8_t len = strlen( pars->paramStr(1) );
     if( len > 0 ) {
-
-      uint8_t FAN_VAL = atoi( pars->paramStr(1) );
-      if( FAN_VAL > MAX_FAN ) FAN_VAL = MAX_FAN;  // don't allow FAN_VAL to exceed maximum
-      if( FAN_VAL < MIN_FAN & FAN_VAL != 0 ) FAN_VAL = MIN_FAN;  // don't allow to set less than minimum unless setting to zero
-      #ifdef PHASE_ANGLE_CONTROL
-      levelOT2 = FAN_VAL;
+#ifdef PHASE_ANGLE_CONTROL
+      levelOT2 = atoi( pars->paramStr(1) );
+      if( levelOT2 > MAX_OT2 ) levelOT2 = MAX_OT2;  // don't allow fan duty to exceed maximum
+      if( levelOT2 < MIN_OT2 & levelOT2 != 0 ) levelOT2 = MIN_OT2;  // don't allow to set less than minimum unless setting to zero
       outOT2();
-      #else
-      levelIO3 = FAN_VAL;
-      outIO3();
-      #endif
       #ifdef ACKS_ON
-      Serial.print(F("# OT2 level set to ")); Serial.println( FAN_VAL );
+      Serial.print(F("# OT2 level set to ")); Serial.println( levelOT2 );
       #endif
-
+#else
+      levelIO3 = atoi( pars->paramStr(1) );
+      if( levelIO3 > MAX_IO3 ) levelIO3 = MAX_IO3;  // don't allow fan duty to exceed maximum
+      if( levelIO3 < MIN_IO3 & levelIO3 != 0 ) levelIO3 = MIN_IO3;  // don't allow to set less than minimum unless setting to zero
+      outIO3();
+      #ifdef ACKS_ON
+      Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );
+      #endif
+#endif
     }
     return true;
   

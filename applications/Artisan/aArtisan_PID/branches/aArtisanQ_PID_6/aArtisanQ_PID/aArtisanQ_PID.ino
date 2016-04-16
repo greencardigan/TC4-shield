@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 6_1"
+#define BANNER_ARTISAN "aArtisanQ_PID 6_2"
 
 // Revision history:
 // 20110408 Created.
@@ -128,6 +128,11 @@
 // 20150426 Removed io3, rf2000 and rc2000 commands to save memory
 //          Other small compile changes to save memory
 //          Compile directive change to ensure output levels are displayed when analogue pots are not active
+// 20160416 Added fast PWM (3.922kHz) available in Phase Angle Control Mode on IO3. Enable using IO3_HTR in user.h.
+//          Moved default zero-cross interrupt to IO2 to allow PWM out on IO3.
+//          Also does 3.922kHz PWM for DC fan on IO3 in PWM mode.
+//          Added Min and Max for IO3 output
+//          aArtisanQ_PID version 6_2 released for testing
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -147,10 +152,8 @@
 #ifdef PHASE_ANGLE_CONTROL
   // code for integral cycle control and phase angle control
   #include "phase_ctrl.h"
-#else
-  #include <PWM16.h> // for SSR output
 #endif
-
+#include <PWM16.h> // for SSR output
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <cmndproc.h> // for command interpreter
 #include <thermocouple.h> // type K, type J, and type T thermocouple support
@@ -186,9 +189,8 @@ boolean Cscale = false;
 #endif
 
 int levelOT1, levelOT2;  // parameters to control output levels
-#ifndef PHASE_ANGLE_CONTROL
 int levelIO3;
-#endif
+
 
 #ifdef MEMORY_CHK
 uint32_t checktime;
@@ -242,6 +244,7 @@ filterRC fRoR[NC]; // post-filtering on RoR values
 #ifndef PHASE_ANGLE_CONTROL
 PWM16 ssr;  // object for SSR output on OT1, OT2
 #endif
+PWM_IO3 pwmio3;
 CmndInterp ci( DELIM ); // command interpreter object
 
 // array of thermocouple types
@@ -728,21 +731,39 @@ void updateLCD() {
 // -------------------------------- reads analog value and maps it to 0 to 100
 // -------------------------------- rounded to the nearest DUTY_STEP value
 int32_t getAnalogValue( uint8_t port ) {
-  int32_t mod, trial;
+  int32_t mod, trial, min_anlg1, max_anlg1, min_anlg2, max_anlg2;
+#ifdef PHASE_ANGLE_CONTROL
+#ifdef IO3_HTR
+  min_anlg1 = MIN_IO3;
+  max_anlg1 = MAX_IO3;
+  min_anlg2 = MIN_OT2;
+  max_anlg2 = MAX_OT2;
+#else
+  min_anlg1 = MIN_OT1;
+  max_anlg1 = MAX_OT2;
+  min_anlg2 = MIN_OT2;
+  max_anlg2 = MAX_OT2;
+#endif
+#else // PWM Mode
+  min_anlg1 = MIN_OT1;
+  max_anlg1 = MAX_OT2;
+  min_anlg2 = MIN_IO3;
+  max_anlg2 = MAX_IO3;
+#endif
   float aval;
   aval = analogRead( port );
   #ifdef ANALOGUE1
     if( port == anlg1 ) {
-      aval = MIN_HTR * 10.24 + ( aval / 1024 ) * 10.24 * ( MAX_HTR - MIN_HTR ) ; // scale analogue value to new range
-      if ( aval == ( MIN_HTR * 10.24 ) ) aval = 0; // still allow OT1 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
-      mod = MIN_HTR;
+      aval = min_anlg1 * 10.24 + ( aval / 1024 ) * 10.24 * ( max_anlg1 - min_anlg1 ) ; // scale analogue value to new range
+      if ( aval == ( min_anlg1 * 10.24 ) ) aval = 0; // still allow OT1 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
+      mod = min_anlg1;
     }
   #endif
   #ifdef ANALOGUE2
     if( port == anlg2 ) {
-      aval = MIN_FAN * 10.24 + ( aval / 1024 ) * 10.24 * ( MAX_FAN - MIN_FAN ) ; // scale analogue value to new range
-      if ( aval == ( MIN_FAN * 10.24 ) ) aval = 0; // still allow OT2 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
-      mod = MIN_FAN;
+      aval = min_anlg2 * 10.24 + ( aval / 1024 ) * 10.24 * ( max_anlg2 - min_anlg2 ) ; // scale analogue value to new range
+      if ( aval == ( min_anlg2 * 10.24 ) ) aval = 0; // still allow OT2 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
+      mod = min_anlg2;
     }
   #endif
   trial = ( aval + 0.001 ) * 100; // to fix weird rounding error from previous calcs?????
@@ -765,9 +786,19 @@ void readAnlg1() { // read analog port 1 and adjust OT1 output
   reading = getAnalogValue( anlg1 );
   if( reading <= 100 && reading != old_reading_anlg1 ) { // did it change?
     analogue1_changed = true;
-    levelOT1 = reading;
     old_reading_anlg1 = reading; // save reading for next time
+#ifdef PHASE_ANGLE_CONTROL
+#ifdef IO3_HTR
+    levelIO3 = reading;
+    outIO3();
+#else
+    levelOT1 = reading;
     outOT1();
+#endif
+#else // PWM Mode
+    levelOT1 = reading;
+    outOT1();
+#endif
   }
   else {
     analogue1_changed = false;
@@ -947,28 +978,27 @@ void checkButtons() { // take action if a button is pressed
 
 // ----------------------------------
 void outOT1() { // update output for OT1
-  uint8_t htr;
+  uint8_t new_levelot1;
 #ifdef PHASE_ANGLE_CONTROL
+#ifdef IO3_HTR // OT1 not cutoff by fan duty in IO3_HTR mode
+  new_levelot1 = levelOT1;
+#else
   if ( levelOT2 < HTR_CUTOFF_FAN_VAL ) {
-    htr = 0;
+    new_levelot1 = 0;
   }
   else {
-    htr = levelOT1;
+    new_levelot1 = levelOT1;
   }
-  output_level_icc( htr );
-#ifdef IO5_PWM_OT1
-  float pow = 2.55 * htr;
-  analogWrite( IO5_PWM_OT1, round( pow ) );
 #endif
-
+  output_level_icc( new_levelot1 );
 #else // PWM Mode
   if ( levelIO3 < HTR_CUTOFF_FAN_VAL ) {
-    htr = 0;
+    new_levelot1 = 0;
   }
   else {
-    htr = levelOT1;
+    new_levelot1 = levelOT1;
   }
-  ssr.Out( htr, levelOT2 );
+  ssr.Out( new_levelot1, levelOT2 );
 #endif
 
 }
@@ -977,9 +1007,13 @@ void outOT1() { // update output for OT1
 void outOT2() { // update output for OT2
 
 #ifdef PHASE_ANGLE_CONTROL
+#ifdef IO3_HTR
+  outIO3(); // update IO3 output to cut or reinstate power to heater if required
+#else
   if ( levelOT2 < HTR_CUTOFF_FAN_VAL ) {
     outOT1(); // update OT1 output to cut power to heater if required
   }
+#endif
   output_level_pac( levelOT2 );
 #else // PWM Mode
   if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
@@ -992,21 +1026,30 @@ void outOT2() { // update output for OT2
 
 }
 
-#ifndef PHASE_ANGLE_CONTROL
 // ----------------------------------
 void outIO3() { // update output for IO3
 
-  if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
+  uint8_t new_levelio3;
+  new_levelio3 = levelIO3;
+
+#ifdef PHASE_ANGLE_CONTROL
+#ifdef IO3_HTR
+  if( levelOT2 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater on IO3
+    new_levelio3 = 0;
+  }
+#endif
+#else // PWM Mode
+  if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater on OT1
     ssr.Out( 0, levelOT2 );
   }
   else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
     ssr.Out( levelOT1, levelOT2 );
   }
-  float pow = 2.55 * levelIO3;
-  analogWrite( IO3, round( pow ) );
-
-}
 #endif
+  float pow = 2.55 * new_levelio3;
+  analogWrite( IO3, round( pow ) );
+}
+
 
 // ------------------------------------------------------------------------
 // MAIN
@@ -1076,12 +1119,14 @@ void setup()
   
   // set up output on OT1 and OT2 and IO3
   levelOT1 = levelOT2 = 0;
-#ifndef PHASE_ANGLE_CONTROL
   levelIO3 = 0;
+#ifndef PHASE_ANGLE_CONTROL
   ssr.Setup( TIME_BASE );
 #else
   init_control();
 #endif
+  pwmio3.Setup( IO3_PCORPWM, IO3_PRESCALE_8 ); // setup pmw frequency ion IO3
+
 
 
   #ifdef ANALOGUE1
@@ -1108,8 +1153,8 @@ void setup()
   ci.addCommand( &awriter );
   ci.addCommand( &units );
   ci.addCommand( &chan );
-#ifndef PHASE_ANGLE_CONTROL
   ci.addCommand( &io3 );
+#ifndef PHASE_ANGLE_CONTROL
   ci.addCommand( &dcfan );
 #endif
   ci.addCommand( &ot2 );
@@ -1140,7 +1185,11 @@ void setup()
 
 #ifdef PID_CONTROL
   myPID.SetSampleTime(CT); // set sample time to 1 second
-  myPID.SetOutputLimits(MIN_HTR, MAX_HTR); // set output limits to user defined limits
+#ifdef IO3_HTR
+  myPID.SetOutputLimits(MIN_IO3, MAX_IO3); // set output limits to user defined limits
+#else
+  myPID.SetOutputLimits(MIN_OT1, MAX_OT1); // set output limits to user defined limits
+#endif
   myPID.SetControllerDirection(DIRECT); // set PID to be direct acting mode. Increase in output leads to increase in input
   myPID.SetTunings(PRO, INT, DER); // set initial PID tuning values
   myPID.SetMode(MANUAL); // start with PID control off
@@ -1209,12 +1258,17 @@ void loop()
       // Input is the SV for the PID algorithm
       Input = convertUnits( T[k] );
       myPID.Compute();  // do PID calcs
+#ifdef IO3_HTR
+      levelIO3 = Output; // update levelOT1 based on PID optput
+      outIO3();
+#else
       levelOT1 = Output; // update levelOT1 based on PID optput
+      outOT1();
+#endif
       #ifdef ACKS_ON
       Serial.print(F("# PID input = " )); Serial.print( Input ); Serial.print(F("  "));
       Serial.print(F("# PID output = " )); Serial.println( levelOT1 );
       #endif
-      outOT1();
     }
   #endif
 
