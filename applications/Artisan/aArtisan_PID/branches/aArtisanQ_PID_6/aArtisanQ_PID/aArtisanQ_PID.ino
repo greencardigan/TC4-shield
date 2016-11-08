@@ -740,13 +740,13 @@ int32_t getAnalogValue( uint8_t port ) {
   max_anlg2 = MAX_OT2;
 #else
   min_anlg1 = MIN_OT1;
-  max_anlg1 = MAX_OT2;
+  max_anlg1 = MAX_OT1;
   min_anlg2 = MIN_OT2;
   max_anlg2 = MAX_OT2;
 #endif
 #else // PWM Mode
   min_anlg1 = MIN_OT1;
-  max_anlg1 = MAX_OT2;
+  max_anlg1 = MAX_OT1;
   min_anlg2 = MIN_IO3;
   max_anlg2 = MAX_IO3;
 #endif
