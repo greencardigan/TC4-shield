@@ -39,7 +39,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 6_2"
+#define BANNER_ARTISAN "aArtisanQ_PID 6.3"
 
 // Revision history:
 // 20110408 Created.
@@ -133,6 +133,9 @@
 //          Also does 3.922kHz PWM for DC fan on IO3 in PWM mode.
 //          Added Min and Max for IO3 output
 //          aArtisanQ_PID version 6_2 released for testing
+// 20161215 Added Jim Galt's fix to disable constructor of pwmio3 unless IO3_HTR is defined or PHASE_ANGLE_CONTROL is not defined
+//          Allows IO3 to be defined as the ZCD input if not being used as an output
+
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -244,7 +247,9 @@ filterRC fRoR[NC]; // post-filtering on RoR values
 #ifndef PHASE_ANGLE_CONTROL
 PWM16 ssr;  // object for SSR output on OT1, OT2
 #endif
+#if ( defined IO3_HTR || not defined PHASE_ANGLE_CONTROL )
 PWM_IO3 pwmio3;
+#endif
 CmndInterp ci( DELIM ); // command interpreter object
 
 // array of thermocouple types
@@ -1125,8 +1130,10 @@ void setup()
 #else
   init_control();
 #endif
-  pwmio3.Setup( IO3_PCORPWM, IO3_PRESCALE_8 ); // setup pmw frequency ion IO3
 
+#if ( defined IO3_HTR || not defined PHASE_ANGLE_CONTROL )
+  pwmio3.Setup( IO3_PCORPWM, IO3_PRESCALE_8 ); // setup pmw frequency ion IO3
+#endif
 
 
   #ifdef ANALOGUE1

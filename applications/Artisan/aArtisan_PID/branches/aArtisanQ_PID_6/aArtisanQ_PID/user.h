@@ -74,7 +74,7 @@
 #define MIN_IO3 0 // Set output % for lower limit for IO3.  0% power will always be available
 #define MAX_IO3 100  // Set output % for upper limit for IO3
 
-#define HTR_CUTOFF_FAN_VAL 10 // cut power to Heater if fan duty is less than HTR_CUTOFF_FAN_VAL (to protect heater in air roaster). Set to 0 for no cutoff
+#define HTR_CUTOFF_FAN_VAL 0 // cut power to Heater if fan duty is less than HTR_CUTOFF_FAN_VAL (to protect heater in air roaster). Set to 0 for no cutoff
 
 #define FAN_AUTO_COOL 13 // Set fan output duty for auto cool when using PID;STOP command
 
@@ -154,7 +154,7 @@
 
 ////////////////////
 // Heater and Fan Duty Dispay Options
-// These should NOT need adjusting.  They control what gets streamed back to via serial
+// These should NOT need adjusting.  They control what gets streamed back via serial
 // These have no effect on operation and only affect what gets displayed/logged by Artisan
 #ifdef PHASE_ANGLE_CONTROL
   #ifdef IO3_HTR // If using PWM on IO3 for a heater
