@@ -39,8 +39,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 6.3"
-
 // Revision history:
 // 20110408 Created.
 // 20110409 Reversed the BT and ET values in the output stream.
@@ -128,14 +126,16 @@
 // 20150426 Removed io3, rf2000 and rc2000 commands to save memory
 //          Other small compile changes to save memory
 //          Compile directive change to ensure output levels are displayed when analogue pots are not active
-// 20160416 Added fast PWM (3.922kHz) available in Phase Angle Control Mode on IO3. Enable using IO3_HTR in user.h.
+// 20160416 Added fast PWM (3.922kHz) available in Phase Angle Control Mode on IO3. Enable using IO3_HTR_PAC in user.h.
 //          Moved default zero-cross interrupt to IO2 to allow PWM out on IO3.
 //          Also does 3.922kHz PWM for DC fan on IO3 in PWM mode.
 //          Added Min and Max for IO3 output
 //          aArtisanQ_PID version 6_2 released for testing
-// 20161215 Added Jim Galt's fix to disable constructor of pwmio3 unless IO3_HTR is defined or PHASE_ANGLE_CONTROL is not defined
-//          Allows IO3 to be defined as the ZCD input if not being used as an output
+// 20161214 Added some compile directives to disable the pwmio3 variable when IO3_HTR_PAC is not defined (JGG)
+//          This was causing the pullup on IO3 to be disabled and intefered with use of IO3 as the ZCD input
+// 20161216 Changes to user.h (and others) to implement pre-defined configurations
 
+#define BANNER_ARTISAN "aArtisanQ_PID 6_2_2"
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -151,12 +151,13 @@
 // debugging memory problems
 #include "MemoryFree.h"
 #endif
-
 #ifdef PHASE_ANGLE_CONTROL
   // code for integral cycle control and phase angle control
   #include "phase_ctrl.h"
 #endif
+
 #include <PWM16.h> // for SSR output
+
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <cmndproc.h> // for command interpreter
 #include <thermocouple.h> // type K, type J, and type T thermocouple support
@@ -192,8 +193,9 @@ boolean Cscale = false;
 #endif
 
 int levelOT1, levelOT2;  // parameters to control output levels
+#if !(defined PHASE_ANGLE_CONTROL && (INT_PIN == 3) )
 int levelIO3;
-
+#endif
 
 #ifdef MEMORY_CHK
 uint32_t checktime;
@@ -247,9 +249,12 @@ filterRC fRoR[NC]; // post-filtering on RoR values
 #ifndef PHASE_ANGLE_CONTROL
 PWM16 ssr;  // object for SSR output on OT1, OT2
 #endif
-#if ( defined IO3_HTR || not defined PHASE_ANGLE_CONTROL )
+// -----------------------------------------
+// revised 14-Dec-2016 by JGG to disable constructor of pwmio3 when IO3_HTR_PAC not used
+#ifdef IO3_HTR_PAC
 PWM_IO3 pwmio3;
 #endif
+// --------------------------------------
 CmndInterp ci( DELIM ); // command interpreter object
 
 // array of thermocouple types
@@ -738,7 +743,7 @@ void updateLCD() {
 int32_t getAnalogValue( uint8_t port ) {
   int32_t mod, trial, min_anlg1, max_anlg1, min_anlg2, max_anlg2;
 #ifdef PHASE_ANGLE_CONTROL
-#ifdef IO3_HTR
+#ifdef IO3_HTR_PAC
   min_anlg1 = MIN_IO3;
   max_anlg1 = MAX_IO3;
   min_anlg2 = MIN_OT2;
@@ -793,7 +798,7 @@ void readAnlg1() { // read analog port 1 and adjust OT1 output
     analogue1_changed = true;
     old_reading_anlg1 = reading; // save reading for next time
 #ifdef PHASE_ANGLE_CONTROL
-#ifdef IO3_HTR
+#ifdef IO3_HTR_PAC
     levelIO3 = reading;
     outIO3();
 #else
@@ -985,7 +990,7 @@ void checkButtons() { // take action if a button is pressed
 void outOT1() { // update output for OT1
   uint8_t new_levelot1;
 #ifdef PHASE_ANGLE_CONTROL
-#ifdef IO3_HTR // OT1 not cutoff by fan duty in IO3_HTR mode
+#ifdef IO3_HTR_PAC // OT1 not cutoff by fan duty in IO3_HTR_PAC mode
   new_levelot1 = levelOT1;
 #else
   if ( levelOT2 < HTR_CUTOFF_FAN_VAL ) {
@@ -1012,7 +1017,7 @@ void outOT1() { // update output for OT1
 void outOT2() { // update output for OT2
 
 #ifdef PHASE_ANGLE_CONTROL
-#ifdef IO3_HTR
+#ifdef IO3_HTR_PAC
   outIO3(); // update IO3 output to cut or reinstate power to heater if required
 #else
   if ( levelOT2 < HTR_CUTOFF_FAN_VAL ) {
@@ -1034,26 +1039,31 @@ void outOT2() { // update output for OT2
 // ----------------------------------
 void outIO3() { // update output for IO3
 
-  uint8_t new_levelio3;
-  new_levelio3 = levelIO3;
+  float pow;
 
 #ifdef PHASE_ANGLE_CONTROL
-#ifdef IO3_HTR
+#ifdef IO3_HTR_PAC
+  uint8_t new_levelio3;
+  new_levelio3 = levelIO3;
   if( levelOT2 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater on IO3
     new_levelio3 = 0;
   }
-#endif
-#else // PWM Mode
+  pow = 2.55 * new_levelio3;
+  pwmio3.Out( round(pow) );
+#endif // IO3_HTR_PAC
+#else // PWM Mode, fan on IO3
   if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater on OT1
     ssr.Out( 0, levelOT2 );
   }
   else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
     ssr.Out( levelOT1, levelOT2 );
   }
-#endif
-  float pow = 2.55 * new_levelio3;
+  pow = 2.55 * levelIO3;
   analogWrite( IO3, round( pow ) );
+#endif // PWM Mode, fan on IO3
 }
+
+
 
 
 // ------------------------------------------------------------------------
@@ -1081,10 +1091,10 @@ void setup()
 #endif // ANDROID
 #ifdef ARTISAN
   lcd.print( F("ARTISAN") ); // display version banner
-#endif // ANDROID
+#endif // ARTISAN
 #ifdef ROASTLOGGER
   lcd.print( F("ROASTLOGGER") ); // display version banner
-#endif // ANDROID
+#endif // ROASTLOGGER
   
 #endif // LCD
 
@@ -1124,16 +1134,20 @@ void setup()
   
   // set up output on OT1 and OT2 and IO3
   levelOT1 = levelOT2 = 0;
+  #if !(defined PHASE_ANGLE_CONTROL && (INT_PIN == 3) )
   levelIO3 = 0;
+  #endif
 #ifndef PHASE_ANGLE_CONTROL
   ssr.Setup( TIME_BASE );
 #else
   init_control();
 #endif
-
-#if ( defined IO3_HTR || not defined PHASE_ANGLE_CONTROL )
+// --------------------------
+// modifed 14-Dec-2016 by JGG
+#ifdef IO3_HTR_PAC
   pwmio3.Setup( IO3_PCORPWM, IO3_PRESCALE_8 ); // setup pmw frequency ion IO3
 #endif
+// ----------------------------
 
 
   #ifdef ANALOGUE1
@@ -1160,8 +1174,8 @@ void setup()
   ci.addCommand( &awriter );
   ci.addCommand( &units );
   ci.addCommand( &chan );
+#if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 ) // disable when PAC active and pin 3 reads the ZCD
   ci.addCommand( &io3 );
-#ifndef PHASE_ANGLE_CONTROL
   ci.addCommand( &dcfan );
 #endif
   ci.addCommand( &ot2 );
@@ -1176,7 +1190,7 @@ void setup()
 #endif
   ci.addCommand( &filt );
 
-#ifndef PHASE_ANGLE_CONTROL
+#if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 ) // disable when PAC active and pin 3 reads the ZCD
   dcfan.init(); // initialize conditions for dcfan
 #endif
   
@@ -1192,7 +1206,7 @@ void setup()
 
 #ifdef PID_CONTROL
   myPID.SetSampleTime(CT); // set sample time to 1 second
-#ifdef IO3_HTR
+#ifdef IO3_HTR_PAC
   myPID.SetOutputLimits(MIN_IO3, MAX_IO3); // set output limits to user defined limits
 #else
   myPID.SetOutputLimits(MIN_OT1, MAX_OT1); // set output limits to user defined limits
@@ -1213,7 +1227,6 @@ first = true;
 counter = 3; // start counter at 3 to match with Artisan. Probably a better way to sync with Artisan???
 next_loop_time = millis() + looptime; // needed?? 
 
-
 }
 
 
@@ -1222,7 +1235,7 @@ void loop()
 {
   #ifdef PHASE_ANGLE_CONTROL
   if( ACdetect() ) {
-    digitalWrite( LED_PIN, HIGH );
+    digitalWrite( LED_PIN, HIGH ); // illuminate the Arduino IDE if ZCD is sending a signal
   }  
   else {
     digitalWrite( LED_PIN, LOW );
@@ -1265,7 +1278,7 @@ void loop()
       // Input is the SV for the PID algorithm
       Input = convertUnits( T[k] );
       myPID.Compute();  // do PID calcs
-#ifdef IO3_HTR
+#ifdef IO3_HTR_PAC
       levelIO3 = Output; // update levelOT1 based on PID optput
       outIO3();
 #else

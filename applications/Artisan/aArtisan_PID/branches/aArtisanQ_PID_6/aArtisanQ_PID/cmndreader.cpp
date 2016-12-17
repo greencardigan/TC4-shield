@@ -46,8 +46,8 @@ dwriteCmnd dwriter;
 chanCmnd chan;
 ot1Cmnd ot1;
 ot2Cmnd ot2;
+#if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 )
 io3Cmnd io3;
-#ifndef PHASE_ANGLE_CONTROL
 dcfanCmnd dcfan;
 #endif
 unitsCmnd units;
@@ -336,6 +336,8 @@ boolean ot2Cmnd::doCommand( CmndParser* pars ) {
   }
 }
 
+#if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 ) // disable when PAC is active and 3 is the int pin
+
 // ----------------------------- io3Cmnd
 // constructor
 io3Cmnd::io3Cmnd() :
@@ -346,6 +348,7 @@ io3Cmnd::io3Cmnd() :
 // IO3;ddd\n
 
 boolean io3Cmnd::doCommand( CmndParser* pars ) {
+  
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
     if( strcmp( pars->paramStr(1), "UP" ) == 0 ) {
       levelIO3 = levelIO3 + DUTY_STEP;
@@ -384,8 +387,9 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
     return false;
   }
 }
+#endif
 
-#ifndef PHASE_ANGLE_CONTROL
+#if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 )
 
 // ----------------------------- dcfanCmnd
 // constructor
@@ -539,7 +543,7 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       #ifdef PID_CONTROL
         myPID.SetMode(0); // turn PID off
         #ifdef PHASE_ANGLE_CONTROL
-        #ifdef IO3_HTR
+        #ifdef IO3_HTR_PAC
         levelIO3 = 0;
         outIO3(); // Turn heater off in IO3
         levelOT2 = FAN_AUTO_COOL;
@@ -707,7 +711,7 @@ boolean powerCmnd::doCommand( CmndParser* pars ) {
     uint8_t len = strlen( pars->paramStr(1) );
     if( len > 0 ) {
 #ifdef PHASE_ANGLE_CONTROL
-#ifdef IO3_HTR
+#ifdef IO3_HTR_PAC
       levelIO3 = atoi( pars->paramStr(1) );
       if( levelIO3 > MAX_IO3 ) levelIO3 = MAX_IO3;  // don't allow OT1 to exceed maximum
       if( levelIO3 < MIN_IO3 & levelIO3 != 0 ) levelIO3 = MIN_IO3;  // don't allow to set less than minimum unless setting to zero

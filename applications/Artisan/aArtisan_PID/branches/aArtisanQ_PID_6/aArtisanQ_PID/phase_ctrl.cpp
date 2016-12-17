@@ -43,11 +43,13 @@
 
 #include "phase_ctrl.h"
 
+#ifdef PHASE_ANGLE_CONTROL
+
 extern int levelOT1;
 extern int levelOT2;
-#ifndef PHASE_ANGLE_CONTROL
+//#ifndef PHASE_ANGLE_CONTROL
 extern int levelIO3;
-#endif
+//#endif
 
 // for phase angle control
 enum output_state {delaying, pulse_on, disabled};
@@ -196,3 +198,4 @@ boolean ACdetect() {
   return outputEnable = ! ( ( millis() - lastCross ) > AC_TIMEOUT_MS ) ;
 }
 
+#endif PHASE_ANGLE_CONTROL
