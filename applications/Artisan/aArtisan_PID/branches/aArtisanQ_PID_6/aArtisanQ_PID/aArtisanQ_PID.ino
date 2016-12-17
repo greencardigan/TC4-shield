@@ -1020,9 +1020,7 @@ void outOT2() { // update output for OT2
 #ifdef IO3_HTR_PAC
   outIO3(); // update IO3 output to cut or reinstate power to heater if required
 #else
-  if ( levelOT2 < HTR_CUTOFF_FAN_VAL ) {
-    outOT1(); // update OT1 output to cut power to heater if required
-  }
+  outOT1(); // update OT1 output to cut or reinstate power to heater if required
 #endif
   output_level_pac( levelOT2 );
 #else // PWM Mode
