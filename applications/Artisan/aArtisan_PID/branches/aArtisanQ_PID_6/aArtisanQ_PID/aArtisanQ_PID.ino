@@ -135,7 +135,7 @@
 //          This was causing the pullup on IO3 to be disabled and intefered with use of IO3 as the ZCD input
 // 20161216 Changes to user.h (and others) to implement pre-defined configurations
 
-#define BANNER_ARTISAN "aArtisanQ_PID 6_2_2"
+#define BANNER_ARTISAN "aArtisanQ_PID 6_2_3"
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -1057,7 +1057,7 @@ void outIO3() { // update output for IO3
     ssr.Out( levelOT1, levelOT2 );
   }
   pow = 2.55 * levelIO3;
-  analogWrite( IO3, round( pow ) );
+  pwmio3.Out( round(pow) );
 #endif // PWM Mode, fan on IO3
 }
 
@@ -1142,7 +1142,7 @@ void setup()
 #endif
 // --------------------------
 // modifed 14-Dec-2016 by JGG
-#ifdef IO3_HTR_PAC
+#ifndef CONFIG_PAC3
   pwmio3.Setup( IO3_PCORPWM, IO3_PRESCALE_8 ); // setup pmw frequency ion IO3
 #endif
 // ----------------------------
