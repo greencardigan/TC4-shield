@@ -251,7 +251,8 @@ PWM16 ssr;  // object for SSR output on OT1, OT2
 #endif
 // -----------------------------------------
 // revised 14-Dec-2016 by JGG to disable constructor of pwmio3 when IO3_HTR_PAC not used
-#ifdef IO3_HTR_PAC
+// revised 24-Sep-2017 by Brad changed from #ifdef IO3_HTR_PAC to #ifndef CONFIG_PAC3
+#ifndef CONFIG_PAC3
 PWM_IO3 pwmio3;
 #endif
 // --------------------------------------
@@ -1142,6 +1143,7 @@ void setup()
 #endif
 // --------------------------
 // modifed 14-Dec-2016 by JGG
+// revised 22-Mar-2017 by Brad changed from #ifdef IO3_HTR_PAC to #ifndef CONFIG_PAC3
 #ifndef CONFIG_PAC3
   pwmio3.Setup( IO3_PCORPWM, IO3_PRESCALE_8 ); // setup pmw frequency ion IO3
 #endif
