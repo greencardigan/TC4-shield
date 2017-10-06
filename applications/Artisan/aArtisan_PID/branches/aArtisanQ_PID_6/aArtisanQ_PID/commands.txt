@@ -33,13 +33,13 @@ When PID is ON, additional values are streamed to serial:  heater duty, fan duty
 PID,CHAN,i
 ----------
 Sets the input for the PID controller.
-i = logical input channel, i.e. the PID controller will
-use the i'th temperature from the temperature output stream.
+i = a decimal value 0 to 4 representing a physical port (TC1, TC2, TC3, TC4).
 Example:
  CHAN,2100
  PID,CHAN,2
-  this results in the sensor connected to physical port TC1 being
-  used by the PID, as TC1 is the second reading in the output stream
+  this results in the sensor connected to physical port TC2 being
+  used by the PID. TC2 was mapped to logical channel chan1 which
+  corresponds to ET when using Artisan Roasting Scope
 
 PID,CT,mmmm
 -----------------
@@ -85,6 +85,7 @@ Response from TC4 device is "# Active channels set to ijkl"
 Examples:
   chan,1200/n  TC1 -> chan1, TC2 -> chan2, chan3 and chan4 inactive
   chan,3210/n  TC3 -> chan1, TC2 -> chan2, TC1 -> chan3, chan4 inactive
+Artisan Roasting Scope expects ET on chan1 and BT on chan2
 
 UNITS,u
 ---------

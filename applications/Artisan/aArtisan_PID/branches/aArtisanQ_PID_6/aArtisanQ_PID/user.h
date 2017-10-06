@@ -69,13 +69,14 @@
 #define DUTY_STEP 1 // Use 1, 2, 4, 5, or 10.
 
 ////////////////////
-// physical input channel for RoR display on LCD
-#define ROR_CHAN 0
+// Physical input channel for RoR display on LCD
+// Corresponds to Thermocouple inputs T1-T4
+#define ROR_CHAN 1
 
 ////////////////////
 // PID Control Options
-#define PID_CONTROL // comment out to disable PID activation
-#define PID_CHAN 2 // physical channel for PID input
+#define PID_CONTROL
+#define PID_CHAN 2 // physical channel for PID input (corresponding to thermocouple inputs T1-T4)
 #define CT 1000 // default cycle time for the PID, in ms
 #define PRO 5.00 // initial proportional parameter
 #define INT 0.15 // initial integral parameter

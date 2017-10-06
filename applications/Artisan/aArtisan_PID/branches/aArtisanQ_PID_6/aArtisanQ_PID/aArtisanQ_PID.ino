@@ -134,8 +134,13 @@
 // 20161214 Added some compile directives to disable the pwmio3 variable when IO3_HTR_PAC is not defined (JGG)
 //          This was causing the pullup on IO3 to be disabled and intefered with use of IO3 as the ZCD input
 // 20161216 Changes to user.h (and others) to implement pre-defined configurations
+// 20171004 Changed definition of PID_CHAN from logical channel to physical channel
+//          This was causing issues with Artisan Roasting Scope logic when doing background follow with TC4 PID and logical channels set using CHAN;2100
+//          Artisan Roasting Scope is assuming X in PID;CHAN;X command is a physical channel
+//          Adjusted ROR_CHAN code to match physical channel approach
+//          Adjusted command.txt to suit above changes
 
-#define BANNER_ARTISAN "aArtisanQ_PID 6_2_3"
+#define BANNER_ARTISAN "aArtisanQ_PID 6_3"
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -356,20 +361,22 @@ void logger() {
     }
   }
 
-// check to see if PID is running, and output additional values if true
-  if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode
   Serial.print(F(","));
   if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // send 0 if OT1 has been cut off
       Serial.print( 0 );
-    }
-    else {  
-      Serial.print( HEATER_DUTY );
-    }
-    Serial.print(F(","));
-    Serial.print( FAN_DUTY );
-    Serial.print(F(","));
+  }
+  else {  
+    Serial.print( HEATER_DUTY );
+  }
+  Serial.print(F(","));
+  Serial.print( FAN_DUTY );
+  Serial.print(F(","));
+  if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode
     Serial.print( Setpoint );
-  }  
+  } else {
+    Serial.print( 0 ); // send 0 if PID is off
+  }
+  
   Serial.println();
 
 #endif
@@ -580,7 +587,7 @@ void updateLCD() {
     // RoR
     lcd.setCursor( 0, 1 );
     lcd.print( F("RoR:"));
-    sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
+    sprintf( st1, "%4d", (int)RoR[ROR_CHAN - 1] ); // adjust ROR_CHAN for 0-based array index
     lcd.print( st1 );
   
   
@@ -667,13 +674,13 @@ void updateLCD() {
     else {
       lcd.setCursor( 0, 1 );
       lcd.print( F("RoR:"));
-      sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
+      sprintf( st1, "%4d", (int)RoR[ROR_CHAN - 1] ); // adjust ROR_CHAN for 0-based array index
       lcd.print( st1 );
     }
   #else
       lcd.setCursor( 0, 1 );
       lcd.print( F("RoR:"));
-      sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
+      sprintf( st1, "%4d", (int)RoR[ROR_CHAN - 1] ); // adjust ROR_CHAN for 0-based array index
       lcd.print( st1 );
   #endif // end ifdef PID_CONTROL
   
@@ -1271,9 +1278,8 @@ void loop()
   // Run PID if defined and active
   #ifdef PID_CONTROL
     if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode calc new output and assign to OT1
-      //Input = convertUnits( T[PID_CHAN] ); // using temp from this TC4 channel as PID input. use actv[?] instead of 0??
       updateSetpoint(); // read profile data from EEPROM and calculate new setpoint
-      uint8_t k = actv[pid_chan - 1];  // k = physical channel corresponding with logical channel
+      uint8_t k = pid_chan;  // k = physical channel
       if( k != 0 ) --k; // adjust for 0-based array index
       // Input is the SV for the PID algorithm
       Input = convertUnits( T[k] );
