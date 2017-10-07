@@ -139,6 +139,7 @@
 //          Artisan Roasting Scope is assuming X in PID;CHAN;X command is a physical channel
 //          Adjusted ROR_CHAN code to match physical channel approach
 //          Adjusted command.txt to suit above changes
+//          Heater duty, Fan duty and SV now get sent in serial streal regardless of PID status
 
 #define BANNER_ARTISAN "aArtisanQ_PID 6_3"
 
