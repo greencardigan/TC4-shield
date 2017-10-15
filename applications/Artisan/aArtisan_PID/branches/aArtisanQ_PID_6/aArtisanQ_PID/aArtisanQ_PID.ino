@@ -139,7 +139,7 @@
 //          Artisan Roasting Scope is assuming X in PID;CHAN;X command is a physical channel
 //          Adjusted ROR_CHAN code to match physical channel approach
 //          Adjusted command.txt to suit above changes
-//          Heater duty, Fan duty and SV now get sent in serial streal regardless of PID status
+//          Adjusted Logger() so Heater Duty and Fan Duty are always sent in serial stream regardless od PID state
 
 #define BANNER_ARTISAN "aArtisanQ_PID 6_3"
 
@@ -371,8 +371,8 @@ void logger() {
   }
   Serial.print(F(","));
   Serial.print( FAN_DUTY );
-  Serial.print(F(","));
   if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode
+    Serial.print(F(","));
     Serial.print( Setpoint );
   } else {
     Serial.print( 0 ); // send 0 if PID is off

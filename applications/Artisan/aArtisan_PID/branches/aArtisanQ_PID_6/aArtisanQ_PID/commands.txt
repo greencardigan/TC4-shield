@@ -33,7 +33,7 @@ When PID is ON, additional values are streamed to serial:  heater duty, fan duty
 PID,CHAN,i
 ----------
 Sets the input for the PID controller.
-i = a decimal value 0 to 4 representing a physical port (TC1, TC2, TC3, TC4).
+i = a decimal value 1 to 4 representing a physical port (TC1, TC2, TC3, TC4).
 Example:
  CHAN,2100
  PID,CHAN,2
