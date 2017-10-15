@@ -35,7 +35,7 @@
 #define LCDAPTER // if the I2C LCDapter board is to be used
 //#define CELSIUS // controls only the initial conditions (default is F)
 
-#define PID_CHAN 1 // default logical channel for PID input, selectable by PID CHAN command
+#define PID_CHAN 1 // physical channel for PID input (corresponding to thermocouple inputs T1-T4)
 #define CT 1000 // cycle time for the PID, in ms
 #define PRO 5.00 // initial proportional parameter (Pb = 100 / PRO)
 #define INT 0.15 // initial integral parameter
