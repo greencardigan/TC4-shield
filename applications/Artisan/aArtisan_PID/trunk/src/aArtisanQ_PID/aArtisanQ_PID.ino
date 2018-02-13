@@ -140,6 +140,8 @@
 //          Adjusted ROR_CHAN code to match physical channel approach
 //          Adjusted command.txt to suit above changes
 //          Adjusted Logger() so Heater Duty and Fan Duty are always sent in serial stream regardless od PID state
+// 20180214 Added support for cheap I2C LCDs
+//          Added support for two directly connected buttons for reseting timer and toggle PID.
 
 #define BANNER_ARTISAN "aArtisanQ_PID 6_4"
 
