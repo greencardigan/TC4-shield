@@ -56,8 +56,11 @@
 #include <WProgram.h>
 #endif
 
-#include "timer1defs.h"
 #include "user.h"
+
+#ifdef PHASE_ANGLE_CONTROL
+
+#include "timer1defs.h"
 
 // define the pulse width for firing TRIAC (phase angle control)
 #define TRIAC_PULSE_WIDTH 1000 // 500 uS default
@@ -91,5 +94,6 @@ void ISR_ZCD();
 // detects the presence of AC
 boolean ACdetect();
 
-#endif
+#endif // PHASE_ANGLE_CONTROL
+#endif //_phase_ctrl_h
 

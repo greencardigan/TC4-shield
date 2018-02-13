@@ -41,7 +41,9 @@
 #define CMNDREADER_H
 
 #include <cmndproc.h>
-//#include <PWM16.h>
+#ifndef PHASE_ANGLE_CONTROL
+#include <PWM16.h>
+#endif
 
 #include <cADC.h>
 #include <PID_v1.h>
@@ -52,22 +54,31 @@
 
 // ----------------------- commands
 #define READ_CMD "READ" // triggers the TC4 to output current temps on serial line
-//#define RF2000_CMD "RF2000" // legacy code
-//#define RC2000_CMD "RC2000" // legacy code
 #define UNITS_CMD "UNITS" // changes units, F or C
 #define CHAN_CMD "CHAN" // maps logical channels to physical channels
 #define OT1_CMD "OT1" // 0 to 100 percent output on SSR drive OT1
 #define OT2_CMD "OT2" // 0 to 100 percent output on SSR drive OT2
-//#define IO3_CMD "IO3" // 0 to 100 percent PWM 5V output on IO3
+#if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 )
+#define IO3_CMD "IO3" // 0 to 100 percent PWM 5V output on IO3
+#define DCFAN_CMD "DCFAN" // 0 to 100 percent PWM 5V output on IO3, with slew rate checks
+#endif
 #define DIGITAL_WRITE_CMD "DWRITE" // turn digital pin LOW or HIGH
 #define ANALOG_WRITE_CMD "AWRITE" // write a value 0 to 255 to PWM pin
 #define IO3 3 // use DIO3 for PWM output
 #define PID_CMD "PID" // turn PID ON or OFF
 #define RESET_CMD "RESET" // pBourbon reset command
+#ifdef ROASTLOGGER
 #define LOAD_CMD "LOAD" // Roastlogger LOAD command
 #define POWER_CMD "POWER" // Roastlogger POWER command
 #define FAN_CMD "FAN" // Roastlogger FAN command
+#endif
 #define FILT_CMD "FILT" // runtime changes to digital filtering on input channels
+#define FAN_PORT 3 // use DI03 for PWM fan output
+
+// -------------------------- slew rate limitations for fan control
+#define MAX_SLEW 25 // percent per second
+#define SLEW_STEP 5 // increase in steps of 5% for smooth transition
+#define SLEW_STEP_TIME (uint32_t)(SLEW_STEP * 1000 / MAX_SLEW) // min ms delay between steps
 
 
 // forward declarations
@@ -77,15 +88,18 @@ class readCmnd;
 class chanCmnd;
 class ot1Cmnd;
 class ot2Cmnd;
-//class io3Cmnd;
+#if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 )
+class io3Cmnd;
+class dcfanCmnd;
+#endif
 class unitsCmnd;
-//class rf2000Cmnd;
-//class rc2000Cmnd;
 class pidCmnd;
 class resetCmnd;
+#ifdef ROASTLOGGER
 class loadCmnd;
 class powerCmnd;
 class fanCmnd;
+#endif
 class filtCmnd;
 
 // external declarations of class objects
@@ -95,22 +109,28 @@ extern dwriteCmnd dwriter;
 extern chanCmnd chan;
 extern ot1Cmnd ot1;
 extern ot2Cmnd ot2;
-//extern io3Cmnd io3;
-//extern rf2000Cmnd rf2000;
-//extern rc2000Cmnd rc2000;
+#if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 )
+extern io3Cmnd io3;
+extern dcfanCmnd dcfan;
+#endif
 extern unitsCmnd units;
 extern pidCmnd pid;
 extern resetCmnd reset;
+#ifdef ROASTLOGGER
 extern loadCmnd load;
 extern powerCmnd power;
 extern fanCmnd fan;
+#endif
 extern filtCmnd filt;
 
 
 // extern declarations for functions, variables in the main program
-//extern PWM16 ssr;
+#ifndef PHASE_ANGLE_CONTROL
+extern PWM16 ssr;
+#endif
 extern int levelOT1;
 extern int levelOT2;
+extern int levelIO3;
 extern void logger();
 extern boolean Cscale;
 extern uint8_t actv[NC];
@@ -125,6 +145,10 @@ extern double SV;
 extern double Output;
 extern uint8_t pid_chan;
 extern filterRC fT[NC]; // filters for logged ET, BT
+extern void outOT1();
+extern void outOT2();
+extern void outIO3();
+
 
 // class declarations for commands
 
@@ -164,29 +188,32 @@ class ot2Cmnd : public CmndBase {
     virtual boolean doCommand( CmndParser* pars );
 };
 
-/*class io3Cmnd : public CmndBase {
+#if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 )
+class io3Cmnd : public CmndBase {
   public:
     io3Cmnd();
     virtual boolean doCommand( CmndParser* pars );
-};*/
+};
+
+class dcfanCmnd : public CmndBase {
+  protected:
+    uint8_t target; // duty cycle value requested by user
+    uint8_t current; // instantaneous value
+    uint32_t last_fan_change; // ms value when duty cycle last updated
+  public:
+    dcfanCmnd();
+    void init();  // initialize conditions
+    virtual boolean doCommand( CmndParser* pars ); // records the target rate only
+    void set_fan( uint8_t duty ); // sets the fan output duty cycle
+    void slew_fan(); // smoothly ramp up the fan speed
+};
+#endif
 
 class unitsCmnd : public CmndBase {
   public:
     unitsCmnd();
     virtual boolean doCommand( CmndParser* pars );
 };
-
-/*class rf2000Cmnd : public CmndBase {
-  public:
-    rf2000Cmnd();
-    virtual boolean doCommand( CmndParser* pars );
-};
-
-class rc2000Cmnd : public CmndBase {
-  public:
-    rc2000Cmnd();
-    virtual boolean doCommand( CmndParser* pars );
-};*/
 
 class pidCmnd : public CmndBase {
   public:

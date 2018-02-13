@@ -43,8 +43,13 @@
 
 #include "phase_ctrl.h"
 
+#ifdef PHASE_ANGLE_CONTROL
+
 extern int levelOT1;
 extern int levelOT2;
+//#ifndef PHASE_ANGLE_CONTROL
+extern int levelIO3;
+//#endif
 
 // for phase angle control
 enum output_state {delaying, pulse_on, disabled};
@@ -166,12 +171,12 @@ void init_control() {
 
 // call this to set phase angle control output levels, 0 to 100 
 void output_level_pac( uint8_t pac_level ) {
-  if( pac_level < OT1_CUTOFF ) { // if new levelOT2 < cutoff value then turn off OT1
-    output_level_icc( 0 );
-  }
-  else {  // turn OT1 back on again if levelOT2 is above cutoff value. Might be a better way to handle this??
-    output_level_icc( levelOT1 );    
-  }
+  ///if( pac_level < HTR_CUTOFF_FAN_VAL ) { // if new levelOT2 < cutoff value then turn off OT1
+  ///  output_level_icc( 0 );
+ ///}
+ ///else {  // turn OT1 back on again if levelOT2 is above cutoff value. Might be a better way to handle this??
+    ///output_level_icc( levelOT1 );    
+  ///}
   if( pac_level > 100 ) // trap error condition
     pac_output = 0;
   else
@@ -180,7 +185,7 @@ void output_level_pac( uint8_t pac_level ) {
 
 // call this to set integral cycle control output levels, 0 to 100 
 void output_level_icc( uint8_t icc_level ) {
-  if( levelOT2 < OT1_CUTOFF ) icc_level = 0;
+  //if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) icc_level = 0;
   if( icc_level > 100 )
     ratioN = 0;
   else
@@ -193,3 +198,4 @@ boolean ACdetect() {
   return outputEnable = ! ( ( millis() - lastCross ) > AC_TIMEOUT_MS ) ;
 }
 
+#endif PHASE_ANGLE_CONTROL

@@ -39,8 +39,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ------------------------------------------------------------------------------------------
 
-#define BANNER_ARTISAN "aArtisanQ_PID 5_3"
-
 // Revision history:
 // 20110408 Created.
 // 20110409 Reversed the BT and ET values in the output stream.
@@ -87,7 +85,7 @@
 //          Added code to convert PID Setpoint temps to correct units.  Added temperature units data to profile format
 //          Serial command echo to LCD now optional
 // 20120922 Added support for LCDapter buttons and LEDs (button 1 currently activates or deactivates PID control if enabled)
-//          Added code to allow power to OT1 to be cut if OT2 is below OT1_CUTOFF percentage as defined in user.h.  For heater protection if required. Required modification to phase_ctrl.cpp
+//          Added code to allow power to OT1 to be cut if OT2 is below HTR_CUTOFF_FAN_VAL percentage as defined in user.h.  For heater protection if required. Required modification to phase_ctrl.cpp
 //          Added code to allow OT2 to range between custom min and max percentages (defined in user.h)
 // 20121007 Fixed PID tuning command so it handles doubles
 //          Added inital PID tuning parameters in user.h
@@ -97,7 +95,7 @@
 // 20121021 Added optional limits for Analogue1
 // 20121120 Added support for pBourbon logging
 // 20121213 Added UP and DOWN parameters for OT1 and OT2 commands.  Increments or decrements power levels by 5%
-// 20130116 Added user adjustable analogue input rounding (ANALOGUE_STEP) in user.h
+// 20130116 Added user adjustable analogue input rounding (DUTY_STEP) in user.h
 // 20130119 aArtisanQ_PID release 3_5
 //          Added code to allow for additional LCD display modes
 // 20130120 Added ability to change roast profile using LCD and buttons
@@ -128,6 +126,22 @@
 // 20150426 Removed io3, rf2000 and rc2000 commands to save memory
 //          Other small compile changes to save memory
 //          Compile directive change to ensure output levels are displayed when analogue pots are not active
+// 20160416 Added fast PWM (3.922kHz) available in Phase Angle Control Mode on IO3. Enable using IO3_HTR_PAC in user.h.
+//          Moved default zero-cross interrupt to IO2 to allow PWM out on IO3.
+//          Also does 3.922kHz PWM for DC fan on IO3 in PWM mode.
+//          Added Min and Max for IO3 output
+//          aArtisanQ_PID version 6_2 released for testing
+// 20161214 Added some compile directives to disable the pwmio3 variable when IO3_HTR_PAC is not defined (JGG)
+//          This was causing the pullup on IO3 to be disabled and intefered with use of IO3 as the ZCD input
+// 20161216 Changes to user.h (and others) to implement pre-defined configurations
+// 20171004 Changed definition of PID_CHAN from logical channel to physical channel
+//          This was causing issues with Artisan Roasting Scope logic when doing background follow with TC4 PID and logical channels set using CHAN;2100
+//          Artisan Roasting Scope is assuming X in PID;CHAN;X command is a physical channel
+//          Adjusted ROR_CHAN code to match physical channel approach
+//          Adjusted command.txt to suit above changes
+//          Adjusted Logger() so Heater Duty and Fan Duty are always sent in serial stream regardless od PID state
+
+#define BANNER_ARTISAN "aArtisanQ_PID 6_4"
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -140,20 +154,27 @@
 #include "cmndreader.h"
 
 #ifdef MEMORY_CHK
-// debugging memory problems
-#include "MemoryFree.h"
+  // debugging memory problems
+  #include "MemoryFree.h"
 #endif
 
-// code for integral cycle control and phase angle control
-#include "phase_ctrl.h"
+#ifdef PHASE_ANGLE_CONTROL
+  // code for integral cycle control and phase angle control
+  #include "phase_ctrl.h"
+#endif
+
+#include <PWM16.h> // for SSR output
 
 // these "contributed" libraries must be installed in your sketchbook's arduino/libraries folder
 #include <cmndproc.h> // for command interpreter
 #include <thermocouple.h> // type K, type J, and type T thermocouple support
 #include <cADC.h> // MCP3424
-//#include <PWM16.h> // for SSR output
-#ifdef LCD
-#include <cLCD.h> // required only if LCD is used
+
+#if defined LCD_PARALLEL || defined LCDAPTER
+  #include <cLCD.h> // required only if LCD is used
+#endif
+#ifdef LCD_I2C
+  #include <LiquidCrystal_I2C.h>
 #endif
 
 // ------------------------ other compile directives
@@ -182,6 +203,10 @@ boolean Cscale = false;
 #endif
 
 int levelOT1, levelOT2;  // parameters to control output levels
+#if !(defined PHASE_ANGLE_CONTROL && (INT_PIN == 3) )
+int levelIO3;
+#endif
+
 #ifdef MEMORY_CHK
 uint32_t checktime;
 #endif
@@ -220,9 +245,6 @@ uint32_t checktime;
 
 #endif
 
-//boolean artisan_logger = false;
-//boolean ANDROID = false; // set initial state for ANDROID flag
-//boolean roastlogger = false; // set initial state for roastlogger flag
 uint32_t counter; // second counter
 uint32_t next_loop_time; // 
 boolean first;
@@ -234,7 +256,16 @@ ambSensor amb( A_AMB ); // MCP9800
 filterRC fT[NC]; // filter for logged ET, BT
 filterRC fRise[NC]; // heavily filtered for calculating RoR
 filterRC fRoR[NC]; // post-filtering on RoR values
-//PWM16 ssr;  // object for SSR output on OT1, OT2
+#ifndef PHASE_ANGLE_CONTROL
+PWM16 ssr;  // object for SSR output on OT1, OT2
+#endif
+// -----------------------------------------
+// revised 14-Dec-2016 by JGG to disable constructor of pwmio3 when IO3_HTR_PAC not used
+// revised 24-Sep-2017 by Brad changed from #ifdef IO3_HTR_PAC to #ifndef CONFIG_PAC3
+#ifndef CONFIG_PAC3
+PWM_IO3 pwmio3;
+#endif
+// --------------------------------------
 CmndInterp ci( DELIM ); // command interpreter object
 
 // array of thermocouple types
@@ -245,16 +276,28 @@ TC_TYPE3 tc3;
 TC_TYPE4 tc4;
 
 // ---------------------------------- LCD interface definition
-#ifdef LCD
-// LCD output strings
-char st1[6],st2[6];
-int LCD_mode = 0;
+
+#if defined LCD_PARALLEL || defined LCDAPTER || defined LCD_I2C
+  // LCD output strings
+  char st1[6],st2[6];
+  int LCD_mode = 0;
+#endif
+
 #ifdef LCDAPTER
   #include <cButton.h>
   cButtonPE16 buttons; // class object to manage button presses
   #define BACKLIGHT lcd.backlight();
   cLCD lcd; // I2C LCD interface
-#else // parallel interface, standard LiquidCrystal
+#endif
+
+#ifdef LCD_I2C
+  // Set the pins on the I2C chip used for LCD connections:
+  //                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
+  LiquidCrystal_I2C lcd(LCD_I2C_ADDRESS, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+  #define BACKLIGHT lcd.backlight();
+#endif
+
+#ifdef LCD_PARALLEL
   #define BACKLIGHT ;
   #define RS 2
   #define ENABLE 4
@@ -264,7 +307,22 @@ int LCD_mode = 0;
   #define D7 13
   LiquidCrystal lcd( RS, ENABLE, D4, D5, D6, D7 ); // standard 4-bit parallel interface
 #endif
+
+unsigned long debounceDelay = 50;
+#ifdef RESET_TIMER_BUTTON 
+  unsigned long lastDebounceTimeRESET_TIMER_BUTTON = 0;
+  int buttonStateRESET_TIMER_BUTTON;  // the current reading from the input pin
+  int lastButtonStateRESET_TIMER_BUTTON = HIGH;  // the previous reading from the input pin
 #endif
+#ifdef TOGGLE_PID_BUTTON 
+  unsigned long lastDebounceTimeTOGGLE_PID_BUTTON = 0;
+  int buttonStateTOGGLE_PID_BUTTON;  // the current reading from the input pin
+  int lastButtonStateTOGGLE_PID_BUTTON = HIGH;  // the previous reading from the input pin
+#endif
+
+
+
+
 // --------------------------------------------- end LCD interface
 
 // T1, T2 = temperatures x 1000
@@ -301,11 +359,15 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
     checkSerial();
+    #ifndef PHASE_ANGLE_CONTROL
+    dcfan.slew_fan(); // keep the fan smoothly increasing in speed
+    #endif
     #ifdef LCDAPTER
       #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID )
         checkButtons();
       #endif
     #endif
+    checkButtonPins();
   }
 }
 
@@ -332,38 +394,23 @@ void logger() {
     }
   }
 
-// check to see if PID is running, and output additional values if true
-  if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode
   Serial.print(F(","));
-  if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+  if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // send 0 if OT1 has been cut off
       Serial.print( 0 );
-    }
-    else {  
-      Serial.print( levelOT1 );
-    }
-    Serial.print(F(","));
-    Serial.print( levelOT2 );
-    Serial.print(F(","));
-    Serial.print( Setpoint );
-  }  
-  Serial.println();
-
-
-/*    
-  #ifdef PLOT_POWER
-  Serial.print(F(","));
-  if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
-    Serial.print( 0 );
   }
   else {  
-    Serial.print( levelOT1 );
+    Serial.print( HEATER_DUTY );
   }
   Serial.print(F(","));
-  Serial.print( levelOT2 );
-  #endif  
-    
+  Serial.print( FAN_DUTY );
+  if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode
+    Serial.print(F(","));
+    Serial.print( Setpoint );
+  } else {
+    Serial.print( 0 ); // send 0 if PID is off
+  }
+  
   Serial.println();
-*/
 
 #endif
 
@@ -383,22 +430,22 @@ void logger() {
     }
   }
   Serial.print(F("Power%="));
-  if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+  if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // send 0 if OT1 has been cut off
     Serial.println( 0 );
   }
   else {  
-    Serial.println( levelOT1 );
+    Serial.println( HEATER_DUTY );
   }
   Serial.print(F("Fan="));
-  Serial.println( levelOT2 );
+  Serial.print( FAN_DUTY );
 #endif
 
 
 #ifdef ANDROID
 
   // print counter
-  Serial.print( counter );
-  Serial.print( F(",") );
+  //Serial.print( counter );
+  //Serial.print( F(",") );
 
   // print ambient
   Serial.print( convertUnits( AT ), DP );
@@ -416,14 +463,14 @@ void logger() {
     
   //#ifdef PLOT_POWER
   Serial.print(F(","));
-  if( levelOT2 < OT1_CUTOFF ) { // send 0 if OT1 has been cut off
+  if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // send 0 if OT1 has been cut off
     Serial.print( 0 );
   }
   else {  
-    Serial.print( levelOT1 );
+    Serial.print( HEATER_DUTY );
   }
   Serial.print(F(","));
-  Serial.print( levelOT2 );
+  Serial.print( FAN_DUTY );
   //#endif  
   
   #ifdef PID_CONTROL
@@ -488,7 +535,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   first = false;
 };
 
-#ifdef LCD
+#if defined LCD_PARALLEL || defined LCDAPTER || defined LCD_I2C
 // --------------------------------------------
 void updateLCD() {
   
@@ -546,11 +593,11 @@ void updateLCD() {
     if( myPID.GetMode() != MANUAL ) { // if PID is on then display PID: nnn% instead of OT1:
       lcd.setCursor( 0, 2 );
       lcd.print( F("PID:") );
-      if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+      if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // display 0% if OT1 has been cut off
       sprintf( st1, "%4d", (int)0 );     
       }
       else {
-        sprintf( st1, "%4d", (int)levelOT1 );
+        sprintf( st1, "%4d", (int)HEATER_DUTY );
       }
       lcd.print( st1 ); lcd.print(F("%"));
       
@@ -573,7 +620,7 @@ void updateLCD() {
     // RoR
     lcd.setCursor( 0, 1 );
     lcd.print( F("RoR:"));
-    sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
+    sprintf( st1, "%4d", (int)RoR[ROR_CHAN - 1] ); // adjust ROR_CHAN for 0-based array index
     lcd.print( st1 );
   
   
@@ -581,24 +628,24 @@ void updateLCD() {
   #ifdef PID_CONTROL
     if( myPID.GetMode() == MANUAL ) { // only display OT2: nnn% if PID is off so PID display isn't overwriten
       lcd.setCursor( 0, 2 );
-      lcd.print(F("OT1:"));
-      if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+      lcd.print(F("HTR:"));
+      if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // display 0% if OT1 has been cut off
       sprintf( st1, "%4d", (int)0 );     
       }
       else {
-        sprintf( st1, "%4d", (int)levelOT1 );
+        sprintf( st1, "%4d", (int)HEATER_DUTY );
       }
       lcd.print( st1 ); lcd.print(F("%"));
     }
       
   #else // if PID_CONTROL isn't defined then always display OT1: nnn%
       lcd.setCursor( 0, 2 );
-      lcd.print(F("OT1:"));
-      if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+      lcd.print(F("HTR:"));
+      if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // display 0% if OT1 has been cut off
       sprintf( st1, "%4d", (int)0 );     
       }
       else {
-        sprintf( st1, "%4d", (int)levelOT1 );
+        sprintf( st1, "%4d", (int)HEATER_DUTY );
       }
       lcd.print( st1 ); lcd.print(F("%"));
   #endif // end ifdef PID_CONTROL
@@ -606,8 +653,8 @@ void updateLCD() {
   
   //#ifdef ANALOGUE2
     lcd.setCursor( 0, 3 );
-    lcd.print(F("OT2:"));
-    sprintf( st1, "%4d", (int)levelOT2 );
+    lcd.print(F("FAN:"));
+    sprintf( st1, "%4d", (int)FAN_DUTY );
     lcd.print( st1 ); lcd.print(F("%"));
   //#endif
   
@@ -646,11 +693,11 @@ void updateLCD() {
   #ifdef PID_CONTROL
     if( myPID.GetMode() != MANUAL ) {
       lcd.setCursor( 0, 1 );
-      if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+      if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // display 0% if OT1 has been cut off
         lcd.print( F("  0") );
       }
       else {
-        sprintf( st1, "%3d", (int)levelOT1 );
+        sprintf( st1, "%3d", (int)HEATER_DUTY );
         lcd.print( st1 );
       }
       lcd.print(F("%"));
@@ -660,26 +707,26 @@ void updateLCD() {
     else {
       lcd.setCursor( 0, 1 );
       lcd.print( F("RoR:"));
-      sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
+      sprintf( st1, "%4d", (int)RoR[ROR_CHAN - 1] ); // adjust ROR_CHAN for 0-based array index
       lcd.print( st1 );
     }
   #else
       lcd.setCursor( 0, 1 );
       lcd.print( F("RoR:"));
-      sprintf( st1, "%4d", (int)RoR[ROR_CHAN] );
+      sprintf( st1, "%4d", (int)RoR[ROR_CHAN - 1] ); // adjust ROR_CHAN for 0-based array index
       lcd.print( st1 );
   #endif // end ifdef PID_CONTROL
   
   #ifdef ANALOGUE1
     if( analogue1_changed == true ) { // overwrite RoR or PID values
       lcd.setCursor( 0, 1 );
-      lcd.print(F("OT1:     "));
+      lcd.print(F("HTR:     "));
       lcd.setCursor( 4, 1 );
-      if( levelOT2 < OT1_CUTOFF ) { // display 0% if OT1 has been cut off
+      if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // display 0% if OT1 has been cut off
         sprintf( st1, "%3d", (int)0 );     
       }
       else {
-        sprintf( st1, "%3d", (int)levelOT1 );
+        sprintf( st1, "%3d", (int)HEATER_DUTY );
       }
       lcd.print( st1 ); lcd.print(F("%"));
     }
@@ -687,9 +734,9 @@ void updateLCD() {
   #ifdef ANALOGUE2
     if( analogue2_changed == true ) { // overwrite RoR or PID values
       lcd.setCursor( 0, 1 );
-      lcd.print(F("OT2:     "));
+      lcd.print(F("FAN:     "));
       lcd.setCursor( 4, 1 );
-      sprintf( st1, "%3d", (int)levelOT2 );
+      sprintf( st1, "%3d", (int)FAN_DUTY );
       lcd.print( st1 ); lcd.print(F("%"));
     }
   #endif // end ifdef ANALOGUE2
@@ -729,37 +776,55 @@ void updateLCD() {
   }
 
 } // end of updateLCD()
-#endif // end ifdef LCD
+#endif
 
 #if defined ANALOGUE1 || defined ANALOGUE2
 // -------------------------------- reads analog value and maps it to 0 to 100
-// -------------------------------- rounded to the nearest 5
+// -------------------------------- rounded to the nearest DUTY_STEP value
 int32_t getAnalogValue( uint8_t port ) {
-  int32_t mod, trial;
+  int32_t mod, trial, min_anlg1, max_anlg1, min_anlg2, max_anlg2;
+#ifdef PHASE_ANGLE_CONTROL
+#ifdef IO3_HTR_PAC
+  min_anlg1 = MIN_IO3;
+  max_anlg1 = MAX_IO3;
+  min_anlg2 = MIN_OT2;
+  max_anlg2 = MAX_OT2;
+#else
+  min_anlg1 = MIN_OT1;
+  max_anlg1 = MAX_OT1;
+  min_anlg2 = MIN_OT2;
+  max_anlg2 = MAX_OT2;
+#endif
+#else // PWM Mode
+  min_anlg1 = MIN_OT1;
+  max_anlg1 = MAX_OT1;
+  min_anlg2 = MIN_IO3;
+  max_anlg2 = MAX_IO3;
+#endif
   float aval;
   aval = analogRead( port );
   #ifdef ANALOGUE1
     if( port == anlg1 ) {
-      aval = MIN_OT1 * 10.24 + ( aval / 1024 ) * 10.24 * ( MAX_OT1 - MIN_OT1 ) ; // scale analogue value to new range
-      if ( aval == ( MIN_OT1 * 10.24 ) ) aval = 0; // still allow OT1 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
-      mod = MIN_OT1;
+      aval = min_anlg1 * 10.24 + ( aval / 1024 ) * 10.24 * ( max_anlg1 - min_anlg1 ) ; // scale analogue value to new range
+      if ( aval == ( min_anlg1 * 10.24 ) ) aval = 0; // still allow OT1 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
+      mod = min_anlg1;
     }
   #endif
   #ifdef ANALOGUE2
     if( port == anlg2 ) {
-      aval = MIN_OT2 * 10.24 + ( aval / 1024 ) * 10.24 * ( MAX_OT2 - MIN_OT2 ) ; // scale analogue value to new range
-      if ( aval == ( MIN_OT2 * 10.24 ) ) aval = 0; // still allow OT2 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
-      mod = MIN_OT2;
+      aval = min_anlg2 * 10.24 + ( aval / 1024 ) * 10.24 * ( max_anlg2 - min_anlg2 ) ; // scale analogue value to new range
+      if ( aval == ( min_anlg2 * 10.24 ) ) aval = 0; // still allow OT2 to be switched off at minimum value. NOT SURE IF THIS FEATURE IS GOOD???????
+      mod = min_anlg2;
     }
   #endif
   trial = ( aval + 0.001 ) * 100; // to fix weird rounding error from previous calcs?????
   trial /= 1023;
-  trial = ( trial / ANALOGUE_STEP ) * ANALOGUE_STEP; // truncate to multiple of ANALOGUE_STEP
+  trial = ( trial / DUTY_STEP ) * DUTY_STEP; // truncate to multiple of DUTY_STEP
   if( trial < mod ) trial = 0;
-//  mod = trial % ANALOGUE_STEP;
-//  trial = ( trial / ANALOGUE_STEP ) * ANALOGUE_STEP; // truncate to multiple of ANALOGUE_STEP
-//  if( mod >= ANALOGUE_STEP / 2 )
-//    trial += ANALOGUE_STEP;
+//  mod = trial % DUTY_STEP;
+//  trial = ( trial / DUTY_STEP ) * DUTY_STEP; // truncate to multiple of DUTY_STEP
+//  if( mod >= DUTY_STEP / 2 )
+//    trial += DUTY_STEP;
   return trial;
 }
 #endif // end if defined ANALOGUE1 || defined ANALOGUE2
@@ -772,9 +837,19 @@ void readAnlg1() { // read analog port 1 and adjust OT1 output
   reading = getAnalogValue( anlg1 );
   if( reading <= 100 && reading != old_reading_anlg1 ) { // did it change?
     analogue1_changed = true;
-    levelOT1 = reading;
     old_reading_anlg1 = reading; // save reading for next time
-    output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
+#ifdef PHASE_ANGLE_CONTROL
+#ifdef IO3_HTR_PAC
+    levelIO3 = reading;
+    outIO3();
+#else
+    levelOT1 = reading;
+    outOT1();
+#endif
+#else // PWM Mode
+    levelOT1 = reading;
+    outOT1();
+#endif
   }
   else {
     analogue1_changed = false;
@@ -790,9 +865,14 @@ void readAnlg2() { // read analog port 2 and adjust OT2 output
   reading = getAnalogValue( anlg2 );
   if( reading <= 100 && reading != old_reading_anlg2 ) { // did it change?
     analogue2_changed = true;
-    levelOT2 = reading;
     old_reading_anlg2 = reading; // save reading for next time
-    output_level_pac( levelOT2 );
+#ifdef PHASE_ANGLE_CONTROL
+    levelOT2 = reading;
+    outOT2(); // update fan output on OT2
+#else // PWM Mode
+    levelIO3 = reading;
+    outIO3(); // update fan output on IO3
+#endif
   }
   else {
     analogue2_changed = false;
@@ -947,6 +1027,143 @@ void checkButtons() { // take action if a button is pressed
 #endif // end ifdef LCDAPTER
 
 
+// ----------------------------------
+void outOT1() { // update output for OT1
+  uint8_t new_levelot1;
+#ifdef PHASE_ANGLE_CONTROL
+#ifdef IO3_HTR_PAC // OT1 not cutoff by fan duty in IO3_HTR_PAC mode
+  new_levelot1 = levelOT1;
+#else
+  if ( levelOT2 < HTR_CUTOFF_FAN_VAL ) {
+    new_levelot1 = 0;
+  }
+  else {
+    new_levelot1 = levelOT1;
+  }
+#endif
+  output_level_icc( new_levelot1 );
+#else // PWM Mode
+  if ( levelIO3 < HTR_CUTOFF_FAN_VAL ) {
+    new_levelot1 = 0;
+  }
+  else {
+    new_levelot1 = levelOT1;
+  }
+  ssr.Out( new_levelot1, levelOT2 );
+#endif
+
+}
+
+// ----------------------------------
+void outOT2() { // update output for OT2
+
+#ifdef PHASE_ANGLE_CONTROL
+#ifdef IO3_HTR_PAC
+  outIO3(); // update IO3 output to cut or reinstate power to heater if required
+#else
+  outOT1(); // update OT1 output to cut or reinstate power to heater if required
+#endif
+  output_level_pac( levelOT2 );
+#else // PWM Mode
+  if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater
+    ssr.Out( 0, levelOT2 );
+  }
+  else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
+    ssr.Out( levelOT1, levelOT2 );
+  }
+#endif
+
+}
+
+// ----------------------------------
+void outIO3() { // update output for IO3
+
+  float pow;
+
+#ifdef PHASE_ANGLE_CONTROL
+#ifdef IO3_HTR_PAC
+  uint8_t new_levelio3;
+  new_levelio3 = levelIO3;
+  if( levelOT2 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater on IO3
+    new_levelio3 = 0;
+  }
+  pow = 2.55 * new_levelio3;
+  pwmio3.Out( round(pow) );
+#endif // IO3_HTR_PAC
+#else // PWM Mode, fan on IO3
+  if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater on OT1
+    ssr.Out( 0, levelOT2 );
+  }
+  else {  // turn OT1 and OT2 back on again if levelIO3 is above cutoff value.
+    ssr.Out( levelOT1, levelOT2 );
+  }
+  pow = 2.55 * levelIO3;
+  pwmio3.Out( round(pow) );
+#endif // PWM Mode, fan on IO3
+}
+
+
+// ----------------------------------
+void checkButtonPins() {
+int reading;
+#ifdef RESET_TIMER_BUTTON
+  reading = digitalRead(RESET_TIMER_BUTTON);
+  
+  if (reading != lastButtonStateRESET_TIMER_BUTTON) {
+    // reset the debouncing timer
+    lastDebounceTimeRESET_TIMER_BUTTON = millis();
+  }
+
+  if ((millis() - lastDebounceTimeRESET_TIMER_BUTTON) > debounceDelay) {
+    // whatever the reading is at, it's been there for longer than the debounce
+    // delay, so take it as the actual current state:
+
+    // if the button state has changed:
+    if (reading != buttonStateRESET_TIMER_BUTTON) {
+      buttonStateRESET_TIMER_BUTTON = reading;
+
+      // only toggle the LED if the new button state is HIGH
+      if (buttonStateRESET_TIMER_BUTTON == LOW) { // LOW = on with internal pullup active
+        counter = 0;
+      }
+    }
+  }
+  lastButtonStateRESET_TIMER_BUTTON = reading;
+#endif
+#ifdef TOGGLE_PID_BUTTON
+  reading = digitalRead(TOGGLE_PID_BUTTON);
+  
+  if (reading != lastButtonStateTOGGLE_PID_BUTTON) {
+    // reset the debouncing timer
+    lastDebounceTimeTOGGLE_PID_BUTTON = millis();
+  }
+
+  if ((millis() - lastDebounceTimeTOGGLE_PID_BUTTON) > debounceDelay) {
+    // whatever the reading is at, it's been there for longer than the debounce
+    // delay, so take it as the actual current state:
+
+    // if the button state has changed:
+    if (reading != buttonStateTOGGLE_PID_BUTTON) {
+      buttonStateTOGGLE_PID_BUTTON = reading;
+
+      // only toggle the LED if the new button state is HIGH
+      if (buttonStateTOGGLE_PID_BUTTON == LOW) { // LOW = on with internal pullup active
+        #ifdef PID_CONTROL
+          if( myPID.GetMode() == MANUAL ) {
+            myPID.SetMode( AUTOMATIC );
+          }
+          else {
+            myPID.SetMode( MANUAL );
+          }
+        #endif
+      }
+    }
+  }
+  lastButtonStateTOGGLE_PID_BUTTON = reading;
+#endif
+}
+
+
 // ------------------------------------------------------------------------
 // MAIN
 //
@@ -957,27 +1174,27 @@ void setup()
   Serial.begin(BAUD);
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
-#ifdef LCD
-#ifdef LCD_4x20
-  lcd.begin(20, 4);
-#else
-  lcd.begin(16, 2);
-#endif // LCD_4x20
-  BACKLIGHT;
-  lcd.setCursor( 0, 0 );
-  lcd.print( BANNER_ARTISAN ); // display version banner
-  lcd.setCursor( 0, 1 );
-#ifdef ANDROID
-  lcd.print( F("ANDROID") ); // display version banner
-#endif // ANDROID
-#ifdef ARTISAN
-  lcd.print( F("ARTISAN") ); // display version banner
-#endif // ANDROID
-#ifdef ROASTLOGGER
-  lcd.print( F("ROASTLOGGER") ); // display version banner
-#endif // ANDROID
+#if defined LCD_PARALLEL || defined LCDAPTER || defined LCD_I2C
+  #ifdef LCD_4x20
+    lcd.begin(20, 4);
+  #else
+    lcd.begin(16, 2);
+  #endif
+    BACKLIGHT;
+    lcd.setCursor( 0, 0 );
+    lcd.print( BANNER_ARTISAN ); // display version banner
+    lcd.setCursor( 0, 1 );
+  #ifdef ANDROID
+    lcd.print( F("ANDROID") ); // display version banner
+  #endif // ANDROID
+  #ifdef ARTISAN
+    lcd.print( F("ARTISAN") ); // display version banner
+  #endif // ARTISAN
+  #ifdef ROASTLOGGER
+    lcd.print( F("ROASTLOGGER") ); // display version banner
+  #endif // ROASTLOGGER
   
-#endif // LCD
+#endif
 
 #ifdef LCDAPTER
   buttons.begin( 4 );
@@ -1013,10 +1230,24 @@ void setup()
   fRoR[0].init( ROR_FILTER ); // post-filtering on RoR values
   fRoR[1].init( ROR_FILTER ); // post-filtering on RoR values
   
-  // set up output on OT1 and OT2
-//  ssr.Setup( TIME_BASE );
+  // set up output on OT1 and OT2 and IO3
   levelOT1 = levelOT2 = 0;
+  #if !(defined PHASE_ANGLE_CONTROL && (INT_PIN == 3) )
+  levelIO3 = 0;
+  #endif
+#ifndef PHASE_ANGLE_CONTROL
+  ssr.Setup( TIME_BASE );
+#else
   init_control();
+#endif
+// --------------------------
+// modifed 14-Dec-2016 by JGG
+// revised 22-Mar-2017 by Brad changed from #ifdef IO3_HTR_PAC to #ifndef CONFIG_PAC3
+#ifndef CONFIG_PAC3
+  pwmio3.Setup( IO3_PCORPWM, IO3_PRESCALE_8 ); // setup pmw frequency ion IO3
+#endif
+// ----------------------------
+
 
   #ifdef ANALOGUE1
   old_reading_anlg1 = getAnalogValue( anlg1 ); // initialize old_reading with initial analogue value
@@ -1042,22 +1273,29 @@ void setup()
   ci.addCommand( &awriter );
   ci.addCommand( &units );
   ci.addCommand( &chan );
-  //ci.addCommand( &io3 );
+#if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 ) // disable when PAC active and pin 3 reads the ZCD
+  ci.addCommand( &io3 );
+  ci.addCommand( &dcfan );
+#endif
   ci.addCommand( &ot2 );
   ci.addCommand( &ot1 );
-  //ci.addCommand( &rf2000 );
-  //ci.addCommand( &rc2000 );
   ci.addCommand( &reader );
   ci.addCommand( &pid );
   ci.addCommand( &reset );
+#ifdef ROASTLOGGER
   ci.addCommand( &load );
   ci.addCommand( &power );
   ci.addCommand( &fan );
+#endif
   ci.addCommand( &filt );
+
+#if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 ) // disable when PAC active and pin 3 reads the ZCD
+  dcfan.init(); // initialize conditions for dcfan
+#endif
   
   pinMode( LED_PIN, OUTPUT );
 
-#ifdef LCD
+#if defined LCD_PARALLEL || defined LCDAPTER || defined LCD_I2C
   delay( 500 );
   lcd.clear();
 #endif
@@ -1067,7 +1305,11 @@ void setup()
 
 #ifdef PID_CONTROL
   myPID.SetSampleTime(CT); // set sample time to 1 second
+#ifdef IO3_HTR_PAC
+  myPID.SetOutputLimits(MIN_IO3, MAX_IO3); // set output limits to user defined limits
+#else
   myPID.SetOutputLimits(MIN_OT1, MAX_OT1); // set output limits to user defined limits
+#endif
   myPID.SetControllerDirection(DIRECT); // set PID to be direct acting mode. Increase in output leads to increase in input
   myPID.SetTunings(PRO, INT, DER); // set initial PID tuning values
   myPID.SetMode(MANUAL); // start with PID control off
@@ -1080,6 +1322,14 @@ void setup()
   setProfile(); // read profile description initial time/temp data from eeprom and set profile_pointer
 #endif
 
+#ifdef RESET_TIMER_BUTTON
+pinMode(RESET_TIMER_BUTTON, INPUT_PULLUP);
+#endif
+#ifdef TOGGLE_PID_BUTTON
+pinMode(TOGGLE_PID_BUTTON, INPUT_PULLUP);
+#endif
+
+
 first = true;
 counter = 3; // start counter at 3 to match with Artisan. Probably a better way to sync with Artisan???
 next_loop_time = millis() + looptime; // needed?? 
@@ -1090,12 +1340,14 @@ next_loop_time = millis() + looptime; // needed??
 // -----------------------------------------------------------------
 void loop()
 {
+  #ifdef PHASE_ANGLE_CONTROL
   if( ACdetect() ) {
-    digitalWrite( LED_PIN, HIGH );
+    digitalWrite( LED_PIN, HIGH ); // illuminate the Arduino IDE if ZCD is sending a signal
   }  
   else {
     digitalWrite( LED_PIN, LOW );
   }
+  #endif
   #ifdef MEMORY_CHK  
     uint32_t now = millis();
     if( now - checktime > 1000 ) {
@@ -1116,7 +1368,7 @@ void loop()
     #ifdef PID_CONTROL
       if( myPID.GetMode() == MANUAL ) readAnlg1(); // if PID is off allow ANLG1 read
     #else
-      readAnlg1(); // if PID_CONTROL is defined always allow ANLG1 read
+      readAnlg1(); // if PID_CONTROL is not defined always allow ANLG1 read
     #endif // PID_CONTROL
   #endif // ANALOGUE1
   #ifdef ANALOGUE2
@@ -1126,24 +1378,28 @@ void loop()
   // Run PID if defined and active
   #ifdef PID_CONTROL
     if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode calc new output and assign to OT1
-      //Input = convertUnits( T[PID_CHAN] ); // using temp from this TC4 channel as PID input. use actv[?] instead of 0??
       updateSetpoint(); // read profile data from EEPROM and calculate new setpoint
-      uint8_t k = actv[pid_chan - 1];  // k = physical channel corresponding with logical channel
+      uint8_t k = pid_chan;  // k = physical channel
       if( k != 0 ) --k; // adjust for 0-based array index
       // Input is the SV for the PID algorithm
       Input = convertUnits( T[k] );
       myPID.Compute();  // do PID calcs
-      levelOT1 = Output; // update OT1 based on PID optput
+#ifdef IO3_HTR_PAC
+      levelIO3 = Output; // update levelOT1 based on PID optput
+      outIO3();
+#else
+      levelOT1 = Output; // update levelOT1 based on PID optput
+      outOT1();
+#endif
       #ifdef ACKS_ON
       Serial.print(F("# PID input = " )); Serial.print( Input ); Serial.print(F("  "));
       Serial.print(F("# PID output = " )); Serial.println( levelOT1 );
       #endif
-      output_level_icc( levelOT1 );  // integral cycle control and zero cross SSR on OT1
     }
   #endif
 
   // Update LCD if defined
-  #ifdef LCD
+  #if defined LCD_PARALLEL || defined LCDAPTER || defined LCD_I2C
     updateLCD();
   #endif
   
@@ -1152,14 +1408,6 @@ void loop()
     logger(); // send data every second to Roastlogger every loop (looptime)
   #endif
 
-//  #if defined ARTISAN || defined ANDROID
-//    if( artisan_logger == true ) {
-//      artisan_logger = false;
-//      logger();
-//    }
-//  #endif
-//  Serial.println( next_loop_time - millis() ); // how much time spare in loop. approx 350ms
-  
   // check if temp reads has taken longer than looptime. If so add 1 to counter + increase next looptime
   // Serial.println( next_loop_time - millis() ); // how much time spare in loop. approx 350ms
   if ( millis() > next_loop_time ) {
@@ -1171,10 +1419,11 @@ void loop()
   while( millis() < next_loop_time ) {
     checkSerial();  // Has a command been received?
   #ifdef LCDAPTER
-    #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID )
+    #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID ) // Stops buttons being read unless in standalone mode. Added to fix crash (due to low memory?).
       checkButtons();
     #endif
   #endif
+    checkButtonPins();
   }
   
   // Set next loop time and increment counter
