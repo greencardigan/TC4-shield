@@ -141,7 +141,7 @@
 //          Adjusted command.txt to suit above changes
 //          Adjusted Logger() so Heater Duty and Fan Duty are always sent in serial stream regardless od PID state
 
-#define BANNER_ARTISAN "aArtisanQ_PID 6_3"
+#define BANNER_ARTISAN "aArtisanQ_PID 6_4"
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -154,9 +154,10 @@
 #include "cmndreader.h"
 
 #ifdef MEMORY_CHK
-// debugging memory problems
-#include "MemoryFree.h"
+  // debugging memory problems
+  #include "MemoryFree.h"
 #endif
+
 #ifdef PHASE_ANGLE_CONTROL
   // code for integral cycle control and phase angle control
   #include "phase_ctrl.h"
@@ -169,8 +170,11 @@
 #include <thermocouple.h> // type K, type J, and type T thermocouple support
 #include <cADC.h> // MCP3424
 
-#ifdef LCD
-#include <cLCD.h> // required only if LCD is used
+#if defined LCD_PARALLEL || defined LCDAPTER
+  #include <cLCD.h> // required only if LCD is used
+#endif
+#ifdef LCD_I2C
+  #include <LiquidCrystal_I2C.h>
 #endif
 
 // ------------------------ other compile directives
@@ -272,16 +276,28 @@ TC_TYPE3 tc3;
 TC_TYPE4 tc4;
 
 // ---------------------------------- LCD interface definition
-#ifdef LCD
-// LCD output strings
-char st1[6],st2[6];
-int LCD_mode = 0;
+
+#if defined LCD_PARALLEL || defined LCDAPTER || defined LCD_I2C
+  // LCD output strings
+  char st1[6],st2[6];
+  int LCD_mode = 0;
+#endif
+
 #ifdef LCDAPTER
   #include <cButton.h>
   cButtonPE16 buttons; // class object to manage button presses
   #define BACKLIGHT lcd.backlight();
   cLCD lcd; // I2C LCD interface
-#else // parallel interface, standard LiquidCrystal
+#endif
+
+#ifdef LCD_I2C
+  // Set the pins on the I2C chip used for LCD connections:
+  //                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
+  LiquidCrystal_I2C lcd(LCD_I2C_ADDRESS, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+  #define BACKLIGHT lcd.backlight();
+#endif
+
+#ifdef LCD_PARALLEL
   #define BACKLIGHT ;
   #define RS 2
   #define ENABLE 4
@@ -291,7 +307,22 @@ int LCD_mode = 0;
   #define D7 13
   LiquidCrystal lcd( RS, ENABLE, D4, D5, D6, D7 ); // standard 4-bit parallel interface
 #endif
+
+unsigned long debounceDelay = 50;
+#ifdef RESET_TIMER_BUTTON 
+  unsigned long lastDebounceTimeRESET_TIMER_BUTTON = 0;
+  int buttonStateRESET_TIMER_BUTTON;  // the current reading from the input pin
+  int lastButtonStateRESET_TIMER_BUTTON = HIGH;  // the previous reading from the input pin
 #endif
+#ifdef TOGGLE_PID_BUTTON 
+  unsigned long lastDebounceTimeTOGGLE_PID_BUTTON = 0;
+  int buttonStateTOGGLE_PID_BUTTON;  // the current reading from the input pin
+  int lastButtonStateTOGGLE_PID_BUTTON = HIGH;  // the previous reading from the input pin
+#endif
+
+
+
+
 // --------------------------------------------- end LCD interface
 
 // T1, T2 = temperatures x 1000
@@ -336,6 +367,7 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
         checkButtons();
       #endif
     #endif
+    checkButtonPins();
   }
 }
 
@@ -503,7 +535,7 @@ void get_samples() // this function talks to the amb sensor and ADC via I2C
   first = false;
 };
 
-#ifdef LCD
+#if defined LCD_PARALLEL || defined LCDAPTER || defined LCD_I2C
 // --------------------------------------------
 void updateLCD() {
   
@@ -688,7 +720,7 @@ void updateLCD() {
   #ifdef ANALOGUE1
     if( analogue1_changed == true ) { // overwrite RoR or PID values
       lcd.setCursor( 0, 1 );
-      lcd.print(F("OT1:     "));
+      lcd.print(F("HTR:     "));
       lcd.setCursor( 4, 1 );
       if( FAN_DUTY < HTR_CUTOFF_FAN_VAL ) { // display 0% if OT1 has been cut off
         sprintf( st1, "%3d", (int)0 );     
@@ -702,7 +734,7 @@ void updateLCD() {
   #ifdef ANALOGUE2
     if( analogue2_changed == true ) { // overwrite RoR or PID values
       lcd.setCursor( 0, 1 );
-      lcd.print(F("OT2:     "));
+      lcd.print(F("FAN:     "));
       lcd.setCursor( 4, 1 );
       sprintf( st1, "%3d", (int)FAN_DUTY );
       lcd.print( st1 ); lcd.print(F("%"));
@@ -744,7 +776,7 @@ void updateLCD() {
   }
 
 } // end of updateLCD()
-#endif // end ifdef LCD
+#endif
 
 #if defined ANALOGUE1 || defined ANALOGUE2
 // -------------------------------- reads analog value and maps it to 0 to 100
@@ -1071,6 +1103,65 @@ void outIO3() { // update output for IO3
 }
 
 
+// ----------------------------------
+void checkButtonPins() {
+int reading;
+#ifdef RESET_TIMER_BUTTON
+  reading = digitalRead(RESET_TIMER_BUTTON);
+  
+  if (reading != lastButtonStateRESET_TIMER_BUTTON) {
+    // reset the debouncing timer
+    lastDebounceTimeRESET_TIMER_BUTTON = millis();
+  }
+
+  if ((millis() - lastDebounceTimeRESET_TIMER_BUTTON) > debounceDelay) {
+    // whatever the reading is at, it's been there for longer than the debounce
+    // delay, so take it as the actual current state:
+
+    // if the button state has changed:
+    if (reading != buttonStateRESET_TIMER_BUTTON) {
+      buttonStateRESET_TIMER_BUTTON = reading;
+
+      // only toggle the LED if the new button state is HIGH
+      if (buttonStateRESET_TIMER_BUTTON == LOW) { // LOW = on with internal pullup active
+        counter = 0;
+      }
+    }
+  }
+  lastButtonStateRESET_TIMER_BUTTON = reading;
+#endif
+#ifdef TOGGLE_PID_BUTTON
+  reading = digitalRead(TOGGLE_PID_BUTTON);
+  
+  if (reading != lastButtonStateTOGGLE_PID_BUTTON) {
+    // reset the debouncing timer
+    lastDebounceTimeTOGGLE_PID_BUTTON = millis();
+  }
+
+  if ((millis() - lastDebounceTimeTOGGLE_PID_BUTTON) > debounceDelay) {
+    // whatever the reading is at, it's been there for longer than the debounce
+    // delay, so take it as the actual current state:
+
+    // if the button state has changed:
+    if (reading != buttonStateTOGGLE_PID_BUTTON) {
+      buttonStateTOGGLE_PID_BUTTON = reading;
+
+      // only toggle the LED if the new button state is HIGH
+      if (buttonStateTOGGLE_PID_BUTTON == LOW) { // LOW = on with internal pullup active
+        #ifdef PID_CONTROL
+          if( myPID.GetMode() == MANUAL ) {
+            myPID.SetMode( AUTOMATIC );
+          }
+          else {
+            myPID.SetMode( MANUAL );
+          }
+        #endif
+      }
+    }
+  }
+  lastButtonStateTOGGLE_PID_BUTTON = reading;
+#endif
+}
 
 
 // ------------------------------------------------------------------------
@@ -1083,27 +1174,27 @@ void setup()
   Serial.begin(BAUD);
   amb.init( AMB_FILTER );  // initialize ambient temp filtering
 
-#ifdef LCD
-#ifdef LCD_4x20
-  lcd.begin(20, 4);
-#else
-  lcd.begin(16, 2);
-#endif // LCD_4x20
-  BACKLIGHT;
-  lcd.setCursor( 0, 0 );
-  lcd.print( BANNER_ARTISAN ); // display version banner
-  lcd.setCursor( 0, 1 );
-#ifdef ANDROID
-  lcd.print( F("ANDROID") ); // display version banner
-#endif // ANDROID
-#ifdef ARTISAN
-  lcd.print( F("ARTISAN") ); // display version banner
-#endif // ARTISAN
-#ifdef ROASTLOGGER
-  lcd.print( F("ROASTLOGGER") ); // display version banner
-#endif // ROASTLOGGER
+#if defined LCD_PARALLEL || defined LCDAPTER || defined LCD_I2C
+  #ifdef LCD_4x20
+    lcd.begin(20, 4);
+  #else
+    lcd.begin(16, 2);
+  #endif
+    BACKLIGHT;
+    lcd.setCursor( 0, 0 );
+    lcd.print( BANNER_ARTISAN ); // display version banner
+    lcd.setCursor( 0, 1 );
+  #ifdef ANDROID
+    lcd.print( F("ANDROID") ); // display version banner
+  #endif // ANDROID
+  #ifdef ARTISAN
+    lcd.print( F("ARTISAN") ); // display version banner
+  #endif // ARTISAN
+  #ifdef ROASTLOGGER
+    lcd.print( F("ROASTLOGGER") ); // display version banner
+  #endif // ROASTLOGGER
   
-#endif // LCD
+#endif
 
 #ifdef LCDAPTER
   buttons.begin( 4 );
@@ -1204,7 +1295,7 @@ void setup()
   
   pinMode( LED_PIN, OUTPUT );
 
-#ifdef LCD
+#if defined LCD_PARALLEL || defined LCDAPTER || defined LCD_I2C
   delay( 500 );
   lcd.clear();
 #endif
@@ -1230,6 +1321,14 @@ void setup()
   profile_number_new = profile_number; 
   setProfile(); // read profile description initial time/temp data from eeprom and set profile_pointer
 #endif
+
+#ifdef RESET_TIMER_BUTTON
+pinMode(RESET_TIMER_BUTTON, INPUT_PULLUP);
+#endif
+#ifdef TOGGLE_PID_BUTTON
+pinMode(TOGGLE_PID_BUTTON, INPUT_PULLUP);
+#endif
+
 
 first = true;
 counter = 3; // start counter at 3 to match with Artisan. Probably a better way to sync with Artisan???
@@ -1300,7 +1399,7 @@ void loop()
   #endif
 
   // Update LCD if defined
-  #ifdef LCD
+  #if defined LCD_PARALLEL || defined LCDAPTER || defined LCD_I2C
     updateLCD();
   #endif
   
@@ -1324,6 +1423,7 @@ void loop()
       checkButtons();
     #endif
   #endif
+    checkButtonPins();
   }
   
   // Set next loop time and increment counter

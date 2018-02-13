@@ -24,8 +24,6 @@
 //#define CONFIG_PAC2 // phase angle control on OT1 (heater) and OT2 (fan); IO2 used to read the ZCD; IO3 undefined
 //#define CONFIG_PAC2_IO3HTR // phase angle control on OT1 (heater) and OT2 (fan); IO2 reads the req'd ZCD; IO3 reserved for fast PWM output for heater
 #define CONFIG_PAC3 // phase angle control on OT1 (heater) and OT2 (fan); IO3 reads the req'd ZCD; IO3 not available for output
-// end of base configurations
-/////////////////////////////
 
 ////////////////////
 // Temperature Unit
@@ -33,11 +31,23 @@
 
 ////////////////////
 // LCD Options
-// Comment out non required features
-#define LCD // if output on an LCD screen is desired
+// Choose ONE of the following LCD options if using an LCD
 #define LCDAPTER // if the I2C LCDapter board is to be used
+//#define LCD_I2C // if using a $5 delivered Chinese LCD with I2C module
+//#define LCD_PARALLEL // if using a parallel LCD screen
+
 //#define LCD_4x20 // if using a 4x20 LCD instead of a 2x16
 
+#define LCD_I2C_ADDRESS 0x3F // adjust I2C address for LCD if required. Try 0x27, 0x20. Not used for LCDapter.
+
+
+/////////////////////
+// Input Button Options
+// Connect button between input pin and ground. Useful if not using LCDapter buttons.
+//#define RESET_TIMER_BUTTON 7 // Reset timer using button on pin X
+//#define TOGGLE_PID_BUTTON 8 // Toggle PID on/off using button on pin X
+
+/////////////////////
 // AC Power Options
 // Needed for PHASE_ANGLE_CONTROL option
 #define FREQ60 // 60Hz
@@ -97,7 +107,7 @@
 
 // cut power to Heater if fan duty is less than HTR_CUTOFF_FAN_VAL (to protect heater in air roaster). Set to 0 for no cutoff
 #define HTR_CUTOFF_FAN_VAL 0 // default
-// #define HTR_CUTOFF_FAN_VAL 10  //optional value
+//#define HTR_CUTOFF_FAN_VAL 10  //optional value
 
 #define FAN_AUTO_COOL 13 // Set fan output duty for auto cool when using PID;STOP command
 
