@@ -142,8 +142,11 @@
 //          Adjusted Logger() so Heater Duty and Fan Duty are always sent in serial stream regardless od PID state
 // 20180214 Added support for cheap I2C LCDs
 //          Added support for two directly connected buttons for reseting timer and toggle PID.
-
-#define BANNER_ARTISAN "aArtisanQ_PID 6_4"
+// 20180529 Added support for another 2 buttons for menu navigation
+//          Modified compile directives to allow IO3 PWM control and DCFAN command in CONFIG_PAC2 mode
+//          Minor bug fix in logger()
+      
+#define BANNER_ARTISAN "aArtisanQ_PID 6_5"
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -321,8 +324,16 @@ unsigned long debounceDelay = 50;
   int buttonStateTOGGLE_PID_BUTTON;  // the current reading from the input pin
   int lastButtonStateTOGGLE_PID_BUTTON = HIGH;  // the previous reading from the input pin
 #endif
-
-
+#ifdef MODE_BUTTON
+  unsigned long lastDebounceTimeMODE_BUTTON = 0;
+  int buttonStateMODE_BUTTON;  // the current reading from the input pin
+  int lastButtonStateMODE_BUTTON = HIGH;  // the previous reading from the input pin
+#endif
+#ifdef ENTER_BUTTON
+  unsigned long lastDebounceTimeENTER_BUTTON = 0;
+  int buttonStateENTER_BUTTON;  // the current reading from the input pin
+  int lastButtonStateENTER_BUTTON = HIGH;  // the previous reading from the input pin
+#endif
 
 
 // --------------------------------------------- end LCD interface
@@ -361,7 +372,7 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
     checkSerial();
-    #ifndef PHASE_ANGLE_CONTROL
+    #if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 ) // disable when PAC active and pin 3 reads the ZCD
     dcfan.slew_fan(); // keep the fan smoothly increasing in speed
     #endif
     #ifdef LCDAPTER
@@ -369,7 +380,9 @@ void checkStatus( uint32_t ms ) { // this is an active delay loop
         checkButtons();
       #endif
     #endif
-    checkButtonPins();
+    #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID ) // Stops buttons being read unless in standalone mode. Added to fix crash (due to low memory?).
+      checkButtonPins();
+    #endif
   }
 }
 
@@ -409,6 +422,7 @@ void logger() {
     Serial.print(F(","));
     Serial.print( Setpoint );
   } else {
+    Serial.print(F(","));
     Serial.print( 0 ); // send 0 if PID is off
   }
   
@@ -1083,15 +1097,15 @@ void outIO3() { // update output for IO3
   float pow;
 
 #ifdef PHASE_ANGLE_CONTROL
-#ifdef IO3_HTR_PAC
   uint8_t new_levelio3;
   new_levelio3 = levelIO3;
+#ifdef IO3_HTR_PAC
   if( levelOT2 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater on IO3
     new_levelio3 = 0;
   }
+#endif // IO3_HTR_PAC
   pow = 2.55 * new_levelio3;
   pwmio3.Out( round(pow) );
-#endif // IO3_HTR_PAC
 #else // PWM Mode, fan on IO3
   if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater on OT1
     ssr.Out( 0, levelOT2 );
@@ -1106,6 +1120,8 @@ void outIO3() { // update output for IO3
 
 
 // ----------------------------------
+#if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID ) // Stops buttons being read unless in standalone mode. Added to fix crash (due to low memory?).
+
 void checkButtonPins() {
 int reading;
 #ifdef RESET_TIMER_BUTTON
@@ -1126,7 +1142,18 @@ int reading;
 
       // only toggle the LED if the new button state is HIGH
       if (buttonStateRESET_TIMER_BUTTON == LOW) { // LOW = on with internal pullup active
-        counter = 0;
+        switch (LCD_mode) {
+          case 0:
+            counter = 0;
+            break;
+          case 1:
+            #ifdef PID_CONTROL
+            profile_number_new--;
+            if( profile_number_new == 0 ) profile_number_new = NUM_PROFILES; // loop profile_number to end
+            getProfileDescription(profile_number_new);
+            #endif
+            break;
+        }
       }
     }
   }
@@ -1150,20 +1177,115 @@ int reading;
 
       // only toggle the LED if the new button state is HIGH
       if (buttonStateTOGGLE_PID_BUTTON == LOW) { // LOW = on with internal pullup active
-        #ifdef PID_CONTROL
-          if( myPID.GetMode() == MANUAL ) {
-            myPID.SetMode( AUTOMATIC );
-          }
-          else {
-            myPID.SetMode( MANUAL );
-          }
-        #endif
+        switch (LCD_mode) {
+          case 0:
+          #ifdef PID_CONTROL
+            if( myPID.GetMode() == MANUAL ) {
+              myPID.SetMode( AUTOMATIC );
+            }
+            else {
+              myPID.SetMode( MANUAL );
+            }
+          #endif
+          break;
+          
+          case 1:
+            #ifdef PID_CONTROL
+            Serial.print(profile_number_new);
+            profile_number_new++;
+            if( profile_number_new > NUM_PROFILES ) profile_number_new = 1; // loop profile_number to start
+            getProfileDescription(profile_number_new);
+            #endif
+            break;
+        }
       }
     }
   }
   lastButtonStateTOGGLE_PID_BUTTON = reading;
 #endif
+#ifdef MODE_BUTTON
+  reading = digitalRead(MODE_BUTTON);
+  
+  if (reading != lastButtonStateMODE_BUTTON) {
+    // reset the debouncing timer
+    lastDebounceTimeMODE_BUTTON = millis();
+  }
+
+  if ((millis() - lastDebounceTimeMODE_BUTTON) > debounceDelay) {
+    // whatever the reading is at, it's been there for longer than the debounce
+    // delay, so take it as the actual current state:
+
+    // if the button state has changed:
+    if (reading != buttonStateMODE_BUTTON) {
+      buttonStateMODE_BUTTON = reading;
+
+      // only toggle the LED if the new button state is HIGH
+      if (buttonStateMODE_BUTTON == LOW) { // LOW = on with internal pullup active
+        switch (LCD_mode) {
+          case 0: // Main page
+            lcd.clear();
+            LCD_mode++; // change mode
+            #ifndef PID_CONTROL
+            if( LCD_mode == 1 ) LCD_mode++; // deactivate LCD mode 1 if PID control is disabled
+            #endif
+            if( LCD_mode > 1 ) LCD_mode = 0; // loop at limit of modes
+            break;
+
+          case 1: // Profile change page
+            lcd.clear();
+            #ifdef PID_CONTROL
+            profile_number_new = profile_number; // reset profile_number_new if profile wasn't changed
+            setProfile(); // or getProfileDescription()?????????
+            #endif
+            LCD_mode++; // change mode
+            if( LCD_mode > 1 ) LCD_mode = 0; // loop at limit of modes
+            break;
+        }
+      }
+    }
+  }
+  lastButtonStateMODE_BUTTON = reading;
+#endif
+#ifdef ENTER_BUTTON
+  reading = digitalRead(ENTER_BUTTON);
+  
+  if (reading != lastButtonStateENTER_BUTTON) {
+    // reset the debouncing timer
+    lastDebounceTimeENTER_BUTTON = millis();
+  }
+
+  if ((millis() - lastDebounceTimeENTER_BUTTON) > debounceDelay) {
+    // whatever the reading is at, it's been there for longer than the debounce
+    // delay, so take it as the actual current state:
+
+    // if the button state has changed:
+    if (reading != buttonStateENTER_BUTTON) {
+      buttonStateENTER_BUTTON = reading;
+
+      // only toggle the LED if the new button state is HIGH
+      if (buttonStateENTER_BUTTON == LOW) { // LOW = on with internal pullup active
+        switch (LCD_mode) {
+          case 0: // Main page
+              // do something?
+            break;
+
+          case 1: // Profile change page
+            #ifdef PID_CONTROL
+              profile_number = profile_number_new; // change profile_number to new selection
+              setProfile(); // call setProfile to load the profile selected
+              lcd.clear();
+              LCD_mode = 0; // jump back to main LCD display mode
+            #endif
+            break;
+        }
+      }
+    }
+  }
+  lastButtonStateENTER_BUTTON = reading;
+#endif
+
 }
+#endif
 
 
 // ------------------------------------------------------------------------
@@ -1330,7 +1452,12 @@ pinMode(RESET_TIMER_BUTTON, INPUT_PULLUP);
 #ifdef TOGGLE_PID_BUTTON
 pinMode(TOGGLE_PID_BUTTON, INPUT_PULLUP);
 #endif
-
+#ifdef MODE_BUTTON
+pinMode(MODE_BUTTON, INPUT_PULLUP);
+#endif
+#ifdef ENTER_BUTTON
+pinMode(ENTER_BUTTON, INPUT_PULLUP);
+#endif
 
 first = true;
 counter = 3; // start counter at 3 to match with Artisan. Probably a better way to sync with Artisan???
@@ -1425,7 +1552,9 @@ void loop()
       checkButtons();
     #endif
   #endif
+  #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID ) // Stops buttons being read unless in standalone mode. Added to fix crash (due to low memory?).
     checkButtonPins();
+  #endif
   }
   
   // Set next loop time and increment counter

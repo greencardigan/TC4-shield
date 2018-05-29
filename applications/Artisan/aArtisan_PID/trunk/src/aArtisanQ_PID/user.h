@@ -21,9 +21,9 @@
 ////////////////////
 // Base configurations (leave only one uncommented)
 //#define CONFIG_PWM // slow PWM on OT1 (heater); fast PWM output (3.922kHz) on IO3 (DC fan); ZCD not required
-//#define CONFIG_PAC2 // phase angle control on OT1 (heater) and OT2 (fan); IO2 used to read the ZCD; IO3 undefined
+#define CONFIG_PAC2 // phase angle control on OT1 (heater) and OT2 (fan); IO2 used to read the ZCD; IO3 undefined
 //#define CONFIG_PAC2_IO3HTR // phase angle control on OT1 (heater) and OT2 (fan); IO2 reads the req'd ZCD; IO3 reserved for fast PWM output for heater
-#define CONFIG_PAC3 // phase angle control on OT1 (heater) and OT2 (fan); IO3 reads the req'd ZCD; IO3 not available for output
+//#define CONFIG_PAC3 // phase angle control on OT1 (heater) and OT2 (fan); IO3 reads the req'd ZCD; IO3 not available for output
 
 ////////////////////
 // Temperature Unit
@@ -32,11 +32,11 @@
 ////////////////////
 // LCD Options
 // Choose ONE of the following LCD options if using an LCD
-#define LCDAPTER // if the I2C LCDapter board is to be used
-//#define LCD_I2C // if using a $5 delivered Chinese LCD with I2C module
+//#define LCDAPTER // if the I2C LCDapter board is to be used
+#define LCD_I2C // if using a $5 delivered Chinese LCD with I2C module
 //#define LCD_PARALLEL // if using a parallel LCD screen
 
-//#define LCD_4x20 // if using a 4x20 LCD instead of a 2x16
+#define LCD_4x20 // if using a 4x20 LCD instead of a 2x16
 
 #define LCD_I2C_ADDRESS 0x3F // adjust I2C address for LCD if required. Try 0x27, 0x20. Not used for LCDapter.
 
@@ -44,12 +44,19 @@
 /////////////////////
 // Input Button Options
 // Connect button between input pin and ground. Useful if not using LCDapter buttons.
-//#define RESET_TIMER_BUTTON 7 // Reset timer using button on pin X
-//#define TOGGLE_PID_BUTTON 8 // Toggle PID on/off using button on pin X
+// Only active in standalone mode.
+#if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID ) // Stops buttons being read unless in standalone mode. Added to fix crash (due to low memory?).
+
+#define RESET_TIMER_BUTTON 4 // Reset timer using button on pin X
+#define TOGGLE_PID_BUTTON 5  // Toggle PID on/off using button on pin X
+#define MODE_BUTTON 7        // Switch LCD Mode
+#define ENTER_BUTTON 8       // Confirm choice
+
+#endif
 
 /////////////////////
 // AC Power Options
-// Needed for PHASE_ANGLE_CONTROL option
+// Needed for CONFIG_PAC options
 #define FREQ60 // 60Hz
 //#define FREQ50 // 50Hz
 
@@ -99,7 +106,7 @@
 #define MIN_OT1 0 // Set output % for lower limit for OT1.  0% power will always be available
 #define MAX_OT1 100 // Set output % for upper limit for OT1
 
-#define MIN_OT2 0 // Set output % for lower limit for OT2.  0% power will always be available
+#define MIN_OT2 10 // Set output % for lower limit for OT2.  0% power will always be available
 #define MAX_OT2 100 // Set output % for upper limit for OT2
 
 #define MIN_IO3 0 // Set output % for lower limit for IO3.  0% power will always be available
