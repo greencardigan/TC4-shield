@@ -312,7 +312,10 @@ TC_TYPE4 tc4;
   #define D7 13
   LiquidCrystal lcd( RS, ENABLE, D4, D5, D6, D7 ); // standard 4-bit parallel interface
 #endif
+// --------------------------------------------- end LCD interface
 
+
+// --------------------------------------------- button setup
 unsigned long debounceDelay = 50;
 #ifdef RESET_TIMER_BUTTON 
   unsigned long lastDebounceTimeRESET_TIMER_BUTTON = 0;
@@ -336,7 +339,27 @@ unsigned long debounceDelay = 50;
 #endif
 
 
-// --------------------------------------------- end LCD interface
+// --------------------------------------------- AS726X setup
+#ifdef COLOR_SENSOR
+  #include "AS726X.h"
+  #include <stdlib.h>
+  AS726X sensor;
+
+  byte GAIN = 3;
+  byte MEASUREMENT_MODE = 3;
+  byte BULB_CURRENT = 3; // 0=12.5mA 1=25mA 2=50mA 3=100mA
+  byte INTEG_TIME = 255;
+  int TEMP;
+  float Ref1 = 0;
+  float Ref2 = 0;
+  float Ref3 = 0;
+  float Ref4 = 0;
+  float Ref5 = 0;
+  int Std1 = 100;
+  int Std2 = 0;
+  float unk = 0;
+  int NUM_SCANS = 5;
+#endif
 
 // T1, T2 = temperatures x 1000
 // t1, t2 = time marks, milliseconds
@@ -405,8 +428,18 @@ void logger() {
       --k;
       Serial.print(F(","));
       Serial.print( convertUnits( T[k] ),DP );
-
     }
+    #ifdef COLOR_SENSOR
+    else { // channel inactive
+      if (jj == 2) { // if channel 3 inactive then output a zero
+        Serial.print(F(",0"));
+      }
+      else if (jj == 3) { // output color value on channel 4
+        Serial.print(F(","));
+        Serial.print( unk );
+      }
+    }
+    #endif
   }
 
   Serial.print(F(","));
@@ -1287,6 +1320,24 @@ int reading;
 }
 #endif
 
+#ifdef COLOR_SENSOR
+// ----------------------------------
+float readcolor(){
+  float color = 0;
+  for(int i=0;i<NUM_SCANS;i++){
+    sensor.takeMeasurementsWithBulb();
+    color=color+sensor.getCalibratedW();
+  }
+  color = color/NUM_SCANS;
+  return color;
+}
+
+void getcolor() {
+  unk=readcolor();
+  //Serial.print(F("# Log value = ")); Serial.println(log(unk));
+  unk=Std2+(((Std1-Std2))/(log(Ref1)-log(Ref2))*(log(unk)-log(Ref2)));
+}
+#endif
 
 // ------------------------------------------------------------------------
 // MAIN
@@ -1412,6 +1463,9 @@ void setup()
   ci.addCommand( &fan );
 #endif
   ci.addCommand( &filt );
+#ifdef COLOR_SENSOR
+  ci.addCommand( &color );
+#endif
 
 #if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 ) // disable when PAC active and pin 3 reads the ZCD
   dcfan.init(); // initialize conditions for dcfan
@@ -1459,6 +1513,13 @@ pinMode(MODE_BUTTON, INPUT_PULLUP);
 pinMode(ENTER_BUTTON, INPUT_PULLUP);
 #endif
 
+#ifdef COLOR_SENSOR
+  sensor.begin(Wire, GAIN, MEASUREMENT_MODE);
+  sensor.setBulbCurrent(BULB_CURRENT);
+  sensor.setIntegrationTime(INTEG_TIME/2.8);
+  sensor.disableIndicator();
+#endif
+
 first = true;
 counter = 3; // start counter at 3 to match with Artisan. Probably a better way to sync with Artisan???
 next_loop_time = millis() + looptime; // needed?? 
@@ -1492,6 +1553,11 @@ void loop()
   // Read temperatures
   get_samples();
 
+  // Read Color
+  #ifdef COLOR_SENSOR
+  getcolor();
+  #endif
+  
   // Read analogue POT values if defined
   #ifdef ANALOGUE1
     #ifdef PID_CONTROL

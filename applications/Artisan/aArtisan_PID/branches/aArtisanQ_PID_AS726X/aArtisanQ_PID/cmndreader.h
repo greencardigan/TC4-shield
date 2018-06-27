@@ -74,6 +74,9 @@
 #endif
 #define FILT_CMD "FILT" // runtime changes to digital filtering on input channels
 #define FAN_PORT 3 // use DI03 for PWM fan output
+#ifdef COLOR_SENSOR
+#define COLOR_CMD "COLOR" // AS7261 color command
+#endif
 
 // -------------------------- slew rate limitations for fan control
 #define MAX_SLEW 25 // percent per second
@@ -101,6 +104,9 @@ class powerCmnd;
 class fanCmnd;
 #endif
 class filtCmnd;
+#ifdef COLOR_SENSOR
+class colorCmnd;
+#endif
 
 // external declarations of class objects
 extern readCmnd reader;
@@ -122,7 +128,9 @@ extern powerCmnd power;
 extern fanCmnd fan;
 #endif
 extern filtCmnd filt;
-
+#ifdef COLOR_SENSOR
+extern colorCmnd color;
+#endif
 
 // extern declarations for functions, variables in the main program
 #ifndef PHASE_ANGLE_CONTROL
@@ -148,6 +156,18 @@ extern filterRC fT[NC]; // filters for logged ET, BT
 extern void outOT1();
 extern void outOT2();
 extern void outIO3();
+#ifdef COLOR_SENSOR
+extern float readcolor();
+extern void getcolor();
+extern float Ref1;
+extern float Ref2;
+extern float Ref3;
+extern float Ref4;
+extern float Ref5;
+extern float unk;
+extern int Std1;
+extern int Std2;
+#endif
 
 
 // class declarations for commands
@@ -252,6 +272,14 @@ class fanCmnd : public CmndBase {
     fanCmnd();
     virtual boolean doCommand( CmndParser* pars );
 };
+
+#ifdef COLOR_SENSOR
+class colorCmnd : public CmndBase {
+  public:
+    colorCmnd();
+    virtual boolean doCommand( CmndParser* pars );
+};
+#endif
 
 #endif
 

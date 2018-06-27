@@ -59,6 +59,9 @@ powerCmnd power;
 fanCmnd fan;
 #endif
 filtCmnd filt;
+#ifdef COLOR_SENSOR
+colorCmnd color;
+#endif
 
 
 // --------------------- dwriteCmnd
@@ -221,7 +224,15 @@ boolean chanCmnd::doCommand( CmndParser* pars ) {
         str[1] = '\0'; // force it to be char[2]
         n = atoi( str );
         if( n <= NC ) {
+          #ifdef COLOR_SENSOR
+          if( n == 4 ) {  // keep channel 4 inactive to allow use with color data
+            actv[i] = 0;
+          } else {
+            actv[i] = n;
+          }
+          #else
           actv[i] = n;
+          #endif
         } else {
           actv[i] = 0;
         }
@@ -787,4 +798,64 @@ boolean fanCmnd::doCommand( CmndParser* pars ) {
   }
 }
 #endif //ROASTLOGGER
+
+#ifdef COLOR_SENSOR
+// ----------------------------- colorCmnd
+// constructor
+colorCmnd::colorCmnd() :
+  CmndBase( COLOR_CMD ) {
+}
+
+// execute the COLOR command
+// COLOR;CAL1\n
+// COLOR;CAL2\n
+// COLOR;get\n
+
+boolean colorCmnd::doCommand( CmndParser* pars ) {
+  if( strcmp( keyword, pars->cmndName() ) == 0 ) {
+    if( strcmp( pars->paramStr(1), "CAL1" ) == 0 ) {
+      Ref1=readcolor();
+      Serial.print(F("# Log value = ")); Serial.println( log(Ref1) );
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "CAL2" ) == 0 ) {
+      Ref2=readcolor();
+      Serial.print(F("# Log value = ")); Serial.println( log(Ref2) );
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "CAL3" ) == 0 ) {
+      Ref3=readcolor();
+      Serial.print(F("# Log value = ")); Serial.println( log(Ref3) );
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "CAL4" ) == 0 ) {
+      Ref4=readcolor();
+      Serial.print(F("# Log value = ")); Serial.println( log(Ref4) );
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "CAL5" ) == 0 ) {
+      Ref5=readcolor();
+      Serial.print(F("# Log value = ")); Serial.println( log(Ref5) );
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "GET" ) == 0 ) {
+      getcolor();
+      if(Ref1&&Ref2!=0){
+      Serial.print(F("# Bean color value = ")); Serial.print(unk);Serial.println(F("% of target value, relative to green beans"));
+      }
+    }
+    else {
+      uint8_t len = strlen( pars->paramStr(1) );
+      if( len > 0 ) {
+        // do something??
+      }
+      return true;
+    }
+  }
+  else {
+    return false;
+  }
+}
+#endif
+
 
