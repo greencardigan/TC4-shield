@@ -198,4 +198,4 @@ boolean ACdetect() {
   return outputEnable = ! ( ( millis() - lastCross ) > AC_TIMEOUT_MS ) ;
 }
 
-#endif PHASE_ANGLE_CONTROL
+#endif

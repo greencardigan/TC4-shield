@@ -207,7 +207,8 @@ boolean Cscale = true;
 boolean Cscale = false;
 #endif
 
-int levelOT1, levelOT2;  // parameters to control output levels
+int levelOT1, levelOT2, stepdif, new_levelOT1;  // parameters to control output levels
+
 #if !(defined PHASE_ANGLE_CONTROL && (INT_PIN == 3) )
 int levelIO3;
 #endif
@@ -1287,7 +1288,46 @@ int reading;
 }
 #endif
 
+ void move_stepper_motor(){
+// The next few lines calculates step and direction for Clippard SCPV-1 valve and corresponding driver
+// Direction pin HIGH and rise on step pin will close the valve
+// Direction pin LOW and rise on step pin will open the valve
 
+stepdif = 4*(levelOT1 - new_levelOT1);                  // determine the step differential, valve needs 400 steps to fully open
+new_levelOT1 = levelOT1;                            // update steps
+
+if (stepdif > 0){
+  digitalWrite( DIR_PIN, LOW);                    // set direction to low to open valve
+  digitalWrite( EN_MTR, HIGH);                    // wake up motor
+  delay (1);                                      // delay to wake motor from sleep
+
+  // send number of steps to valve driver
+  for (int s = 0; s < stepdif; s++){
+  digitalWrite( STEP_PIN, HIGH);                  // set step to high to increase count
+  delayMicroseconds (500);                        // Only 1 us needed, but it takes 2.375 ms to move one step
+  digitalWrite( STEP_PIN, LOW); 
+  delay (2);  
+  }
+  digitalWrite( EN_MTR, LOW);                      // done moving motor, put board to sleep to keep motor cool   
+  }
+
+else if (stepdif < 0){
+  digitalWrite( DIR_PIN, HIGH);                   // set direction to high to close valve
+  digitalWrite( EN_MTR, HIGH);                    // wake up motor
+  delay (1);                                      // delay to wake motor from sleep
+
+// send number of steps to valve driver
+  stepdif = - stepdif;
+  for (int s = 0; s < stepdif; s++){
+  digitalWrite( STEP_PIN, HIGH);                  // set step to high to increase count
+  delayMicroseconds (500);                        // Only 1 us needed, but it takes 2.375 ms to move one step                                   
+  digitalWrite( STEP_PIN, LOW); 
+  delay (2);  
+  }      
+  digitalWrite( EN_MTR, LOW);                      // done moving motor, put board to sleep to keep motor cool                      
+  }
+// End of lines to drive the Clippard SCPV-1 valve and corresponding driver
+ }
 // ------------------------------------------------------------------------
 // MAIN
 //
@@ -1368,7 +1408,8 @@ void setup()
 // modifed 14-Dec-2016 by JGG
 // revised 22-Mar-2017 by Brad changed from #ifdef IO3_HTR_PAC to #ifndef CONFIG_PAC3
 #ifndef CONFIG_PAC3
-  pwmio3.Setup( IO3_PCORPWM, IO3_PRESCALE_8 ); // setup pmw frequency ion IO3
+  //pwmio3.Setup( IO3_PCORPWM, IO3_PRESCALE_8 ); // setup pmw frequency on IO3
+  pwmio3.Setup( IO3_PCORPWM, IO3_PRESCALE_1 ); // setup pmw frequency on IO3 TO 31.9kHz
 #endif
 // ----------------------------
 
@@ -1418,6 +1459,16 @@ void setup()
 #endif
   
   pinMode( LED_PIN, OUTPUT );
+  // pinmode for step and direction, modified by Christian
+  pinMode ( STEP_PIN, OUTPUT );     // set pin as output
+  pinMode ( DIR_PIN, OUTPUT );      // set pin as output
+  pinMode ( EN_MTR, OUTPUT );      // set pin as output 
+  digitalWrite ( STEP_PIN, LOW );   // set pin to low
+  digitalWrite ( DIR_PIN, LOW );    // set pin to low
+  digitalWrite ( EN_MTR, HIGH);      // disable motor to keep cool
+  new_levelOT1 = 0;                 // initial value 
+  stepdif = 0;                      // initial value for step difference is 0
+
 
 #if defined LCD_PARALLEL || defined LCDAPTER || defined LCD_I2C
   delay( 500 );
@@ -1514,11 +1565,12 @@ void loop()
       Input = convertUnits( T[k] );
       myPID.Compute();  // do PID calcs
 #ifdef IO3_HTR_PAC
-      levelIO3 = Output; // update levelOT1 based on PID optput
+      levelIO3 = Output; // update levelOT3 based on PID optput
       outIO3();
 #else
       levelOT1 = Output; // update levelOT1 based on PID optput
       outOT1();
+      move_stepper_motor(); //move stepper motor
 #endif
       #ifdef ACKS_ON
       Serial.print(F("# PID input = " )); Serial.print( Input ); Serial.print(F("  "));
@@ -1526,6 +1578,11 @@ void loop()
       #endif
     }
   #endif
+
+if( myPID.GetMode() == MANUAL ) { // If PID in Manual mode calc new output and assign to OT1
+    move_stepper_motor();         // move stepper motor
+}
+
 
   // Update LCD if defined
   #if defined LCD_PARALLEL || defined LCDAPTER || defined LCD_I2C

@@ -404,14 +404,8 @@ void dcfanCmnd::init() {  // initialize fan to zero output
 }
 
 void dcfanCmnd::slew_fan() { // limit fan speed increases
-  if( target < current ) { // ramping down, so check rate
-    uint8_t delta = current - target;
-    if( delta > SLEW_STEP ) // limit the step size
-      delta = SLEW_STEP;
-    uint32_t delta_ms = millis() - last_fan_change; // how long since last step?
-    if( delta_ms > SLEW_STEP_TIME ) { // do only if enough time has gone by
-      set_fan( current - delta ); // decrease the output level
-    }
+  if( target < current ) { // no limit if slowing down
+    set_fan( target );
   }
   else if( target > current ) {  // ramping up, so check rate
     uint8_t delta = target - current;
@@ -600,7 +594,7 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
     else if( strcmp( pars->paramStr(1), "SV" ) == 0 ) {
       SV = atof( pars->paramStr(2) );
       #ifdef ACKS_ON
-      Serial.print(F("# PID setpoint = ")); Serial.println(Setpoint);
+      Serial.print(F("# PID setpoint = ")); Serial.println(SV); // SV was Setpoint 06022018
       #endif
       return true;
     }

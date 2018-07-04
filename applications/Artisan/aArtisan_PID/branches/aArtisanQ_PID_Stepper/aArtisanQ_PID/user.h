@@ -20,8 +20,8 @@
 
 ////////////////////
 // Base configurations (leave only one uncommented)
-//#define CONFIG_PWM // slow PWM on OT1 (heater); fast PWM output (3.922kHz) on IO3 (DC fan); ZCD not required
-#define CONFIG_PAC2 // phase angle control on OT1 (heater) and OT2 (fan); IO2 used to read the ZCD; IO3 undefined
+#define CONFIG_PWM // slow PWM on OT1 (heater); fast PWM output (3.922kHz) on IO3 (DC fan); ZCD not required
+//#define CONFIG_PAC2 // phase angle control on OT1 (heater) and OT2 (fan); IO2 used to read the ZCD; IO3 undefined
 //#define CONFIG_PAC2_IO3HTR // phase angle control on OT1 (heater) and OT2 (fan); IO2 reads the req'd ZCD; IO3 reserved for fast PWM output for heater
 //#define CONFIG_PAC3 // phase angle control on OT1 (heater) and OT2 (fan); IO3 reads the req'd ZCD; IO3 not available for output
 
@@ -54,6 +54,11 @@
 
 #endif
 
+// define pin 6 as motor enable and pins 11 and 12 as step and direction output signals, modified by Christian
+#define STEP_PIN 11 // STEP is on pin D11
+#define DIR_PIN 12 // DIRECTION is on pin D12
+#define EN_MTR 6  // Enable/disable motor to keep cool
+
 /////////////////////
 // AC Power Options
 // Needed for CONFIG_PAC options
@@ -72,7 +77,8 @@
 ////////////////////
 // BAUD Rate for serial communication
 //#define BAUD 19200 // useful for BT links
-#define BAUD 115200  // default
+//#define BAUD 115200  // default
+#define BAUD 9600  // new baud rate
 
 ////////////////////
 // Analogue inputs (optional)
@@ -178,6 +184,7 @@
 #define OT_PAC OT2 // phase angle control on OT2 (AC fan, usually)
 #define OT_ICC OT1 // integral cycle control on OT1 (AC heater, usually)
 #define LED_PIN 13
+
 
 //////////////////////////////////////////////////////
 // Set up parameters for the base configurations
