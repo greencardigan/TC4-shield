@@ -1,0 +1,30 @@
+release400.txt
+==============
+
+Release notes for TC4 standard libraries, version 4.00:
+ cADC
+ cButton
+ cLCD
+ cmndproc
+ mcEEPROM
+ PWM16
+ thermocouple
+ PID_v1
+
+
+cmndproc library
+----------------
+Updated to permit 5 characters per command token,
+and max 5 tokens per command line.  This revision was
+necessary to support the new PID commands in aArtisan.
+
+PID_v1 library
+--------------
+This is Brett Beauregard's PID library, version 1.0.0.
+It is provided here as a convenience to TC4 users, but is
+unchanged from Brett's release.  This library is required
+to support the new PID commands in aArtisan.
+
+
+Jim Gallt
+25-Nov-2014
