@@ -14,11 +14,20 @@ Sets new digital filtering level (0-100 percent) on logical channels
 lev1 = new filtering level for logical channel 1 (etc)
 
 PID,T,ppp,iii,ddd
+PID,T_POM,ppp,iii,ddd
 -----------------
 Sets new PID parameters ("T" is for "tuning"):
 ppp = proportional coefficient Kp
 iii = integral coefficient Ki
 ddd = derivative coefficient Kd
+T_POM = P_ON_M PID mode
+T = P_ON_E PID mode
+
+PID,LIMIT,min,max
+-----------------
+Sets PID output limits
+min = lower limit (0-100 and < max)
+max = upper limit (0-100 and > min) 
 
 PID,SV,vvv
 ----------

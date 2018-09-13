@@ -67,7 +67,7 @@
 #ifdef TRIAC_MOTOR
  #undef TRIAC_PULSE_WIDTH
  #define TRIAC_PULSE_WIDTH 4000 // 2000 uS needed for popper motor -- why?
-#else ifdef TRIAC_HEATER
+#else //ifdef TRIAC_HEATER
  #undef TRIAC_PULSE_WIDTH
  #define TRIAC_PULSE_WIDTH 1000 // 500 uS works for heaters
 #endif

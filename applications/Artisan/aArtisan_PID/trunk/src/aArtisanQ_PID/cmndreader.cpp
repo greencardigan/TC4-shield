@@ -512,7 +512,7 @@ void pidCmnd::pidOFF() {
 }
 
 // execute the PID command
-// PID;ON\n ;OFF\n ;TIME\n ;Pddd\n ;T;ddd;ddd;ddd\n
+// PID;ON\n ;OFF\n ;TIME\n ;Pddd\n ;T;ddd;ddd;ddd;mode\n
 
 boolean pidCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
@@ -572,7 +572,7 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       #endif
       return true;
     }
-    else if( pars->paramStr(1)[0] == 'P' ) {
+    else if( pars->paramStr(1)[0] == 'P' ) { // Select profile
       #ifdef PID_CONTROL
       profile_number = atoi( pars->paramStr(1) + 1 );
       setProfile();
@@ -584,13 +584,17 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       #endif
       return true;
     }
-    else if( strcmp( pars->paramStr(1), "T" ) == 0 ) {
+    else if( pars->paramStr(1)[0] == 'T' ) { // Tune PID
       #ifdef PID_CONTROL
       double kp, ki, kd;
       kp = atof( pars->paramStr(2) );
       ki = atof( pars->paramStr(3) );
       kd = atof( pars->paramStr(4) );
-      myPID.SetTunings( kp, ki, kd );
+      if( strcmp( pars->paramStr(1), "T_POM" ) == 0 ) {
+        myPID.SetTunings( kp, ki, kd, P_ON_M ); // Proportional on Measurement
+      } else {
+        myPID.SetTunings( kp, ki, kd, P_ON_E ); // Proportional on Error
+     }
       #ifdef ACKS_ON
       Serial.print(F("# PID Tunings set.  ")); Serial.print(F("Kp = ")); Serial.print(kp); Serial.print(F(",  Ki = ")); Serial.print(ki); Serial.print(F(",  Kd = ")); Serial.println(kd);
       #endif
@@ -617,6 +621,15 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       pid_chan = atoi( pars->paramStr(2) );
       #ifdef ACKS_ON
       Serial.print(F("# PID channel = ")); Serial.println(pid_chan);
+      #endif
+      return true;
+    }
+    else if( strcmp( pars->paramStr(1), "LIMIT" ) == 0 ) {
+      uint8_t lower_limit = atoi( pars->paramStr(2) );
+      uint8_t upper_limit = atoi( pars->paramStr(3) );
+      myPID.SetOutputLimits(lower_limit, upper_limit); // set output limits to user defined limits
+      #ifdef ACKS_ON
+      Serial.print(F("# PID Limits set. ")); Serial.print(lower_limit); Serial.print(F(" to ")); Serial.println(upper_limit);
       #endif
       return true;
     }

@@ -32,8 +32,8 @@
 ////////////////////
 // LCD Options
 // Choose ONE of the following LCD options if using an LCD
-//#define LCDAPTER // if the I2C LCDapter board is to be used
-#define LCD_I2C // if using a $5 delivered Chinese LCD with I2C module
+#define LCDAPTER // if the I2C LCDapter board is to be used
+//#define LCD_I2C // if using a $5 delivered Chinese LCD with I2C module
 //#define LCD_PARALLEL // if using a parallel LCD screen
 
 #define LCD_4x20 // if using a 4x20 LCD instead of a 2x16
@@ -47,10 +47,10 @@
 // Only active in standalone mode.
 #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID ) // Stops buttons being read unless in standalone mode. Added to fix crash (due to low memory?).
 
-#define RESET_TIMER_BUTTON 4 // Reset timer using button on pin X
-#define TOGGLE_PID_BUTTON 5  // Toggle PID on/off using button on pin X
-#define MODE_BUTTON 7        // Switch LCD Mode
-#define ENTER_BUTTON 8       // Confirm choice
+//#define RESET_TIMER_BUTTON 4 // Reset timer using button on pin X
+//#define TOGGLE_PID_BUTTON 5  // Toggle PID on/off using button on pin X
+//#define MODE_BUTTON 7        // Switch LCD Mode
+//#define ENTER_BUTTON 8       // Confirm choice
 
 #endif
 
@@ -70,9 +70,8 @@
 #define TC_TYPE4 typeK  // thermocouple on TC4
 
 ////////////////////
-// BAUD Rate for serial communication
-//#define BAUD 19200 // useful for BT links
-#define BAUD 115200  // default
+// BAUD Rate for serial communications
+#define BAUD 115200
 
 ////////////////////
 // Analogue inputs (optional)
@@ -93,11 +92,13 @@
 ////////////////////
 // PID Control Options
 #define PID_CONTROL
-#define PID_CHAN 2 // physical channel for PID input (corresponding to thermocouple inputs T1-T4)
+#define PID_CHAN 1 // physical channel for PID input (corresponding to thermocouple inputs T1-T4)
 #define CT 1000 // default cycle time for the PID, in ms
 #define PRO 5.00 // initial proportional parameter
 #define INT 0.15 // initial integral parameter
 #define DER 0.00 // initial derivative parameter
+
+//#define POM // enable Proportional on Measurement (NOTE: PID PARAMETERS WILL REQUIRE CHANGING). Disable for Proportional on Error.
 
 #define NUM_PROFILES 2 // number of profiles stored in EEPROM
 
@@ -106,17 +107,16 @@
 #define MIN_OT1 0 // Set output % for lower limit for OT1.  0% power will always be available
 #define MAX_OT1 100 // Set output % for upper limit for OT1
 
-#define MIN_OT2 10 // Set output % for lower limit for OT2.  0% power will always be available
+#define MIN_OT2 0 // Set output % for lower limit for OT2.  0% power will always be available
 #define MAX_OT2 100 // Set output % for upper limit for OT2
 
 #define MIN_IO3 0 // Set output % for lower limit for IO3.  0% power will always be available
 #define MAX_IO3 100  // Set output % for upper limit for IO3
 
 // cut power to Heater if fan duty is less than HTR_CUTOFF_FAN_VAL (to protect heater in air roaster). Set to 0 for no cutoff
-#define HTR_CUTOFF_FAN_VAL 0 // default
-//#define HTR_CUTOFF_FAN_VAL 10  //optional value
+#define HTR_CUTOFF_FAN_VAL 0
 
-#define FAN_AUTO_COOL 13 // Set fan output duty for auto cool when using PID;STOP command
+#define FAN_AUTO_COOL 100 // Set fan output duty for auto cool when using PID;STOP command
 
 ////////////////////
 // Command Echo
@@ -144,7 +144,7 @@
 // Calibration Values
 // default values for systems without calibration values stored in EEPROM
 #define CAL_GAIN 1.00 // you may substitute a known gain adjustment from calibration
-#define UV_OFFSET 0 // you may subsitute a known value for uV offset in ADC
+#define UV_OFFSET 0 // you may substitute a known value for uV offset in ADC
 #define AMB_OFFSET 0.0 // you may substitute a known value for amb temp offset (Celsius)
 
 ////////////////////
@@ -163,7 +163,7 @@
 //#define TIME_BASE 3 // approx. 3.9kHz
 
 ////////////////////
-// Debuging Options
+// Debugging Options
 // Useful for debugging only -- leave inactive otherwise
 //#define MEMORY_CHK
 
@@ -207,7 +207,7 @@
 #endif
 
 ////////////////////
-// Heater and Fan Duty Dispay Options
+// Heater and Fan Duty Display Options
 // These should NOT need adjusting.  They control what gets streamed back to via serial
 // These have no effect on operation and only affect what gets displayed/logged by Artisan
 #ifdef PHASE_ANGLE_CONTROL
@@ -218,14 +218,14 @@
   #endif
   #define FAN_DUTY levelOT2 // Fan output is assumed levelOT2 for phase angle control mode on OT2
 #else // PWM Mode
-  #define HEATER_DUTY levelOT1 // Heater output is assumed levelOT1 with heatre connected to OT1
+  #define HEATER_DUTY levelOT1 // Heater output is assumed levelOT1 with heater connected to OT1
   #define FAN_DUTY levelIO3 // Fan output is assumed levelIO3 for PWM control of fan connected to IO3
 #endif
 
 ////////////////////
 // Phase Angle Control Options
 // When using PHASE_ANGLE_CONTROL option
-// Selct load type being switched by phase angle control (has no effect on the ICC output)
+// Select load type being switched by phase angle control (has no effect on the ICC output)
 #define TRIAC_MOTOR // inductive loads need a longer pulse width to fire at 100%
 //#define TRIAC_HEATER // enable this for resistive loads, like heaters
 

@@ -145,8 +145,14 @@
 // 20180529 Added support for another 2 buttons for menu navigation
 //          Modified compile directives to allow IO3 PWM control and DCFAN command in CONFIG_PAC2 mode
 //          Minor bug fix in logger()
+// 20180831 Added support for PID_V1.2 library with Proportional on Measurement mode option
+//          Added flag in user.h to set default PID mode
+//          Modified PID tuning serial command. Now accepts PID;T_POM;p;i;d to set P_ON_M mode. PID;T;p;i;d now switches to P_ON_E mode.
+//          Added new PID;LIMIT;min;max serial command to allow the PID output limits to be set.
+//          Cleaned code to remove compile warnings
+// 20180913 Version 6_6 released
       
-#define BANNER_ARTISAN "aArtisanQ_PID 6_5"
+#define BANNER_ARTISAN "aArtisanQ_PID 6_6"
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -235,7 +241,11 @@ uint32_t checktime;
   double Setpoint, Input, Output, SV; // SV is for roasting software override of Setpoint
 
   //Specify the links and initial tuning parameters
-  PID myPID(&Input, &Output, &Setpoint,2,5,1, DIRECT);
+  #ifdef POM
+  PID myPID(&Input, &Output, &Setpoint,2,5,1,P_ON_M,DIRECT);
+  #else
+  PID myPID(&Input, &Output, &Setpoint,2,5,1,P_ON_E,DIRECT);
+  #endif
   uint8_t pid_chan = PID_CHAN; // identify PV and set default value from user.h
 
   int profile_number; // number of the profile for PID control
@@ -1435,7 +1445,11 @@ void setup()
   myPID.SetOutputLimits(MIN_OT1, MAX_OT1); // set output limits to user defined limits
 #endif
   myPID.SetControllerDirection(DIRECT); // set PID to be direct acting mode. Increase in output leads to increase in input
-  myPID.SetTunings(PRO, INT, DER); // set initial PID tuning values
+#ifdef POM
+  myPID.SetTunings(PRO, INT, DER, P_ON_M); // set initial PID tuning values and set Proportional on Measurement mode
+#else
+  myPID.SetTunings(PRO, INT, DER, P_ON_E); // set initial PID tuning values and set Proportional on Error mode
+#endif
   myPID.SetMode(MANUAL); // start with PID control off
 #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID )
   profile_number = 1; // set default profile, 0 is for override by roasting software
