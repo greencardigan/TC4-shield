@@ -151,8 +151,11 @@
 //          Added new PID;LIMIT;min;max serial command to allow the PID output limits to be set.
 //          Cleaned code to remove compile warnings
 // 20180913 Version 6_6 released
+// 20181130 Added compile directives to allow CONFIG_PAC3 mode to compile
+//          Minor changes to user.h defaults
+//          Version 6_7 released
       
-#define BANNER_ARTISAN "aArtisanQ_PID 6_6"
+#define BANNER_ARTISAN "aArtisanQ_PID 6_7"
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -1101,6 +1104,7 @@ void outOT2() { // update output for OT2
 
 }
 
+#if ( !defined( CONFIG_PAC3 ) )  // completely disable outIO3 if using CONFIG_PAC3 mode (uses IO3 for interrupt)
 // ----------------------------------
 void outIO3() { // update output for IO3
 
@@ -1127,7 +1131,7 @@ void outIO3() { // update output for IO3
   pwmio3.Out( round(pow) );
 #endif // PWM Mode, fan on IO3
 }
-
+#endif
 
 // ----------------------------------
 #if not ( defined ROASTLOGGER || defined ARTISAN || defined ANDROID ) // Stops buttons being read unless in standalone mode. Added to fix crash (due to low memory?).
