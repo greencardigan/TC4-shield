@@ -238,6 +238,7 @@ uint32_t checktime;
 #endif
 
 #ifdef PID_CONTROL
+  void doPID();
   #include <PID_v1.h>
 
   //Define PID Variables we'll be connecting to
@@ -384,6 +385,9 @@ void checkSerial() {
 void checkStatus( uint32_t ms ) { // this is an active delay loop
   uint32_t tod = millis();
   while( millis() < tod + ms ) {
+    #ifdef PID_CONTROL
+    doPID();
+    #endif
     checkSerial();
     #if ( !defined( PHASE_ANGLE_CONTROL ) ) || ( INT_PIN != 3 ) // disable when PAC active and pin 3 reads the ZCD
     dcfan.slew_fan(); // keep the fan smoothly increasing in speed
@@ -1303,6 +1307,34 @@ int reading;
 
 
 // ------------------------------------------------------------------------
+// doPID() - do PID calculations
+//
+#ifdef PID_CONTROL
+  void doPID(){
+    if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode calc new output and assign to OT1
+      updateSetpoint(); // read profile data from EEPROM and calculate new setpoint
+      uint8_t k = pid_chan;  // k = physical channel
+      if( k != 0 ) --k; // adjust for 0-based array index
+      // Input is the SV for the PID algorithm
+      Input = convertUnits( T[k] );
+      myPID.Compute();  // do PID calcs
+#ifdef IO3_HTR_PAC
+      levelIO3 = Output; // update levelOT1 based on PID optput
+      outIO3();
+#else
+      levelOT1 = Output; // update levelOT1 based on PID optput
+      outOT1();
+#endif
+      #ifdef ACKS_ON
+      Serial.print(F("# PID input = " )); Serial.print( Input ); Serial.print(F("  "));
+      Serial.print(F("# PID output = " )); Serial.println( levelOT1 );
+      #endif
+    }
+  }
+#endif
+
+
+// ------------------------------------------------------------------------
 // MAIN
 //
 void setup()
@@ -1524,25 +1556,7 @@ void loop()
   
   // Run PID if defined and active
   #ifdef PID_CONTROL
-    if( myPID.GetMode() != MANUAL ) { // If PID in AUTOMATIC mode calc new output and assign to OT1
-      updateSetpoint(); // read profile data from EEPROM and calculate new setpoint
-      uint8_t k = pid_chan;  // k = physical channel
-      if( k != 0 ) --k; // adjust for 0-based array index
-      // Input is the SV for the PID algorithm
-      Input = convertUnits( T[k] );
-      myPID.Compute();  // do PID calcs
-#ifdef IO3_HTR_PAC
-      levelIO3 = Output; // update levelOT1 based on PID optput
-      outIO3();
-#else
-      levelOT1 = Output; // update levelOT1 based on PID optput
-      outOT1();
-#endif
-      #ifdef ACKS_ON
-      Serial.print(F("# PID input = " )); Serial.print( Input ); Serial.print(F("  "));
-      Serial.print(F("# PID output = " )); Serial.println( levelOT1 );
-      #endif
-    }
+    doPID();
   #endif
 
   // Update LCD if defined
@@ -1579,4 +1593,3 @@ void loop()
   next_loop_time = next_loop_time + looptime; // add time until next loop
   counter = counter + ( looptime / 1000 ); if( counter > 3599 ) counter = 3599;
 }
-
