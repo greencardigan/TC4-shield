@@ -254,4 +254,3 @@ class fanCmnd : public CmndBase {
 };
 
 #endif
-

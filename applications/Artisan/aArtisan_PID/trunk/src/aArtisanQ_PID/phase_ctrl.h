@@ -96,4 +96,3 @@ boolean ACdetect();
 
 #endif // PHASE_ANGLE_CONTROL
 #endif //_phase_ctrl_h
-

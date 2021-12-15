@@ -154,8 +154,12 @@
 // 20181130 Added compile directives to allow CONFIG_PAC3 mode to compile
 //          Minor changes to user.h defaults
 //          Version 6_7 released
+// 20210108 Added new CONFIG_PAC2_IO3FAN mode wich uses ICC heater control on OT1 and PWM fan control on IO3
+// 20211215 Bug fix in PID;P;x command
+//          Bug fix for MAX_OT2 limit check in OT2 command
+//          Reassigned RS pin for parallel LCD connection from pin 2 to pin 5 to eliminate conflict between LCD and IO2
       
-#define BANNER_ARTISAN "aArtisanQ_PID 6_7"
+#define BANNER_ARTISAN "aArtisanQ_PID 6_8"
 
 // this library included with the arduino distribution
 #include <Wire.h>
@@ -317,7 +321,7 @@ TC_TYPE4 tc4;
 
 #ifdef LCD_PARALLEL
   #define BACKLIGHT ;
-  #define RS 2
+  #define RS 5
   #define ENABLE 4
   #define D4 7
   #define D5 8
@@ -813,17 +817,23 @@ void updateLCD() {
 int32_t getAnalogValue( uint8_t port ) {
   int32_t mod, trial, min_anlg1, max_anlg1, min_anlg2, max_anlg2;
 #ifdef PHASE_ANGLE_CONTROL
-#ifdef IO3_HTR_PAC
-  min_anlg1 = MIN_IO3;
-  max_anlg1 = MAX_IO3;
-  min_anlg2 = MIN_OT2;
-  max_anlg2 = MAX_OT2;
-#else
-  min_anlg1 = MIN_OT1;
-  max_anlg1 = MAX_OT1;
-  min_anlg2 = MIN_OT2;
-  max_anlg2 = MAX_OT2;
-#endif
+  #ifdef IO3_HTR_PAC
+    min_anlg1 = MIN_IO3;
+    max_anlg1 = MAX_IO3;
+    min_anlg2 = MIN_OT2;
+    max_anlg2 = MAX_OT2;
+  #endif
+  #ifdef CONFIG_PAC2_IO3FAN
+    min_anlg1 = MIN_OT1;
+    max_anlg1 = MAX_OT1;
+    min_anlg2 = MIN_IO3;
+    max_anlg2 = MAX_IO3;
+  #else
+    min_anlg1 = MIN_OT1;
+    max_anlg1 = MAX_OT1;
+    min_anlg2 = MIN_OT2;
+    max_anlg2 = MAX_OT2;
+  #endif
 #else // PWM Mode
   min_anlg1 = MIN_OT1;
   max_anlg1 = MAX_OT1;
@@ -896,8 +906,13 @@ void readAnlg2() { // read analog port 2 and adjust OT2 output
     analogue2_changed = true;
     old_reading_anlg2 = reading; // save reading for next time
 #ifdef PHASE_ANGLE_CONTROL
+  #ifdef CONFIG_PAC2_IO3FAN
+    levelIO3 = reading;
+    outIO3(); // update fan output on IO3    
+  #else
     levelOT2 = reading;
     outOT2(); // update fan output on OT2
+  #endif
 #else // PWM Mode
     levelIO3 = reading;
     outIO3(); // update fan output on IO3
@@ -950,6 +965,8 @@ void updateSetpoint() { //read profile data from EEPROM and calculate new setpoi
 
 
 void setProfile() { // set profile pointer and read initial profile data
+
+  profile_number_new = profile_number; // sync profile_number_new in case PID;P;x command was recieved
 
   if( profile_number > 0 ) {
     profile_ptr = 1024 + ( 400 * ( profile_number - 1 ) ) + 4; // 1024 = start of profile storage in EEPROM. 400 = size of each profile. 4 = location of profile C or F data
@@ -1060,16 +1077,25 @@ void checkButtons() { // take action if a button is pressed
 void outOT1() { // update output for OT1
   uint8_t new_levelot1;
 #ifdef PHASE_ANGLE_CONTROL
-#ifdef IO3_HTR_PAC // OT1 not cutoff by fan duty in IO3_HTR_PAC mode
-  new_levelot1 = levelOT1;
-#else
-  if ( levelOT2 < HTR_CUTOFF_FAN_VAL ) {
-    new_levelot1 = 0;
-  }
-  else {
+  #ifdef IO3_HTR_PAC // OT1 not cutoff by fan duty in IO3_HTR_PAC mode
     new_levelot1 = levelOT1;
-  }
-#endif
+  #else
+    #ifdef CONFIG_PAC2_IO3FAN
+      if ( levelIO3 < HTR_CUTOFF_FAN_VAL ) {
+        new_levelot1 = 0;
+      }
+      else {
+        new_levelot1 = levelOT1;
+      }
+    #else
+      if ( levelOT2 < HTR_CUTOFF_FAN_VAL ) {
+        new_levelot1 = 0;
+      }
+      else {
+        new_levelot1 = levelOT1;
+      }
+    #endif
+  #endif
   output_level_icc( new_levelot1 );
 #else // PWM Mode
   if ( levelIO3 < HTR_CUTOFF_FAN_VAL ) {
@@ -1089,6 +1115,7 @@ void outOT2() { // update output for OT2
 #ifdef PHASE_ANGLE_CONTROL
 #ifdef IO3_HTR_PAC
   outIO3(); // update IO3 output to cut or reinstate power to heater if required
+
 #else
   outOT1(); // update OT1 output to cut or reinstate power to heater if required
 #endif
@@ -1113,13 +1140,16 @@ void outIO3() { // update output for IO3
 #ifdef PHASE_ANGLE_CONTROL
   uint8_t new_levelio3;
   new_levelio3 = levelIO3;
-#ifdef IO3_HTR_PAC
-  if( levelOT2 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater on IO3
-    new_levelio3 = 0;
-  }
-#endif // IO3_HTR_PAC
+  #ifdef IO3_HTR_PAC
+    if( levelOT2 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater on IO3
+      new_levelio3 = 0;
+    }
+  #endif // IO3_HTR_PAC
   pow = 2.55 * new_levelio3;
   pwmio3.Out( round(pow) );
+  #ifdef CONFIG_PAC2_IO3FAN
+    outOT1(); // update OT1 output to cut or reinstate power to heater if required
+  #endif
 #else // PWM Mode, fan on IO3
   if( levelIO3 < HTR_CUTOFF_FAN_VAL ) { // if levelIO3 < cutoff value then turn off heater on OT1
     ssr.Out( 0, levelOT2 );
@@ -1131,6 +1161,7 @@ void outIO3() { // update output for IO3
   pwmio3.Out( round(pow) );
 #endif // PWM Mode, fan on IO3
 }
+
 #endif
 
 // ----------------------------------
@@ -1535,8 +1566,13 @@ void loop()
       levelIO3 = Output; // update levelOT1 based on PID optput
       outIO3();
 #else
-      levelOT1 = Output; // update levelOT1 based on PID optput
-      outOT1();
+      #ifdef CONFIG_PAC2_IO3FAN
+        levelOT1 = Output; // update levelOT1 based on PID optput
+        outIO3();        
+      #else
+        levelOT1 = Output; // update levelOT1 based on PID optput
+        outOT1();
+      #endif
 #endif
       #ifdef ACKS_ON
       Serial.print(F("# PID input = " )); Serial.print( Input ); Serial.print(F("  "));
@@ -1579,4 +1615,3 @@ void loop()
   next_loop_time = next_loop_time + looptime; // add time until next loop
   counter = counter + ( looptime / 1000 ); if( counter > 3599 ) counter = 3599;
 }
-

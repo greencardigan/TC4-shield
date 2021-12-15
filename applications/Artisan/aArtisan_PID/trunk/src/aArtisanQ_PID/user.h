@@ -21,9 +21,10 @@
 ////////////////////
 // Base configurations (leave only one uncommented)
 //#define CONFIG_PWM // slow PWM on OT1 (heater); fast PWM output (3.922kHz) on IO3 (DC fan); ZCD not required
-#define CONFIG_PAC2 // phase angle control on OT1 (heater) and OT2 (fan); IO2 used to read the ZCD
-//#define CONFIG_PAC2_IO3HTR // phase angle control on OT1 (heater) and OT2 (fan); IO2 reads the req'd ZCD; IO3 reserved for fast PWM output for heater
-//#define CONFIG_PAC3 // phase angle control on OT1 (heater) and OT2 (fan); IO3 reads the req'd ZCD; IO3 not available for output
+#define CONFIG_PAC2 // integral cycle control on OT1 (heater) and phase angle control on OT2 (fan); ZCD required on IO2
+//#define CONFIG_PAC2_IO3HTR // fast PWM on IO3 (heater) and phase angle control on OT2 (fan); ZCD required on IO2
+//#define CONFIG_PAC2_IO3FAN // integral cycle control on OT1 (heater) and fast PWM control of IO3 (fan); ZCD required on IO2
+//#define CONFIG_PAC3 // integral cycle control on OT1 (heater) and phase angle control on OT2 (fan); ZCD required on IO3
 
 ////////////////////
 // Temperature Unit
@@ -38,7 +39,7 @@
 
 #define LCD_4x20 // if using a 4x20 LCD instead of a 2x16
 
-#define LCD_I2C_ADDRESS 0x27 // adjust I2C address for LCD if required. Try 0x3F, 0x20. Not used for LCDapter.
+#define LCD_I2C_ADDRESS 0x27 // adjust I2C address for LCD if required. Try 0x3F, 0x20, 0x27. Not used for LCDapter.
 
 
 /////////////////////
@@ -185,23 +186,30 @@
 #ifdef CONFIG_PWM // nothing special to configure -- this is the default
 #endif
 
-#ifdef CONFIG_PAC2_IO3HTR
-  #define PHASE_ANGLE_CONTROL // phase angle control for OT2(fan) and ICC control for OT1(heater)
+#ifdef CONFIG_PAC2 // integral cycle control on OT1 (heater) and phase angle control on OT2 (fan); ZCD required on IO2
+  #define PHASE_ANGLE_CONTROL
+  // zero cross detector (ZCD) connected to I/O2
+  #define EXT_INT 0 // interrupt 0
+  #define INT_PIN 2 // pin 2
+#endif
+
+#ifdef CONFIG_PAC2_IO3HTR // fast PWM on IO3 (heater) and phase angle control on OT2 (fan); ZCD required on IO2
+  #define PHASE_ANGLE_CONTROL
   #define IO3_HTR_PAC // use PWM (3.922kHz) out on IO3 for heater in PHASE ANGLE CONTROL mode
   // zero cross detector (ZCD) connected to I/O2
   #define EXT_INT 0 // interrupt 0
   #define INT_PIN 2 // pin 2
 #endif
 
-#ifdef CONFIG_PAC2
-  #define PHASE_ANGLE_CONTROL // phase angle control for OT2(fan) and ICC control for OT1(heater)
+#ifdef CONFIG_PAC2_IO3FAN // integral cycle control on OT1 (heater) and fast PWM control of IO3 (fan); ZCD required on IO2
+  #define PHASE_ANGLE_CONTROL
   // zero cross detector (ZCD) connected to I/O2
   #define EXT_INT 0 // interrupt 0
   #define INT_PIN 2 // pin 2
 #endif
 
-#ifdef CONFIG_PAC3
-  #define PHASE_ANGLE_CONTROL // phase angle control for OT2(fan) and ICC control for OT1(heater)
+#ifdef CONFIG_PAC3 // integral cycle control on OT1 (heater) and phase angle control on OT2 (fan); ZCD required on IO3
+  #define PHASE_ANGLE_CONTROL
   // zero cross detector (ZCD) connected to I/O3
   #define EXT_INT 1 // interrupt 1
   #define INT_PIN 3
@@ -217,7 +225,11 @@
   #else // If using ICC control of a heater connected to OT1
     #define HEATER_DUTY levelOT1 // Heater output is assumed levelOT1 with heater connected to OT1
   #endif
-  #define FAN_DUTY levelOT2 // Fan output is assumed levelOT2 for phase angle control mode on OT2
+  #ifdef CONFIG_PAC2_IO3FAN
+    #define FAN_DUTY levelIO3 // ICC on OT1 for heater and PWM on IO3 for Fan
+  #else
+    #define FAN_DUTY levelOT2 // Fan output is assumed levelOT2 for phase angle control mode on OT2
+  #endif
 #else // PWM Mode
   #define HEATER_DUTY levelOT1 // Heater output is assumed levelOT1 with heater connected to OT1
   #define FAN_DUTY levelIO3 // Fan output is assumed levelIO3 for PWM control of fan connected to IO3

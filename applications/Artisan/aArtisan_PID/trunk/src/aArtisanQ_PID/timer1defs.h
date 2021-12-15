@@ -25,5 +25,3 @@
 #define TCCR1C_FOC1B 6 // force output compare channel B
 
 #endif
-
-
