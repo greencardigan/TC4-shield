@@ -512,7 +512,7 @@ void pidCmnd::pidOFF() {
 }
 
 // execute the PID command
-// PID;ON\n ;OFF\n ;TIME\n ;Pddd\n ;T;ddd;ddd;ddd;mode\n
+// PID;ON\n ;OFF\n ;TIME\n ;P;x\n ;T(or T_POM);ppp;iii;ddd\n
 
 boolean pidCmnd::doCommand( CmndParser* pars ) {
   if( strcmp( keyword, pars->cmndName() ) == 0 ) {
@@ -579,9 +579,9 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
       #endif
       return true;
     }
-    else if( pars->paramStr(1)[0] == 'P' ) { // Select profile
+    else if( strcmp( pars->paramStr(1), "P" ) == 0 ) { // Select profile
       #ifdef PID_CONTROL
-      profile_number = atoi( pars->paramStr(1));
+      profile_number = atoi( pars->paramStr(2));
       setProfile();
       #ifdef ACKS_ON
       Serial.print(F("# Profile number "));
@@ -611,7 +611,7 @@ boolean pidCmnd::doCommand( CmndParser* pars ) {
     else if( strcmp( pars->paramStr(1), "SV" ) == 0 ) {
       SV = atof( pars->paramStr(2) );
       #ifdef ACKS_ON
-      Serial.print(F("# PID setpoint = ")); Serial.println(Setpoint);
+      Serial.print(F("# PID setpoint = ")); Serial.println(SV);
       #endif
       return true;
     }
