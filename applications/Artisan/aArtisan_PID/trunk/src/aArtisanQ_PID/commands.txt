@@ -131,7 +131,7 @@ OT2,up and OT2,down
 Adjusts OT2 duty up or down by DUTY_STEP increment as defined in user.h.
 No response from TC4 device.
 
-IO3,duty (not available in PHASE_ANGLE_CONTROL mode)
+IO3,duty (not available in CONFIG_PAC3 mode)
 -------
 where duty = 0 to 100 (percent output)
 Changes the PWM duty cycle on IO3 to duty.
@@ -141,7 +141,7 @@ SOME HOTTOP ROASTERS, SO USERS ARE ADVISED TO USE THE DCFAN COMMAND
 INSTEAD.
 No response from TC4 device.
 
-IO3,up and IO3,down (not available in PHASE_ANGLE_CONTROL mode)
+IO3,up and IO3,down (not available in CONFIG_PAC3 mode)
 -------------------
 Adjusts IO3 duty up or down by DUTY_STEP increment as defined in user.h.
 No response from TC4 device.
