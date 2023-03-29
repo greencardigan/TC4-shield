@@ -375,6 +375,8 @@ boolean io3Cmnd::doCommand( CmndParser* pars ) {
       uint8_t len = strlen( pars->paramStr(1) );
       if( len > 0 ) {
         levelIO3 = atoi( pars->paramStr(1) );
+        if( levelIO3 > MAX_IO3 ) levelIO3 = MAX_IO3; // don't allow IO3 to exceed maximum
+        if( levelIO3 < MIN_IO3 & levelIO3 != 0 ) levelIO3 = MIN_IO3; // don't allow to set less than minimum unless setting to zero.
           outIO3();
         #ifdef ACKS_ON
         Serial.print(F("# IO3 level set to ")); Serial.println( levelIO3 );

@@ -160,6 +160,7 @@
 //          Reassigned RS pin for parallel LCD connection from pin 2 to pin 5 to eliminate conflict between LCD and IO2
 // 20220225 Changed PID profile selection command format from PID,Px to PID,P,x
 //          Bug fixes in PID,SV and PID,P,x commands
+// 20230328 Bug fix in IO3;xxx command. MIN_IO3 and MAX_IO3 checks added.
       
 #define BANNER_ARTISAN "aArtisanQ_PID 6_8"
 
