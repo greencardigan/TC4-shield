@@ -161,6 +161,8 @@
 // 20220225 Changed PID profile selection command format from PID,Px to PID,P,x
 //          Bug fixes in PID,SV and PID,P,x commands
 // 20230328 Bug fix in IO3;xxx command. MIN_IO3 and MAX_IO3 checks added.
+// 20241216 Bug fix for thermocouple calibration
+//          Version 6_8 release
       
 #define BANNER_ARTISAN "aArtisanQ_PID 6_8"
 
@@ -1379,16 +1381,13 @@ void setup()
   Serial.println(freeMemory());
 #endif
 
-  adc.setCal( CAL_GAIN, UV_OFFSET );
-  amb.setOffset( AMB_OFFSET );
-
   // read calibration and identification data from eeprom
   if( readCalBlock( eeprom, caldata ) ) {
     adc.setCal( caldata.cal_gain, caldata.cal_offset );
     amb.setOffset( caldata.K_offset );
   }
   else { // if there was a problem with EEPROM read, then use default values
-    adc.setCal( CAL_GAIN, UV_OFFSET );
+    adc.setCal( CALIBRATION_GAIN, UV_OFFSET );
     amb.setOffset( AMB_OFFSET );
   }   
 
