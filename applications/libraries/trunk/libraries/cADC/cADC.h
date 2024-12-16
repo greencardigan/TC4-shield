@@ -116,14 +116,14 @@ class cADC {
   cADC( uint8_t addr = A_ADC ); // constructor
   int32_t readuV(); // retrieves sample and converts to uV
   void nextConversion( uint8_t chan );  // requests the next conversion
-  void setCal( float gaincal, int8_t offs ); // sets calibration gain/offset for 50000 uV and 0 uV
+  void setCal( float gaincal, int16_t offs ); // sets calibration gain/offset for 50000 uV and 0 uV
   void setCfg( uint8_t resolution = ADC_BITS_18, uint8_t gain = ADC_GAIN_8, uint8_t conversion = ADC_CONV_1SHOT );
   uint16_t getConvTime(); // returns time required for a conversion
  protected:
   uint8_t cfg; // resolution, gain, and conversion mode settings
   uint8_t a_adc;
   float cal_gain; // = calibration factor minus 1.0000
-  int8_t cal_offset;
+  int16_t cal_offset;
   uint16_t convTime;  // milliseconds
 //  float xLSB;  // microvolt value of LSB
   // LSB uV = 1,000 * 2^12 / 2^n, where n = ADC resolution bits

@@ -119,7 +119,7 @@ uint16_t cADC::getConvTime() {
 }
 
 // --------------------------------------------------setCal
-void cADC::setCal( float gain, int8_t offs ) {
+void cADC::setCal( float gain, int16_t offs ) {
   cal_gain = gain - 1.0;  // to reduce loss of significance
   cal_offset = offs;
 };
